@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Estado: Item seleccionado/con foco (CRÍTICO para TV) -->
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#3B82F6" />
+            <stroke 
+                android:width="3dp" 
+                android:color="#60A5FA" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    
+    <!-- Estado: Item presionado -->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#2563EB" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    
+    <!-- Estado: Normal (sin foco) -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+</selector>

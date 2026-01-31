@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F172A"
+    android:padding="24dp"
+    tools:context=".MainActivity">
+
+    <!-- Título de la aplicación -->
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="OpenContainer-TV"
+        android:textColor="#F1F5F9"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Botón para instalar APK -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnInstallApk"
+        android:layout_width="wrap_content"
+        android:layout_height="56dp"
+        android:text="+ Instalar APK"
+        android:textSize="16sp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:nextFocusDown="@id/rvVirtualApps"
+        app:cornerRadius="8dp"
+        app:icon="@android:drawable/ic_input_add"
+        app:iconGravity="start"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Grilla de aplicaciones virtuales -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvVirtualApps"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="24dp"
+        android:clipToPadding="false"
+        android:nextFocusUp="@id/btnInstallApk"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        tools:listitem="@layout/item_virtual_app" />
+
+    <!-- Mensaje cuando no hay apps -->
+    <LinearLayout
+        android:id="@+id/layoutEmptyState"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:alpha="0.3"
+            android:src="@android:drawable/ic_menu_gallery"
+            android:tint="#94A3B8" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="No hay aplicaciones instaladas"
+            android:textColor="#94A3B8"
+            android:textSize="18sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Presiona '+' para instalar APKs"
+            android:textColor="#64748B"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- ProgressBar para operaciones en curso -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
