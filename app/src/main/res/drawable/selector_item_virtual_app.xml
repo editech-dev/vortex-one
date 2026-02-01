@@ -1,38 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     
-    <!-- Estado cuando el item tiene foco (RESALTADO MUY VISIBLE) -->
+    <!-- Estado cuando el item tiene foco - SOLO BORDE, SIN FONDO -->
     <item android:state_focused="true">
-        <layer-list>
-            <!-- Borde exterior AMARILLO BRILLANTE -->
-            <item>
-                <shape android:shape="rectangle">
-                    <solid android:color="#FCD34D"/>
-                    <corners android:radius="12dp"/>
-                </shape>
-            </item>
-            <!-- Fondo interior con padding para crear borde grueso -->
-            <item android:top="6dp" android:left="6dp" android:right="6dp" android:bottom="6dp">
-                <shape android:shape="rectangle">
-                    <solid android:color="#3B82F6"/>
-                    <corners android:radius="8dp"/>
-                </shape>
-            </item>
-        </layer-list>
+        <shape android:shape="rectangle">
+            <stroke 
+                android:width="6dp" 
+                android:color="#FCD34D"/>
+            <corners android:radius="12dp"/>
+            <!-- NO solid = transparente, se ve el contenido -->
+        </shape>
     </item>
     
-    <!-- Estado cuando está presionado -->
+    <!-- Estado cuando está presionado - borde azul -->
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
-            <solid android:color="#2563EB"/>
+            <stroke 
+                android:width="6dp" 
+                android:color="#3B82F6"/>
             <corners android:radius="12dp"/>
         </shape>
     </item>
     
-    <!-- Estado normal (sin foco) - fondo oscuro -->
+    <!-- Estado normal - completamente transparente -->
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#1E293B"/>
+            <solid android:color="#00000000"/>
             <corners android:radius="12dp"/>
         </shape>
     </item>

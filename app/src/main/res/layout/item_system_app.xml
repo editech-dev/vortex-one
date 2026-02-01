@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardSystemApp"
     android:layout_width="180dp"
     android:layout_height="200dp"
     android:layout_margin="8dp"
-    android:background="@drawable/selector_item_virtual_app"
+    android:foreground="@drawable/selector_item_virtual_app"
     android:focusable="true"
     android:focusableInTouchMode="true"
     app:cardBackgroundColor="#1E293B"
