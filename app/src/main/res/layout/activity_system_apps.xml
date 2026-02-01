@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0F172A"
+    android:padding="32dp">
+
+    <!-- Título -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Seleccionar App para Virtualizar"
+        android:textColor="#F1F5F9"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Status text -->
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cargando..."
+        android:textColor="#94A3B8"
+        android:textSize="16sp"
+        android:layout_marginBottom="24dp" />
+
+    <!-- RecyclerView para apps del sistema -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSystemApps"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:padding="8dp"
+        android:visibility="gone" />
+
+    <!-- Empty state -->
+    <LinearLayout
+        android:id="@+id/layoutEmptyState"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📱"
+            android:textSize="64sp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No se encontraron aplicaciones"
+            android:textColor="#64748B"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <!-- Progress bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminateTint="#60A5FA"
+        android:visibility="visible" />
+
+    <!-- Botón cancelar -->
+    <Button
+        android:id="@+id/btnCancel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cancelar"
+        android:textColor="#F1F5F9"
+        android:backgroundTint="#475569"
+        android:paddingHorizontal="32dp"
+        android:paddingVertical="12dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="16dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true" />
+
+</LinearLayout>

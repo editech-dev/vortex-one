@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.MediaService" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Base application theme - MaterialComponents required for MaterialButton -->
+    <style name="Theme.MediaService" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">#3B82F6</item>
+        <item name="colorPrimaryVariant">#2563EB</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">#10B981</item>
+        <item name="colorSecondaryVariant">#059669</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">@color/black</item>
+    </style>
 </resources>

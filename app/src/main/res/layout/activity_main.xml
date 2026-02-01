@@ -32,8 +32,28 @@
         android:focusable="true"
         android:focusableInTouchMode="true"
         android:nextFocusDown="@id/rvVirtualApps"
+        android:nextFocusRight="@id/btnVirtualizeSystemApp"
         app:cornerRadius="8dp"
         app:icon="@android:drawable/ic_input_add"
+        app:iconGravity="start"
+        app:layout_constraintEnd_toStartOf="@id/btnVirtualizeSystemApp"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Botón NUEVO: Virtualizar App del Sistema (PARALLEL SPACE) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnVirtualizeSystemApp"
+        android:layout_width="wrap_content"
+        android:layout_height="56dp"
+        android:text="📱 Apps del Sistema"
+        android:textSize="16sp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:nextFocusDown="@id/rvVirtualApps"
+        android:nextFocusLeft="@id/btnInstallApk"
+        android:layout_marginStart="16dp"
+        app:backgroundTint="#10B981"
+        app:cornerRadius="8dp"
+        app:icon="@android:drawable/ic_menu_view"
         app:iconGravity="start"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

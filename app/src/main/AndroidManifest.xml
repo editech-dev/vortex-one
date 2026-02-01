@@ -48,6 +48,12 @@
             android:exported="false"
             android:screenOrientation="landscape"
             android:theme="@style/Theme.MediaService" />
+        
+        <activity
+            android:name=".activities.SystemAppsActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.MediaService" />
     </application>
 
 </manifest>

@@ -10,6 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import com.editech.services.activities.FileScannerActivity
+import com.editech.services.activities.SystemAppsActivity
 import com.editech.services.adapters.VirtualAppsAdapter
 import com.editech.services.databinding.ActivityMainBinding
 import com.editech.services.models.VirtualApp
@@ -33,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     
     companion object {
         private const val USER_ID = 0 // ID de usuario virtual de BlackBox
+        private const val REQUEST_CODE_SELECT_SYSTEM_APP = 2002
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +64,10 @@ class MainActivity : AppCompatActivity() {
         binding.btnInstallApk.setOnClickListener {
             openFileScannerActivity()
         }
+        
+        binding.btnVirtualizeSystemApp.setOnClickListener {
+            openSystemAppsActivity()
+        }
     }
     
     private fun openFileScannerActivity() {
@@ -69,15 +75,31 @@ class MainActivity : AppCompatActivity() {
         startActivityForResult(intent, FileScannerActivity.REQUEST_CODE_SELECT_APK)
     }
     
+    private fun openSystemAppsActivity() {
+        val intent = Intent(this, SystemAppsActivity::class.java)
+        startActivityForResult(intent, REQUEST_CODE_SELECT_SYSTEM_APP)
+    }
+    
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         
+        // Handle APK file selection
         if (requestCode == FileScannerActivity.REQUEST_CODE_SELECT_APK && resultCode == Activity.RESULT_OK) {
             val apkPath = data?.getStringExtra(FileScannerActivity.EXTRA_APK_PATH)
             val apkName = data?.getStringExtra(FileScannerActivity.EXTRA_APK_NAME)
             
             if (apkPath != null) {
                 installApk(apkPath, apkName ?: "APK")
+            }
+        }
+        
+        // Handle system app selection for virtualization (PARALLEL SPACE feature)
+        if (requestCode == REQUEST_CODE_SELECT_SYSTEM_APP && resultCode == Activity.RESULT_OK) {
+            val appPath = data?.getStringExtra(SystemAppsActivity.EXTRA_SELECTED_APP_PATH)
+            val appName = data?.getStringExtra(SystemAppsActivity.EXTRA_SELECTED_APP_NAME)
+            
+            if (appPath != null && appName != null) {
+                virtualizeSystemApp(appPath, appName)
             }
         }
     }
@@ -237,6 +259,50 @@ class MainActivity : AppCompatActivity() {
                         this@MainActivity,
                         "Error al desinstalar: ${e.message}",
                         Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+    
+    /**
+     * Virtualiza una app del sistema dentro de BlackBox (PARALLEL SPACE feature)
+     * Permite ejecutar apps ya instaladas en el contenedor virtual
+     */
+    private fun virtualizeSystemApp(apkPath: String, appName: String) {
+        binding.progressBar.visibility = View.VISIBLE
+        Toast.makeText(this, "Virtualizando $appName...", Toast.LENGTH_SHORT).show()
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Instalar el APK del sistema en BlackBox (mismo proceso que installApk)
+                val result = BlackBoxStub.installPackageAsUser(apkPath, USER_ID)
+                
+                withContext(Dispatchers.Main) {
+                    binding.progressBar.visibility = View.GONE
+                    
+                    if (result.success) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "✓ $appName ahora corre virtualizado",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        loadVirtualApps() // Recargar lista
+                    } else {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "✗ Error: ${result.msg}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    binding.progressBar.visibility = View.GONE
+                    Toast.makeText(
+                        this@MainActivity,
+                        "✗ Error al virtualizar: ${e.message}",
+                        Toast.LENGTH_LONG
                     ).show()
                 }
             }
