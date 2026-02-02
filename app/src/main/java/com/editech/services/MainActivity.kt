@@ -111,34 +111,43 @@ class MainActivity : AppCompatActivity() {
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val result = BlackBoxCore.get().installPackageAsUser(java.io.File(apkPath), USER_ID)
+                // Step 1: Copy APK to app's private cache (guaranteed accessible location)
+                val originalFile = java.io.File(apkPath)
+                val safeDir = java.io.File(cacheDir, "safe_install")
+                if (!safeDir.exists()) safeDir.mkdirs()
+                val safeFile = java.io.File(safeDir, originalFile.name)
+                originalFile.copyTo(safeFile, overwrite = true)
+                
+                android.util.Log.d("MainActivity", "APK copied to safe location: ${safeFile.absolutePath}")
+                
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Preparando instalación...", Toast.LENGTH_SHORT).show()
+                }
+
+                // Step 2: Use BlackBox's standard File API (which uses FLAG_STORAGE internally)
+                // This ensures all executors (copy, lib extraction, registration) run properly
+                val result = BlackBoxCore.get().installPackageAsUser(safeFile, USER_ID)
+                
+                android.util.Log.d("MainActivity", "Install result: success=${result.success}, msg=${result.msg}")
+                
+                // Cleanup temp file
+                try { safeFile.delete() } catch (e: Exception) {}
                 
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
                     
                     if (result.success) {
-                        Toast.makeText(
-                            this@MainActivity,
-                            "✓ $apkName instalado correctamente",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        loadVirtualApps() // Recargar lista
+                        Toast.makeText(this@MainActivity, "✓ $apkName instalado correctamente", Toast.LENGTH_LONG).show()
+                        loadVirtualApps()
                     } else {
-                        Toast.makeText(
-                            this@MainActivity,
-                            "✗ Error al instalar: ${result.msg}",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        Toast.makeText(this@MainActivity, "✗ Error al instalar: ${result.msg}", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Install exception", e)
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
-                    Toast.makeText(
-                        this@MainActivity,
-                        "✗ Error: ${e.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(this@MainActivity, "✗ Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -152,7 +161,9 @@ class MainActivity : AppCompatActivity() {
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                android.util.Log.d("MainActivity", "loadVirtualApps: calling getInstalledApplications for USER_ID=$USER_ID")
                 val installedApps = BlackBoxCore.get().getInstalledApplications(0, USER_ID)
+                android.util.Log.d("MainActivity", "loadVirtualApps: got ${installedApps?.size ?: 0} apps")
                 val apps = mutableListOf<VirtualApp>()
                 
                 installedApps?.forEach { appInfo ->

@@ -33,7 +33,58 @@ class FileScannerActivity : AppCompatActivity() {
 
         setupRecyclerView()
         setupButtons()
-        scanForApks()
+        checkPermissionsAndScan()
+    }
+
+    private fun checkPermissionsAndScan() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            if (android.os.Environment.isExternalStorageManager()) {
+                scanForApks()
+            } else {
+                try {
+                    val intent = Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                    intent.addCategory("android.intent.category.DEFAULT")
+                    intent.data = android.net.Uri.parse("package:$packageName")
+                    startActivityForResult(intent, REQUEST_CODE_PERMISSION_STORAGE)
+                } catch (e: Exception) {
+                    val intent = Intent()
+                    intent.action = android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
+                    startActivityForResult(intent, REQUEST_CODE_PERMISSION_STORAGE)
+                }
+            }
+        } else {
+            if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                scanForApks()
+            } else {
+                requestPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE), REQUEST_CODE_PERMISSION_STORAGE)
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_PERMISSION_STORAGE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                scanForApks()
+            } else {
+                binding.tvStatus.text = "Permiso de almacenamiento denegado"
+                binding.layoutEmptyState.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_CODE_PERMISSION_STORAGE) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                if (android.os.Environment.isExternalStorageManager()) {
+                    scanForApks()
+                } else {
+                    binding.tvStatus.text = "Permiso de acceso a todos los archivos denegado"
+                    binding.layoutEmptyState.visibility = View.VISIBLE
+                }
+            }
+        }
     }
 
     private fun setupRecyclerView() {
@@ -140,5 +191,6 @@ class FileScannerActivity : AppCompatActivity() {
         const val EXTRA_APK_PATH = "apk_path"
         const val EXTRA_APK_NAME = "apk_name"
         const val REQUEST_CODE_SELECT_APK = 1001
+        const val REQUEST_CODE_PERMISSION_STORAGE = 1002
     }
 }
