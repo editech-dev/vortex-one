@@ -117,7 +117,7 @@ class MainActivity : AppCompatActivity() {
             val apkName = data?.getStringExtra(FileScannerActivity.EXTRA_APK_NAME)
             
             if (apkPath != null) {
-                installApk(apkPath, apkName ?: "APK")
+                showInstallWarningDialog(apkPath, apkName ?: "APK")
             }
         }
         
@@ -130,6 +130,20 @@ class MainActivity : AppCompatActivity() {
                 virtualizeSystemApp(packageName, appName)
             }
         }
+    }
+
+    /**
+     * Muestra una advertencia antes de instalar el APK sobre posibles incompatibilidades
+     */
+    private fun showInstallWarningDialog(apkPath: String, apkName: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Aviso de Compatibilidad")
+            .setMessage("La instalación directa de APKs puede no funcionar con todas las aplicaciones debido a protecciones o restricciones del desarrollador original.\n\nSi la instalación falla o la aplicación no se ejecuta correctamente, te recomendamos:\n\n1. Instalar este APK en tu dispositivo de forma normal (fuera de esta app).\n2. Regresar aquí y utilizar la opción 'System Apps' para clonarla.\n\n¿Deseas continuar con el intento de instalación directa?")
+            .setPositiveButton("Continuar") { _, _ ->
+                installApk(apkPath, apkName)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
     
     /**
