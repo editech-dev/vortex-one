@@ -34,28 +34,28 @@
             android:fontFamily="sans-serif-condensed" />
     </LinearLayout>
 
-    <!-- buttonsContainer: Added clipChildren="false" to allow scaling animation -->
+    <!-- Buttons Container -->
     <LinearLayout
         android:id="@+id/buttonsContainer"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:clipChildren="false"
         android:clipToPadding="false"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/headerContainer">
 
         <!-- Botón para instalar APK -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnInstallApk"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="52dp"
+            android:layout_weight="1"
             android:text="Install APK"
             android:textSize="14sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed"
             android:focusable="true"
-            android:focusableInTouchMode="true"
             android:nextFocusDown="@id/etSearch"
             android:nextFocusRight="@id/btnVirtualizeSystemApp"
             android:background="@drawable/btn_gradient_primary"
@@ -63,20 +63,20 @@
             android:stateListAnimator="@animator/scaler"
             app:cornerRadius="12dp"
             app:icon="@drawable/ic_download"
-            app:iconGravity="start"
-            android:layout_marginEnd="24dp" />
+            app:iconGravity="textStart"
+            android:layout_marginEnd="8dp" />
 
         <!-- Botón NUEVO: Virtualizar App del Sistema -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnVirtualizeSystemApp"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="52dp"
+            android:layout_weight="1"
             android:text="System Apps"
             android:textSize="14sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed"
             android:focusable="true"
-            android:focusableInTouchMode="true"
             android:nextFocusDown="@id/etSearch"
             android:nextFocusLeft="@id/btnInstallApk"
             android:background="@drawable/btn_gradient_secondary"
@@ -84,7 +84,8 @@
             android:stateListAnimator="@animator/scaler"
             app:cornerRadius="12dp"
             app:icon="@drawable/ic_apps_grid"
-            app:iconGravity="start" />
+            app:iconGravity="textStart"
+            android:layout_marginStart="8dp" />
     </LinearLayout>
 
     <!-- Search Bar -->
@@ -118,11 +119,22 @@
         android:layout_marginTop="16dp"
         android:clipToPadding="false"
         android:nextFocusUp="@id/etSearch"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/bannerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/etSearch"
         tools:listitem="@layout/item_virtual_app" />
+
+    <!-- Banner Ad Container -->
+    <RelativeLayout
+        android:id="@+id/bannerContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <!-- Mensaje cuando no hay apps -->
     <LinearLayout
@@ -132,7 +144,7 @@
         android:gravity="center"
         android:orientation="vertical"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/bannerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
