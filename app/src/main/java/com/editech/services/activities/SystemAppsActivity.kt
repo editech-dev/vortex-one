@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.editech.services.R
 
 /**
  * Actividad que muestra las apps instaladas en el sistema
@@ -46,7 +47,8 @@ class SystemAppsActivity : AppCompatActivity() {
         }
         
         binding.rvSystemApps.apply {
-            layoutManager = GridLayoutManager(this@SystemAppsActivity, 4)
+            val spanCount = resources.getInteger(R.integer.grid_span_count)
+            layoutManager = GridLayoutManager(this@SystemAppsActivity, spanCount)
             adapter = this@SystemAppsActivity.adapter
         }
     }

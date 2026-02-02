@@ -19,7 +19,7 @@
         android:required="false" />
     <uses-feature 
         android:name="android.software.leanback" 
-        android:required="true" />
+        android:required="false" />
 
     <application
         android:name=".App"
@@ -38,7 +38,6 @@
             android:exported="true"
             android:label="@string/app_name"
             android:banner="@drawable/vortex_banner"
-            android:screenOrientation="landscape"
             android:theme="@style/Theme.VortexTV">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -50,13 +49,13 @@
         <activity
             android:name=".activities.FileScannerActivity"
             android:exported="false"
-            android:screenOrientation="landscape"
+            tools:ignore="LockedOrientationActivity"
             android:theme="@style/Theme.VortexTV" />
         
         <activity
             android:name=".activities.SystemAppsActivity"
             android:exported="false"
-            android:screenOrientation="landscape"
+            tools:ignore="LockedOrientationActivity"
             android:theme="@style/Theme.VortexTV" />
     </application>
 

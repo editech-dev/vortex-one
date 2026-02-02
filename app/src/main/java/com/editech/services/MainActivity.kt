@@ -53,7 +53,8 @@ class MainActivity : AppCompatActivity() {
         )
         
         binding.rvVirtualApps.apply {
-            layoutManager = GridLayoutManager(this@MainActivity, 4) // 4 columnas para TV
+            val spanCount = resources.getInteger(R.integer.grid_span_count)
+            layoutManager = GridLayoutManager(this@MainActivity, spanCount)
             adapter = this@MainActivity.adapter
         }
     }

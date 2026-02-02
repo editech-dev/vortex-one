@@ -25,7 +25,7 @@
             android:id="@+id/tvTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Vortex TV"
+            android:text="Vortex"
             android:textColor="@color/white"
             android:textSize="32sp"
             android:textStyle="bold"

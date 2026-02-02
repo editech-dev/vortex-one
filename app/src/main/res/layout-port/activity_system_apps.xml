@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_main"
-    android:padding="24dp">
+    android:padding="16dp">
 
     <!-- Header Container -->
     <LinearLayout
@@ -16,33 +16,27 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-
-
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
             android:text="System Apps"
             android:textColor="@color/white"
-            android:textSize="32sp"
+            android:textSize="24sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed" />
     </LinearLayout>
 
-    <!-- Status text -->
     <TextView
         android:id="@+id/tvStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Loading system applications..."
+        android:text="Loading..."
         android:textColor="#94A3B8"
-        android:textSize="16sp"
-        android:layout_marginTop="8dp"
+        android:textSize="14sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/headerContainer" />
 
-    <!-- Botón cancelar (Top Right) -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnCancel"
         android:layout_width="wrap_content"
@@ -52,16 +46,13 @@
         app:backgroundTint="@color/primary_light"
         app:cornerRadius="8dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:focusable="true"
-        android:focusableInTouchMode="true" />
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- RecyclerView para apps del sistema -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvSystemApps"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:clipToPadding="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -69,7 +60,6 @@
         app:layout_constraintTop_toBottomOf="@id/tvStatus"
         android:visibility="gone" />
 
-    <!-- Empty state -->
     <LinearLayout
         android:id="@+id/layoutEmptyState"
         android:layout_width="wrap_content"
@@ -86,7 +76,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="📱"
-            android:textSize="64sp"
+            android:textSize="48sp"
             android:layout_marginBottom="16dp" />
 
         <TextView
@@ -94,10 +84,9 @@
             android:layout_height="wrap_content"
             android:text="No applications found"
             android:textColor="#64748B"
-            android:textSize="18sp" />
+            android:textSize="16sp" />
     </LinearLayout>
 
-    <!-- Progress bar -->
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
