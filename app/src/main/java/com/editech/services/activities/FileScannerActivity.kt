@@ -36,6 +36,28 @@ class FileScannerActivity : AppCompatActivity() {
         setupButtons()
         setupSearch()
         checkPermissionsAndScan()
+        
+        loadBannerAd()
+    }
+    
+    private fun loadBannerAd() {
+        CoroutineScope(Dispatchers.IO).launch {
+            // Wait for SDK to initialize (poll for up to 20 seconds)
+            var attempts = 0
+            while (!com.editech.services.utils.AdManager.isSdkInitialized() && attempts < 20) {
+                kotlinx.coroutines.delay(1000)
+                attempts++
+            }
+            // Wait an extra second for safety
+            kotlinx.coroutines.delay(1000)
+
+            withContext(Dispatchers.Main) {
+               val bannerContainer = findViewById<android.widget.RelativeLayout>(com.editech.services.R.id.bannerContainer)
+               if (bannerContainer != null) {
+                   com.editech.services.utils.AdManager.loadBanner(this@FileScannerActivity, bannerContainer)
+               }
+            }
+        }
     }
 
     private fun setupSearch() {

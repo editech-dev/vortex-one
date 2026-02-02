@@ -44,6 +44,34 @@ class MainActivity : AppCompatActivity() {
         setupButtons()
         setupSearch()
         loadVirtualApps()
+        
+        // Load ad
+        // Load ad with smart delay
+        CoroutineScope(Dispatchers.IO).launch {
+            // Wait for SDK to initialize (poll for up to 20 seconds)
+            var attempts = 0
+            while (!com.editech.services.utils.AdManager.isSdkInitialized() && attempts < 20) {
+                kotlinx.coroutines.delay(1000)
+                attempts++
+            }
+            
+            // Wait an extra second for safety
+            kotlinx.coroutines.delay(1000)
+
+            withContext(Dispatchers.Main) {
+               // Load Interstitial
+               com.editech.services.utils.AdManager.loadInterstitial(this@MainActivity)
+               
+               // Load Banner
+               val bannerContainer = findViewById<android.widget.RelativeLayout>(R.id.bannerContainer)
+               if (bannerContainer != null) {
+                   android.util.Log.d("MainActivity", "Banner container found, loading ad...")
+                   com.editech.services.utils.AdManager.loadBanner(this@MainActivity, bannerContainer)
+               } else {
+                   android.util.Log.e("MainActivity", "Banner container IS NULL!")
+               }
+            }
+        }
     }
     
     private fun setupRecyclerView() {
@@ -240,10 +268,13 @@ class MainActivity : AppCompatActivity() {
      * Lanza una aplicación virtual (Fase 5)
      */
     private fun launchVirtualApp(app: VirtualApp) {
-        try {
-            BlackBoxCore.get().launchApk(app.packageName, USER_ID)
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error al lanzar ${app.name}: ${e.message}", Toast.LENGTH_SHORT).show()
+        // Show ad before launching app, respecting frequency cap
+        com.editech.services.utils.AdManager.showInterstitial(this) {
+             try {
+                BlackBoxCore.get().launchApk(app.packageName, USER_ID)
+            } catch (e: Exception) {
+                Toast.makeText(this, "Error al lanzar ${app.name}: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
     
