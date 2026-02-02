@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/cardSystemApp"
-    android:layout_width="180dp"
+    android:layout_width="160dp"
     android:layout_height="200dp"
-    android:layout_margin="8dp"
+    android:layout_margin="12dp"
     android:foreground="@drawable/selector_item_virtual_app"
     android:focusable="true"
     android:focusableInTouchMode="true"
-    app:cardBackgroundColor="#1E293B"
-    app:cardCornerRadius="12dp"
+    android:stateListAnimator="@animator/scaler"
+    app:cardBackgroundColor="@color/primary_light"
+    app:strokeColor="@color/accent_focus"
+    app:strokeWidth="0dp"
+    app:cardCornerRadius="16dp"
     app:cardElevation="4dp">
 
     <LinearLayout
@@ -56,4 +59,4 @@
 
     </LinearLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

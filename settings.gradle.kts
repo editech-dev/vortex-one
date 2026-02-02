@@ -20,7 +20,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Media Service"
+rootProject.name = "VortexTV"
 include(":app")
  
 // BlackBox Core Modules (Real - Enhanced Edition)

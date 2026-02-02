@@ -1,10 +1,10 @@
-# OpenContainer-TV
+# Vortex TV
 
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=21)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.0-blue.svg)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**OpenContainer-TV** es un gestor de máquinas virtuales ligero y nativo para dispositivos Android TV, que permite ejecutar aplicaciones en un entorno virtualizado usando el motor BlackBox.
+**Vortex TV** (formerly OpenContainer-TV) is a lightweight, native virtual machine manager for Android TV devices, allowing you to run applications in a virtualized environment using the BlackBox engine.
 
 ## 🎯 Características
 

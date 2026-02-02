@@ -4,20 +4,35 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F172A"
+    android:background="@drawable/bg_main"
     android:padding="24dp">
 
-    <!-- Título -->
-    <TextView
-        android:id="@+id/tvTitle"
+    <!-- Header Container -->
+    <LinearLayout
+        android:id="@+id/headerContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Seleccionar APK"
-        android:textColor="#F1F5F9"
-        android:textSize="28sp"
-        android:textStyle="bold"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_vortex_logo" />
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Install APK"
+            android:textColor="@color/white"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-condensed" />
+    </LinearLayout>
 
     <!-- Estado del escaneo -->
     <TextView
@@ -25,11 +40,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Buscando archivos APK..."
+        android:text="Searching for APK files..."
         android:textColor="#94A3B8"
         android:textSize="14sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle" />
+        app:layout_constraintTop_toBottomOf="@id/headerContainer" />
 
     <!-- Botones de acción -->
     <LinearLayout
@@ -46,18 +61,22 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:text="Reescanear"
-            android:textColor="#60A5FA"
+            android:text="Rescan"
+            android:textColor="@color/accent_color"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-condensed"
             app:cornerRadius="8dp"
-            app:strokeColor="#60A5FA" />
+            app:strokeColor="@color/accent_color" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCancel"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cancelar"
+            android:text="Cancel"
             android:textColor="#94A3B8"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-condensed"
             app:cornerRadius="8dp" />
     </LinearLayout>
 
@@ -66,7 +85,7 @@
         android:id="@+id/rvApkFiles"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -96,7 +115,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="No se encontraron archivos APK"
+            android:text="No APK files found"
             android:textColor="#94A3B8"
             android:textSize="16sp" />
     </LinearLayout>
