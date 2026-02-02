@@ -24,6 +24,7 @@ class FileScannerActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityFileScannerBinding
     private val apkFiles = mutableListOf<ApkFile>()
+    private val allApkFiles = mutableListOf<ApkFile>() // Store all found APKs
     private lateinit var adapter: ApkFileAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,7 +34,44 @@ class FileScannerActivity : AppCompatActivity() {
 
         setupRecyclerView()
         setupButtons()
+        setupSearch()
         checkPermissionsAndScan()
+    }
+
+    private fun setupSearch() {
+        binding.etSearch.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                filterApks(s.toString())
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+    }
+
+    private fun filterApks(query: String) {
+        val filteredList = if (query.isEmpty()) {
+            allApkFiles
+        } else {
+            allApkFiles.filter { it.name.contains(query, ignoreCase = true) }
+        }
+
+        apkFiles.clear()
+        apkFiles.addAll(filteredList)
+        adapter.notifyDataSetChanged()
+
+        if (apkFiles.isEmpty()) {
+             if (query.isNotEmpty()) {
+                 binding.tvStatus.text = "No searching result"
+             } else if (allApkFiles.isEmpty()){
+                 binding.tvStatus.text = "No APK files found"
+             }
+            binding.layoutEmptyState.visibility = View.VISIBLE
+            binding.rvApkFiles.visibility = View.GONE
+        } else {
+            binding.tvStatus.text = "Encontrados ${apkFiles.size} APKs"
+            binding.layoutEmptyState.visibility = View.GONE
+            binding.rvApkFiles.visibility = View.VISIBLE
+        }
     }
 
     private fun checkPermissionsAndScan() {
@@ -118,9 +156,11 @@ class FileScannerActivity : AppCompatActivity() {
     private fun scanForApks() {
         binding.progressBar.visibility = View.VISIBLE
         binding.tvStatus.text = "Escaneando almacenamiento..."
+        binding.etSearch.isEnabled = false // Disable search while scanning
 
         CoroutineScope(Dispatchers.IO).launch {
             apkFiles.clear()
+            allApkFiles.clear()
 
             // Lista de directorios a escanear
             val dirsToScan = listOf(
@@ -144,17 +184,10 @@ class FileScannerActivity : AppCompatActivity() {
             val uniqueApks = foundApks.distinctBy { it.path }
 
             withContext(Dispatchers.Main) {
-                apkFiles.addAll(uniqueApks)
-                adapter.notifyDataSetChanged()
+                allApkFiles.addAll(uniqueApks)
+                binding.etSearch.isEnabled = true
+                filterApks(binding.etSearch.text.toString()) // Apply current filter
                 binding.progressBar.visibility = View.GONE
-
-                if (apkFiles.isEmpty()) {
-                    binding.tvStatus.text = "No se encontraron archivos APK"
-                    binding.layoutEmptyState.visibility = View.VISIBLE
-                } else {
-                    binding.tvStatus.text = "Encontrados ${apkFiles.size} APKs"
-                    binding.layoutEmptyState.visibility = View.GONE
-                }
             }
         }
     }

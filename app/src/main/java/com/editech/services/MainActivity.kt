@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
         
         setupRecyclerView()
         setupButtons()
+        setupSearch()
         loadVirtualApps()
     }
     
@@ -190,16 +191,9 @@ class MainActivity : AppCompatActivity() {
                     binding.progressBar.visibility = View.GONE
                     virtualApps.clear()
                     virtualApps.addAll(apps)
-                    adapter.updateApps(virtualApps)
                     
-                    // Mostrar/ocultar empty state
-                    if (virtualApps.isEmpty()) {
-                        binding.layoutEmptyState.visibility = View.VISIBLE
-                        binding.rvVirtualApps.visibility = View.GONE
-                    } else {
-                        binding.layoutEmptyState.visibility = View.GONE
-                        binding.rvVirtualApps.visibility = View.VISIBLE
-                    }
+                    // Filter initially (or just show all)
+                    filterApps(binding.etSearch.text.toString())
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -211,6 +205,34 @@ class MainActivity : AppCompatActivity() {
                     ).show()
                 }
             }
+        }
+    }
+
+    private fun setupSearch() {
+        binding.etSearch.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                filterApps(s.toString())
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+    }
+    
+    private fun filterApps(query: String) {
+        val filteredList = if (query.isEmpty()) {
+            virtualApps
+        } else {
+            virtualApps.filter { it.name.contains(query, ignoreCase = true) }
+        }
+        
+        adapter.updateApps(filteredList)
+        
+        if (filteredList.isEmpty()) {
+            binding.layoutEmptyState.visibility = View.VISIBLE
+            binding.rvVirtualApps.visibility = View.GONE
+        } else {
+            binding.layoutEmptyState.visibility = View.GONE
+            binding.rvVirtualApps.visibility = View.VISIBLE
         }
     }
     

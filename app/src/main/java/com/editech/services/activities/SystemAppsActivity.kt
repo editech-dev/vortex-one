@@ -31,6 +31,8 @@ class SystemAppsActivity : AppCompatActivity() {
         const val EXTRA_SELECTED_APP_PATH = "selected_app_path"
     }
     
+    private val allSystemApps = mutableListOf<SystemApp>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySystemAppsBinding.inflate(layoutInflater)
@@ -38,6 +40,7 @@ class SystemAppsActivity : AppCompatActivity() {
         
         setupRecyclerView()
         setupButtons()
+        setupSearch()
         loadSystemApps()
     }
     
@@ -60,6 +63,36 @@ class SystemAppsActivity : AppCompatActivity() {
             setOnClickListener {
                 finish()
             }
+        }
+    }
+
+    private fun setupSearch() {
+        binding.etSearch.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                filterApps(s.toString())
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+    }
+
+    private fun filterApps(query: String) {
+        val filteredList = if (query.isEmpty()) {
+            allSystemApps
+        } else {
+            allSystemApps.filter { it.name.contains(query, ignoreCase = true) }
+        }
+
+        adapter.submitList(filteredList)
+
+        if (filteredList.isEmpty()) {
+            binding.layoutEmptyState.visibility = View.VISIBLE
+            binding.rvSystemApps.visibility = View.GONE
+            binding.tvStatus.text = "No searching result"
+        } else {
+            binding.layoutEmptyState.visibility = View.GONE
+            binding.rvSystemApps.visibility = View.VISIBLE
+            binding.tvStatus.text = "${filteredList.size} applications found"
         }
     }
     
@@ -107,18 +140,14 @@ class SystemAppsActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
                     
-                    if (systemApps.isEmpty()) {
-                        binding.layoutEmptyState.visibility = View.VISIBLE
-                        binding.rvSystemApps.visibility = View.GONE
-                        binding.tvStatus.text = "No se encontraron aplicaciones"
-                    } else {
-                        binding.layoutEmptyState.visibility = View.GONE
-                        binding.rvSystemApps.visibility = View.VISIBLE
-                        binding.tvStatus.text = "${systemApps.size} aplicaciones encontradas"
-                        adapter.submitList(systemApps)
-                        
-                        // Auto-focus en el primer item
-                        binding.rvSystemApps.requestFocus()
+                    allSystemApps.clear()
+                    allSystemApps.addAll(systemApps)
+                    
+                    filterApps(binding.etSearch.text.toString())
+                    
+                    // Auto-focus en el primer item (si no hay busqueda)
+                    if (allSystemApps.isNotEmpty()) {
+                         binding.rvSystemApps.requestFocus()
                     }
                 }
                 
