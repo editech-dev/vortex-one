@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Focused State: Lighter gradient + Border -->
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="45"
+                android:endColor="#5EEAD4"
+                android:startColor="#14B8A6" />
+            <corners android:radius="12dp" />
+            <stroke
+                android:width="2dp"
+                android:color="#FFFFFF" />
+        </shape>
+    </item>
+    
+    <!-- Default State: Deep Teal Gradient -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="45"
+                android:endColor="#14B8A6"
+                android:startColor="#0F766E" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+</selector>
