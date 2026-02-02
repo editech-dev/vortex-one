@@ -53,6 +53,7 @@ android {
     
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
     
     packaging {
@@ -86,4 +87,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Unity Ads
+    implementation("com.unity3d.ads:unity-ads:4.12.0")
 }
