@@ -18,10 +18,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.editech.services.blackbox.BlackBoxStub
-// TODO: Descomentar cuando BlackBox esté integrado
+import top.niunaijun.blackbox.BlackBoxCore
 // import top.niunaijun.blackbox.BlackBoxCore
-
 /**
  * MainActivity: Dashboard principal de OpenContainer-TV
  * Muestra las aplicaciones virtuales instaladas en una grilla navegable con control remoto
@@ -95,11 +93,11 @@ class MainActivity : AppCompatActivity() {
         
         // Handle system app selection for virtualization (PARALLEL SPACE feature)
         if (requestCode == REQUEST_CODE_SELECT_SYSTEM_APP && resultCode == Activity.RESULT_OK) {
-            val appPath = data?.getStringExtra(SystemAppsActivity.EXTRA_SELECTED_APP_PATH)
+            val packageName = data?.getStringExtra(SystemAppsActivity.EXTRA_SELECTED_APP_PACKAGE)
             val appName = data?.getStringExtra(SystemAppsActivity.EXTRA_SELECTED_APP_NAME)
             
-            if (appPath != null && appName != null) {
-                virtualizeSystemApp(appPath, appName)
+            if (packageName != null && appName != null) {
+                virtualizeSystemApp(packageName, appName)
             }
         }
     }
@@ -113,7 +111,7 @@ class MainActivity : AppCompatActivity() {
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val result = BlackBoxStub.installPackageAsUser(apkPath, USER_ID)
+                val result = BlackBoxCore.get().installPackageAsUser(java.io.File(apkPath), USER_ID)
                 
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
@@ -154,29 +152,26 @@ class MainActivity : AppCompatActivity() {
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val installedApps = BlackBoxStub.getInstalledApplications(0, USER_ID)
+                val installedApps = BlackBoxCore.get().getInstalledApplications(0, USER_ID)
                 val apps = mutableListOf<VirtualApp>()
                 
                 installedApps?.forEach { appInfo ->
-                    // Filtrar aplicaciones del sistema (solo mostrar apps instaladas por el usuario)
-                    if ((appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
-                        val packageManager = packageManager
-                        val icon = try {
-                            BlackBoxStub.getInstalledPackageInfo(appInfo.packageName, 0, USER_ID)
-                                ?.applicationInfo?.loadIcon(packageManager)
-                        } catch (e: Exception) {
-                            null
-                        }
-                        
-                        apps.add(
-                            VirtualApp(
-                                packageName = appInfo.packageName,
-                                name = appInfo.loadLabel(packageManager).toString(),
-                                icon = icon,
-                                userId = USER_ID
-                            )
-                        )
+                    // Mostrar TODAS las apps virtualizadas (incluyendo apps del sistema clonadas)
+                    val packageManager = packageManager
+                    val icon = try {
+                        appInfo.loadIcon(packageManager)
+                    } catch (e: Exception) {
+                        null
                     }
+                    
+                    apps.add(
+                        VirtualApp(
+                            packageName = appInfo.packageName,
+                            name = appInfo.loadLabel(packageManager).toString(),
+                            icon = icon,
+                            userId = USER_ID
+                        )
+                    )
                 }
                 
                 withContext(Dispatchers.Main) {
@@ -212,7 +207,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun launchVirtualApp(app: VirtualApp) {
         try {
-            BlackBoxStub.launchApk(app.packageName, USER_ID)
+            BlackBoxCore.get().launchApk(app.packageName, USER_ID)
         } catch (e: Exception) {
             Toast.makeText(this, "Error al lanzar ${app.name}: ${e.message}", Toast.LENGTH_SHORT).show()
         }
@@ -241,7 +236,7 @@ class MainActivity : AppCompatActivity() {
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                BlackBoxStub.uninstallPackage(app.packageName)
+                BlackBoxCore.get().uninstallPackage(app.packageName)
                 
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
@@ -269,14 +264,15 @@ class MainActivity : AppCompatActivity() {
      * Virtualiza una app del sistema dentro de BlackBox (PARALLEL SPACE feature)
      * Permite ejecutar apps ya instaladas en el contenedor virtual
      */
-    private fun virtualizeSystemApp(apkPath: String, appName: String) {
+    private fun virtualizeSystemApp(packageName: String, appName: String) {
         binding.progressBar.visibility = View.VISIBLE
         Toast.makeText(this, "Virtualizando $appName...", Toast.LENGTH_SHORT).show()
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Instalar el APK del sistema en BlackBox (mismo proceso que installApk)
-                val result = BlackBoxStub.installPackageAsUser(apkPath, USER_ID)
+                // Instalar el APK del sistema en BlackBox usando el nombre del paquete
+                // BlackBox obtiene el APK path automáticamente desde el sistema
+                val result = BlackBoxCore.get().installPackageAsUser(packageName, USER_ID)
                 
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE

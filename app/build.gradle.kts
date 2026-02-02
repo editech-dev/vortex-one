@@ -76,11 +76,8 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("com.google.android.material:material:1.11.0")
     
-    // BlackBox Virtualization Engine
-    // TODO: Integrar BlackBox manualmente via AAR o módulo Git
-    // La librería no está disponible en JitPack, requiere descarga manual
-    // Descargar desde: https://github.com/FBlackBox/BlackBox
-    // implementation("com.github.FBlackBox:BlackBox:0.6.0")
+    // BlackBox Virtualization Engine (REAL - NewBlackbox Enhanced Edition)
+    implementation(project(":blackbox:Bcore"))
     
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)

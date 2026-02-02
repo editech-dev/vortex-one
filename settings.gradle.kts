@@ -23,3 +23,7 @@ dependencyResolutionManagement {
 rootProject.name = "Media Service"
 include(":app")
  
+// BlackBox Core Modules (Real - Enhanced Edition)
+include(":blackbox:Bcore")
+include(":blackbox:black-reflection")
+include(":blackbox:compiler")

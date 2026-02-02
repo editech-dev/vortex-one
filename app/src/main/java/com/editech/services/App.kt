@@ -2,25 +2,38 @@ package com.editech.services
 
 import android.app.Application
 import android.content.Context
-// TODO: Descomentar cuando BlackBox esté integrado
-// import top.niunaijun.blackbox.BlackBoxCore
+import top.niunaijun.blackbox.BlackBoxCore
+import top.niunaijun.blackbox.app.configuration.ClientConfiguration
+import java.io.File
 
 /**
  * Clase Application custom para OpenContainer-TV
- * Inicializa el motor de virtualización BlackBox
+ * Inicializa el motor de virtualización BlackBox (REAL)
  */
 class App : Application() {
 
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(base)
-        // TODO: Descomentar cuando BlackBox esté integrado manualmente
-        // Inicializar BlackBox Core ANTES de que se cree el contexto de la aplicación
-        // Esto es crítico para que BlackBox pueda interceptar llamadas del sistema
-        // BlackBoxCore.get().doAttachBaseContext(base)
+        // Inicializar BlackBox Core con configuración
+        BlackBoxCore.get().doAttachBaseContext(base, object : ClientConfiguration() {
+            override fun getHostPackageName(): String {
+                return packageName
+            }
+
+            override fun isEnableDaemonService(): Boolean {
+                return true
+            }
+
+            override fun requestInstallPackage(file: File, userId: Int): Boolean {
+                // Permitir instalación de paquetes
+                return false
+            }
+        })
     }
 
     override fun onCreate() {
         super.onCreate()
-        // Aquí se pueden agregar inicializaciones adicionales si es necesario
+        // Inicializar BlackBox después de attachBaseContext
+        BlackBoxCore.get().doCreate()
     }
 }
