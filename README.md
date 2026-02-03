@@ -27,6 +27,16 @@ Take virtualization with you. Vortex One adapts to your phone screen for intuiti
 
 ---
 
+## 📥 Download
+
+Get the latest version of Vortex One:
+
+[![Download APK](https://img.shields.io/badge/Download-v1.0.0-brightgreen?style=for-the-badge&logo=android)](https://github.com/editech-dev/vortex-one/releases/download/v1.0.0/VortexOne-v1.0-release.apk)
+
+Or download directly: [VortexOne-v1.0-release.apk](https://github.com/editech-dev/vortex-one/releases/download/v1.0.0/VortexOne-v1.0-release.apk)
+
+---
+
 ## ✨ Key Features
 
 - **📱 Multi-Platform**: Enjoy a seamless experience on both your Smart TV with remote control and your Smartphone with touch screen.
