@@ -19,6 +19,7 @@ object AdManager {
     // Frequency cap configuration
     // Frequency cap configuration
     private const val AD_FREQUENCY_MS = 4 * 60 * 60 * 1000 // 4 horas
+    private const val WATCHDOG_TIMEOUT_MS = 45000L // 45 seconds watchdog
     private var lastAdShowTime: Long = 0
     
     private var isInitialized = false
@@ -99,6 +100,28 @@ object AdManager {
             return
         }
 
+        // Watchdog mechanics to prevent "stuck" ads
+        var isCompleted = false
+        val watchdogHandler = Handler(Looper.getMainLooper())
+        
+        // Thread-safe(ish) completion handler assurance
+        val finishAd = {
+            if (!isCompleted) {
+                isCompleted = true
+                watchdogHandler.removeCallbacksAndMessages(null) // Cancel watchdog
+                onComplete()
+            }
+        }
+
+        // Watchdog Runnable
+        val watchdogRunnable = Runnable {
+            Log.w(TAG, "Ad Watchdog Triggered: Timeout after ${WATCHDOG_TIMEOUT_MS}ms. Forcing flow continuation.")
+            finishAd()
+        }
+
+        // Start Watchdog
+        watchdogHandler.postDelayed(watchdogRunnable, WATCHDOG_TIMEOUT_MS)
+
         if (UnityAds.isInitialized && isAdLoaded) {
              UnityAds.show(activity, INTERSTITIAL_ID, object : IUnityAdsShowListener {
                 override fun onUnityAdsShowStart(placementId: String) {
@@ -118,7 +141,7 @@ object AdManager {
                     isAdLoaded = false
                     // Reload for next time
                     loadInterstitial(activity)
-                    onComplete()
+                    finishAd()
                 }
 
                 override fun onUnityAdsShowFailure(
@@ -128,15 +151,15 @@ object AdManager {
                 ) {
                     Log.e(TAG, "Ad show failed: $message")
                     isAdLoaded = false
-                    onComplete()
-                        // Toast.makeText(activity, "Debug: Show Failed: $message", Toast.LENGTH_LONG).show()
+                    // Toast removed for better UX
+                    finishAd()
                 }
             })
         } else {
             Log.d(TAG, "Ad not ready or SDK not initialized")
             // Try to load for next time if initialized
             if (isInitialized) loadInterstitial(activity)
-            onComplete()
+            finishAd()
         }
     }
 
@@ -161,7 +184,7 @@ object AdManager {
 
             override fun onBannerFailedToLoad(bannerAdView: com.unity3d.services.banners.BannerView, errorInfo: com.unity3d.services.banners.BannerErrorInfo) {
                 Log.e(TAG, "Banner failed to load: ${errorInfo.errorMessage}")
-                Toast.makeText(activity, "Banner Error: ${errorInfo.errorMessage}", Toast.LENGTH_LONG).show()
+                // Toast removed for better UX
             }
 
             override fun onBannerLeftApplication(bannerAdView: com.unity3d.services.banners.BannerView) {
