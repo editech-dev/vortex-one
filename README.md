@@ -31,9 +31,9 @@ Take virtualization with you. Vortex One adapts to your phone screen for intuiti
 
 Get the latest version of Vortex One:
 
-[![Download APK](https://img.shields.io/badge/Download-v1.0.0-brightgreen?style=for-the-badge&logo=android)](https://github.com/editech-dev/vortex-one/releases/download/v1.0.0/VortexOne-v1.0-universal.apk)
+[![Download APK](https://img.shields.io/badge/Download-v1.0.1-brightgreen?style=for-the-badge&logo=android)](https://github.com/editech-dev/vortex-one/releases/download/v1.0.1/VortexOne-v1.0.1-universal.apk)
 
-Or download directly: [VortexOne-v1.0-universal.apk](https://github.com/editech-dev/vortex-one/releases/download/v1.0.0/VortexOne-v1.0-universal.apk)
+Or download directly: [VortexOne-v1.0.1-universal.apk](https://github.com/editech-dev/vortex-one/releases/download/v1.0.1/VortexOne-v1.0.1-universal.apk)
 
 ---
 
