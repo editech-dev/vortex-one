@@ -51,7 +51,12 @@ class App : Application() {
         }
 
         // Inicializar BlackBox después de attachBaseContext
-        BlackBoxCore.get().doCreate()
+        try {
+            BlackBoxCore.get().doCreate()
+            android.util.Log.d("App", "BlackBoxCore.doCreate() success")
+        } catch (e: Exception) {
+            android.util.Log.e("App", "BlackBoxCore.doCreate() failed", e)
+        }
         
         // Initialize Unity Ads (Background Thread)
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {

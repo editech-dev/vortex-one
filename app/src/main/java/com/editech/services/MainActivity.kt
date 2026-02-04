@@ -181,10 +181,14 @@ class MainActivity : AppCompatActivity() {
                     binding.progressBar.visibility = View.GONE
                     
                     if (result.success) {
-                        Toast.makeText(this@MainActivity, "✓ $apkName instalado correctamente", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@MainActivity, "✓ $apkName instalado correctamente", Toast.LENGTH_SHORT).show()
                         loadVirtualApps()
                     } else {
-                        Toast.makeText(this@MainActivity, "✗ Error al instalar: ${result.msg}", Toast.LENGTH_LONG).show()
+                        AlertDialog.Builder(this@MainActivity)
+                            .setTitle("Error de Instalación")
+                            .setMessage("La instalación falló: ${result.msg}")
+                            .setPositiveButton("OK", null)
+                            .show()
                     }
                 }
             } catch (e: Exception) {
@@ -360,15 +364,15 @@ class MainActivity : AppCompatActivity() {
                         Toast.makeText(
                             this@MainActivity,
                             "✓ $appName ahora corre virtualizado",
-                            Toast.LENGTH_LONG
+                            Toast.LENGTH_SHORT
                         ).show()
                         loadVirtualApps() // Recargar lista
                     } else {
-                        Toast.makeText(
-                            this@MainActivity,
-                            "✗ Error: ${result.msg}",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        AlertDialog.Builder(this@MainActivity)
+                            .setTitle("Error de Virtualización")
+                            .setMessage("Falló la virtualización de $appName: ${result.msg}")
+                            .setPositiveButton("OK", null)
+                            .show()
                     }
                 }
             } catch (e: Exception) {
