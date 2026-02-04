@@ -83,14 +83,14 @@ class FileScannerActivity : AppCompatActivity() {
 
         if (apkFiles.isEmpty()) {
              if (query.isNotEmpty()) {
-                 binding.tvStatus.text = "No searching result"
+                 binding.tvStatus.text = getString(R.string.status_no_results)
              } else if (allApkFiles.isEmpty()){
-                 binding.tvStatus.text = "No APK files found"
+                 binding.tvStatus.text = getString(R.string.status_no_apks_found)
              }
             binding.layoutEmptyState.visibility = View.VISIBLE
             binding.rvApkFiles.visibility = View.GONE
         } else {
-            binding.tvStatus.text = "Encontrados ${apkFiles.size} APKs"
+            binding.tvStatus.text = getString(R.string.status_apks_found, apkFiles.size)
             binding.layoutEmptyState.visibility = View.GONE
             binding.rvApkFiles.visibility = View.VISIBLE
         }
@@ -127,7 +127,7 @@ class FileScannerActivity : AppCompatActivity() {
             if (grantResults.isNotEmpty() && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 scanForApks()
             } else {
-                binding.tvStatus.text = "Permiso de almacenamiento denegado"
+                binding.tvStatus.text = getString(R.string.status_storage_permission_denied)
                 binding.layoutEmptyState.visibility = View.VISIBLE
             }
         }
@@ -140,7 +140,7 @@ class FileScannerActivity : AppCompatActivity() {
                 if (android.os.Environment.isExternalStorageManager()) {
                     scanForApks()
                 } else {
-                    binding.tvStatus.text = "Permiso de acceso a todos los archivos denegado"
+                    binding.tvStatus.text = getString(R.string.status_all_files_permission_denied)
                     binding.layoutEmptyState.visibility = View.VISIBLE
                 }
             }
@@ -177,7 +177,7 @@ class FileScannerActivity : AppCompatActivity() {
 
     private fun scanForApks() {
         binding.progressBar.visibility = View.VISIBLE
-        binding.tvStatus.text = "Escaneando almacenamiento..."
+        binding.tvStatus.text = getString(R.string.status_scanning_storage)
         binding.etSearch.isEnabled = false // Disable search while scanning
 
         CoroutineScope(Dispatchers.IO).launch {

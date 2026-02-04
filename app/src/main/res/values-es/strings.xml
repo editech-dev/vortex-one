@@ -1,0 +1,40 @@
+<resources>
+    <string name="app_name">Vortex One</string>
+    <!-- Dialogs -->
+    <string name="dialog_install_warning_title">Aviso de Compatibilidad</string>
+    <string name="dialog_install_warning_message">La instalación directa de APKs puede no funcionar con todas las aplicaciones debido a protecciones o restricciones del desarrollador original.\n\nSi la instalación falla o la aplicación no se ejecuta correctamente, te recomendamos:\n\n1. Instalar este APK en tu dispositivo de forma normal (fuera de esta app).\n2. Regresar aquí y utilizar la opción \'System Apps\' para clonarla.\n\n¿Deseas continuar con el intento de instalación directa?</string>
+    <string name="action_continue">Continuar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="dialog_install_error_title">Error de Instalación</string>
+    <string name="dialog_install_error_message">La instalación falló: %s</string>
+    <string name="action_ok">OK</string>
+    <string name="dialog_uninstall_title">Desinstalar aplicación</string>
+    <string name="dialog_uninstall_message">¿Deseas desinstalar %s?</string>
+    <string name="action_uninstall">Desinstalar</string>
+    <string name="dialog_virtualize_error_title">Error de Virtualización</string>
+    <string name="dialog_virtualize_error_message">Falló la virtualización de %s: %s</string>
+
+    <!-- Toasts -->
+    <string name="toast_installing_apk">Instalando %s...</string>
+    <string name="toast_preparing_install">Preparando instalación...</string>
+    <string name="toast_install_success">✓ %s instalado correctamente</string>
+    <string name="toast_error_generic">✗ Error: %s</string>
+    <string name="toast_load_apps_error">Error al cargar apps: %s</string>
+    <string name="toast_launch_error">Error al lanzar %s: %s</string>
+    <string name="toast_uninstall_success">✓ %s desinstalado</string>
+    <string name="toast_uninstall_error">Error al desinstalar: %s</string>
+    <string name="toast_virtualizing_app">Virtualizando %s...</string>
+    <string name="toast_virtualize_success">✓ %s ahora corre virtualizado</string>
+    <string name="toast_virtualize_error_generic">✗ Error al virtualizar: %s</string>
+
+    <!-- Statuses (FileScanner / SystemApps) -->
+    <string name="status_no_results">Sin resultados de búsqueda</string>
+    <string name="status_no_apks_found">No se encontraron archivos APK</string>
+    <string name="status_apks_found">Encontrados %d APKs</string>
+    <string name="status_storage_permission_denied">Permiso de almacenamiento denegado</string>
+    <string name="status_all_files_permission_denied">Permiso de acceso a todos los archivos denegado</string>
+    <string name="status_scanning_storage">Escaneando almacenamiento...</string>
+    <string name="status_apps_found">%d aplicaciones encontradas</string>
+    <string name="status_searching_installed_apps">Buscando aplicaciones instaladas...</string>
+    <string name="status_error">Error: %s</string>
+</resources>

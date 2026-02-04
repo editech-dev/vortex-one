@@ -137,12 +137,12 @@ class MainActivity : AppCompatActivity() {
      */
     private fun showInstallWarningDialog(apkPath: String, apkName: String) {
         AlertDialog.Builder(this)
-            .setTitle("Aviso de Compatibilidad")
-            .setMessage("La instalación directa de APKs puede no funcionar con todas las aplicaciones debido a protecciones o restricciones del desarrollador original.\n\nSi la instalación falla o la aplicación no se ejecuta correctamente, te recomendamos:\n\n1. Instalar este APK en tu dispositivo de forma normal (fuera de esta app).\n2. Regresar aquí y utilizar la opción 'System Apps' para clonarla.\n\n¿Deseas continuar con el intento de instalación directa?")
-            .setPositiveButton("Continuar") { _, _ ->
+            .setTitle(getString(R.string.dialog_install_warning_title))
+            .setMessage(getString(R.string.dialog_install_warning_message))
+            .setPositiveButton(getString(R.string.action_continue)) { _, _ ->
                 installApk(apkPath, apkName)
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(getString(R.string.action_cancel), null)
             .show()
     }
     
@@ -151,7 +151,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun installApk(apkPath: String, apkName: String) {
         binding.progressBar.visibility = View.VISIBLE
-        Toast.makeText(this, "Instalando $apkName...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_installing_apk, apkName), Toast.LENGTH_SHORT).show()
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -165,7 +165,7 @@ class MainActivity : AppCompatActivity() {
                 android.util.Log.d("MainActivity", "APK copied to safe location: ${safeFile.absolutePath}")
                 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Preparando instalación...", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, getString(R.string.toast_preparing_install), Toast.LENGTH_SHORT).show()
                 }
 
                 // Step 2: Use BlackBox's standard File API (which uses FLAG_STORAGE internally)
@@ -181,13 +181,13 @@ class MainActivity : AppCompatActivity() {
                     binding.progressBar.visibility = View.GONE
                     
                     if (result.success) {
-                        Toast.makeText(this@MainActivity, "✓ $apkName instalado correctamente", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, getString(R.string.toast_install_success, apkName), Toast.LENGTH_SHORT).show()
                         loadVirtualApps()
                     } else {
                         AlertDialog.Builder(this@MainActivity)
-                            .setTitle("Error de Instalación")
-                            .setMessage("La instalación falló: ${result.msg}")
-                            .setPositiveButton("OK", null)
+                            .setTitle(getString(R.string.dialog_install_error_title))
+                            .setMessage(getString(R.string.dialog_install_error_message, result.msg))
+                            .setPositiveButton(getString(R.string.action_ok), null)
                             .show()
                     }
                 }
@@ -195,7 +195,7 @@ class MainActivity : AppCompatActivity() {
                 android.util.Log.e("MainActivity", "Install exception", e)
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
-                    Toast.makeText(this@MainActivity, "✗ Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, getString(R.string.toast_error_generic, e.message), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -246,7 +246,7 @@ class MainActivity : AppCompatActivity() {
                     binding.progressBar.visibility = View.GONE
                     Toast.makeText(
                         this@MainActivity,
-                        "Error al cargar apps: ${e.message}",
+                        getString(R.string.toast_load_apps_error, e.message),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -291,7 +291,9 @@ class MainActivity : AppCompatActivity() {
              try {
                 BlackBoxCore.get().launchApk(app.packageName, USER_ID)
             } catch (e: Exception) {
-                Toast.makeText(this, "Error al lanzar ${app.name}: ${e.message}", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, getString(R.string.toast_launch_error, app.name, e.message), Toast.LENGTH_SHORT).show()
+            }
             }
         }
     }
@@ -301,12 +303,12 @@ class MainActivity : AppCompatActivity() {
      */
     private fun showUninstallDialog(app: VirtualApp): Boolean {
         AlertDialog.Builder(this)
-            .setTitle("Desinstalar aplicación")
-            .setMessage("¿Deseas desinstalar ${app.name}?")
-            .setPositiveButton("Desinstalar") { _, _ ->
+            .setTitle(getString(R.string.dialog_uninstall_title))
+            .setMessage(getString(R.string.dialog_uninstall_message, app.name))
+            .setPositiveButton(getString(R.string.action_uninstall)) { _, _ ->
                 uninstallApp(app)
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(getString(R.string.action_cancel), null)
             .show()
         return true
     }
@@ -325,7 +327,7 @@ class MainActivity : AppCompatActivity() {
                     binding.progressBar.visibility = View.GONE
                     Toast.makeText(
                         this@MainActivity,
-                        "✓ ${app.name} desinstalado",
+                        getString(R.string.toast_uninstall_success, app.name),
                         Toast.LENGTH_SHORT
                     ).show()
                     loadVirtualApps() // Recargar lista
@@ -335,7 +337,7 @@ class MainActivity : AppCompatActivity() {
                     binding.progressBar.visibility = View.GONE
                     Toast.makeText(
                         this@MainActivity,
-                        "Error al desinstalar: ${e.message}",
+                        getString(R.string.toast_uninstall_error, e.message),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -349,7 +351,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun virtualizeSystemApp(packageName: String, appName: String) {
         binding.progressBar.visibility = View.VISIBLE
-        Toast.makeText(this, "Virtualizando $appName...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_virtualizing_app, appName), Toast.LENGTH_SHORT).show()
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -363,15 +365,15 @@ class MainActivity : AppCompatActivity() {
                     if (result.success) {
                         Toast.makeText(
                             this@MainActivity,
-                            "✓ $appName ahora corre virtualizado",
+                            getString(R.string.toast_virtualize_success, appName),
                             Toast.LENGTH_SHORT
                         ).show()
                         loadVirtualApps() // Recargar lista
                     } else {
                         AlertDialog.Builder(this@MainActivity)
-                            .setTitle("Error de Virtualización")
-                            .setMessage("Falló la virtualización de $appName: ${result.msg}")
-                            .setPositiveButton("OK", null)
+                            .setTitle(getString(R.string.dialog_virtualize_error_title))
+                            .setMessage(getString(R.string.dialog_virtualize_error_message, appName, result.msg))
+                            .setPositiveButton(getString(R.string.action_ok), null)
                             .show()
                     }
                 }
@@ -380,7 +382,7 @@ class MainActivity : AppCompatActivity() {
                     binding.progressBar.visibility = View.GONE
                     Toast.makeText(
                         this@MainActivity,
-                        "✗ Error al virtualizar: ${e.message}",
+                        getString(R.string.toast_virtualize_error_generic, e.message),
                         Toast.LENGTH_LONG
                     ).show()
                 }

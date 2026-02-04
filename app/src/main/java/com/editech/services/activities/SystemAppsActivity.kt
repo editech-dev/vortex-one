@@ -106,11 +106,11 @@ class SystemAppsActivity : AppCompatActivity() {
         if (filteredList.isEmpty()) {
             binding.layoutEmptyState.visibility = View.VISIBLE
             binding.rvSystemApps.visibility = View.GONE
-            binding.tvStatus.text = "No searching result"
+            binding.tvStatus.text = getString(R.string.status_no_results)
         } else {
             binding.layoutEmptyState.visibility = View.GONE
             binding.rvSystemApps.visibility = View.VISIBLE
-            binding.tvStatus.text = "${filteredList.size} applications found"
+            binding.tvStatus.text = getString(R.string.status_apps_found, filteredList.size)
         }
     }
     
@@ -119,7 +119,7 @@ class SystemAppsActivity : AppCompatActivity() {
      */
     private fun loadSystemApps() {
         binding.progressBar.visibility = View.VISIBLE
-        binding.tvStatus.text = "Buscando aplicaciones instaladas..."
+        binding.tvStatus.text = getString(R.string.status_searching_installed_apps)
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -172,7 +172,7 @@ class SystemAppsActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
-                    binding.tvStatus.text = "Error: ${e.message}"
+                    binding.tvStatus.text = getString(R.string.status_error, e.message)
                 }
             }
         }
