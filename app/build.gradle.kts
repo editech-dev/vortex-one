@@ -3,6 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
 android {
     namespace = "com.editech.services"
     compileSdk = 35
@@ -22,6 +25,21 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                val properties = Properties()
+                properties.load(FileInputStream(keystorePropertiesFile))
+                
+                storeFile = file(properties.getProperty("storeFile"))
+                storePassword = properties.getProperty("storePassword")
+                keyAlias = properties.getProperty("keyAlias")
+                keyPassword = properties.getProperty("keyPassword")
+            }
+        }
+    }
+
     // Splits para optimizar tamaño de APK por arquitectura
     splits {
         abi {
@@ -35,6 +53,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
