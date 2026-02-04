@@ -119,6 +119,18 @@ object AdManager {
         // Watchdog Runnable
         val watchdogRunnable = Runnable {
             Log.w(TAG, "Ad Watchdog Triggered: Timeout after ${WATCHDOG_TIMEOUT_MS}ms. Forcing flow continuation.")
+            
+            // Clean stack: launch calling activity with CLEAR_TOP to remove stuck ad
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    val intent = android.content.Intent(activity, activity::class.java)
+                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    activity.startActivity(intent)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to clear activity stack on watchdog", e)
+                }
+            }
+            
             finishAd()
         }
 
