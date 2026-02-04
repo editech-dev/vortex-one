@@ -109,7 +109,10 @@ object AdManager {
             if (!isCompleted) {
                 isCompleted = true
                 watchdogHandler.removeCallbacksAndMessages(null) // Cancel watchdog
-                onComplete()
+                // Ensure callback runs on Main Thread
+                Handler(Looper.getMainLooper()).post {
+                    onComplete()
+                }
             }
         }
 

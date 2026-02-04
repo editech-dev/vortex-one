@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.editech.services.R
 
 /**
  * FileScannerActivity: Escanea el almacenamiento local en busca de archivos APK

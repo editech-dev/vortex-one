@@ -291,9 +291,7 @@ class MainActivity : AppCompatActivity() {
              try {
                 BlackBoxCore.get().launchApk(app.packageName, USER_ID)
             } catch (e: Exception) {
-            } catch (e: Exception) {
                 Toast.makeText(this, getString(R.string.toast_launch_error, app.name, e.message), Toast.LENGTH_SHORT).show()
-            }
             }
         }
     }
