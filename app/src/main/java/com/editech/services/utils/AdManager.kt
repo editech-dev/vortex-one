@@ -19,7 +19,7 @@ object AdManager {
     // Frequency cap configuration
     // Frequency cap configuration
     private const val AD_FREQUENCY_MS = 4 * 60 * 60 * 1000 // 4 horas
-    private const val WATCHDOG_TIMEOUT_MS = 45000L // 45 seconds watchdog
+    private const val WATCHDOG_TIMEOUT_MS = 75000L // 75 seconds watchdog
     private var lastAdShowTime: Long = 0
     
     private var isInitialized = false
