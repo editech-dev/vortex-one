@@ -131,7 +131,8 @@ public class OsStub extends ClassInvocationStub {
                     try {
                         Class<?> monitorClass = Class.forName("com.editech.services.firewall.NetworkConnectionMonitor");
                         checkMethod = monitorClass.getMethod("shouldBlockSocket", java.net.InetAddress.class, int.class);
-                        logMethod = monitorClass.getMethod("logSocketConnection", java.net.InetAddress.class, int.class, boolean.class, String.class);
+                        // Updated signature: logSocketConnection(InetAddress, int, boolean, String, String)
+                        logMethod = monitorClass.getMethod("logSocketConnection", java.net.InetAddress.class, int.class, boolean.class, String.class, String.class);
                         
                         shouldBlock = (boolean) checkMethod.invoke(null, address, port);
                     } catch (Exception e) {
@@ -142,7 +143,7 @@ public class OsStub extends ClassInvocationStub {
                     if (shouldBlock) {
                         if (logMethod != null) {
                             try {
-                                logMethod.invoke(null, address, port, true, "BLOCKED");
+                                logMethod.invoke(null, address, port, true, "BLOCKED", "Firewall Rule");
                             } catch (Exception e) {}
                         }
                         throw new java.net.SocketException("Connection blocked by firewall");
@@ -164,12 +165,11 @@ public class OsStub extends ClassInvocationStub {
                 // Connection Failed at OS level
                  if (address != null && logMethod != null) {
                     try {
-                        // We need to re-set recursion guard briefly to log? 
-                        // Actually NetworkConnectionMonitor handles its own logic, safe to call.
-                        // But wait, logSocketConnection might trigger something? no it just DB writes.
+                        Throwable cause = e.getTargetException();
+                        String reason = cause != null ? cause.getMessage() : "Unknown Error";
+                        if (reason == null) reason = cause.getClass().getSimpleName();
                         
-                        // Error message? e.getTargetException().getMessage()
-                        logMethod.invoke(null, address, port, false, "FAILED"); 
+                        logMethod.invoke(null, address, port, false, "FAILED", reason); 
                     } catch (Exception ex) {}
                 }
                 throw e.getTargetException();
@@ -178,7 +178,7 @@ public class OsStub extends ClassInvocationStub {
             // 4. Connection Success
             if (address != null && logMethod != null) {
                  try {
-                    logMethod.invoke(null, address, port, false, "ESTABLISHED");
+                    logMethod.invoke(null, address, port, false, "ESTABLISHED", null);
                 } catch (Exception e) {}
             }
 

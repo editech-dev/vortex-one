@@ -15,7 +15,8 @@ data class ConnectionLogItem(
     val protocol: String,
     val timestamp: Long,
     val wasBlocked: Boolean,
-    val status: String // BLOCKED, ESTABLISHED, FAILED, UNKNOWN
+    val status: String, // BLOCKED, ESTABLISHED, FAILED, UNKNOWN
+    val failureReason: String?
 )
 
 class ConnectionLogsAdapter : RecyclerView.Adapter<ConnectionLogsAdapter.ViewHolder>() {
@@ -66,7 +67,14 @@ class ConnectionLogsAdapter : RecyclerView.Adapter<ConnectionLogsAdapter.ViewHol
                 else -> 0xFF90A4AE.toInt() // Grey
             }
             
-            tvProtocol.text = "${log.protocol} • ${log.status}"
+            val statusText = StringBuilder()
+            statusText.append("${log.protocol} • ${log.status}")
+            
+            if (!log.failureReason.isNullOrEmpty()) {
+                statusText.append(" (${log.failureReason})")
+            }
+            
+            tvProtocol.text = statusText.toString()
             tvProtocol.setTextColor(statusColor)
 
             statusIndicator.setBackgroundColor(statusColor)

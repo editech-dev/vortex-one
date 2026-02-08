@@ -69,7 +69,7 @@ object NetworkConnectionMonitor {
      * Log a socket connection result
      */
     @JvmStatic
-    fun logSocketConnection(address: InetAddress, port: Int, blocked: Boolean, status: String) {
+    fun logSocketConnection(address: InetAddress, port: Int, blocked: Boolean, status: String, failureReason: String?) {
         val packageName = getCurrentPackageName() ?: return
         val manager = FirewallManager.getInstance()
         
@@ -77,12 +77,12 @@ object NetworkConnectionMonitor {
 
         val ip = address.hostAddress ?: return
         
-        manager.logConnection(packageName, ip, port, "TCP", blocked, status)
+        manager.logConnection(packageName, ip, port, "TCP", blocked, status, failureReason)
         
         if (blocked) {
-            Slog.d(TAG, "BLOCKED: $packageName -> $ip:$port")
+            Slog.d(TAG, "BLOCKED: $packageName -> $ip:$port ${failureReason?.let { "($it)" } ?: ""}")
         } else {
-            Slog.d(TAG, "ALLOWED ($status): $packageName -> $ip:$port")
+            Slog.d(TAG, "ALLOWED ($status): $packageName -> $ip:$port ${failureReason?.let { "($it)" } ?: ""}")
         }
     }
 
@@ -94,7 +94,7 @@ object NetworkConnectionMonitor {
         val blocked = shouldBlockSocket(address, port)
         // Legacy: Assume if not blocked it is just allowed (unknown status)
         val status = if (blocked) "BLOCKED" else "UNKNOWN"
-        logSocketConnection(address, port, blocked, status)
+        logSocketConnection(address, port, blocked, status, null)
         return blocked
     }
 

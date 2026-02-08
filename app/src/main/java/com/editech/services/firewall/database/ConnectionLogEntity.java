@@ -17,9 +17,10 @@ public class ConnectionLogEntity {
     public boolean wasBlocked;
     public String hostname; // DNS hostname if available
     public String status; // BLOCKED, ESTABLISHED, FAILED
+    public String failureReason;
 
     public ConnectionLogEntity(String packageName, long timestamp, String destinationIp, int destinationPort,
-            String protocol, boolean wasBlocked, String hostname, String status) {
+            String protocol, boolean wasBlocked, String hostname, String status, String failureReason) {
         this.packageName = packageName;
         this.timestamp = timestamp;
         this.destinationIp = destinationIp;
@@ -28,6 +29,7 @@ public class ConnectionLogEntity {
         this.wasBlocked = wasBlocked;
         this.hostname = hostname;
         this.status = status;
+        this.failureReason = failureReason;
     }
 
     public ConnectionLog toModel() {
@@ -41,6 +43,7 @@ public class ConnectionLogEntity {
                 timestamp,
                 wasBlocked,
                 status,
+                failureReason,
                 0 // bytesTransferred default
         );
     }
