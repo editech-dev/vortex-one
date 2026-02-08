@@ -228,7 +228,8 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
                             hostname = log.hostname,
                             protocol = log.protocol,
                             timestamp = log.timestamp,
-                            wasBlocked = log.wasBlocked
+                            wasBlocked = log.wasBlocked,
+                            status = log.status
                         )
                     }
                     adapter.submitList(logItems)

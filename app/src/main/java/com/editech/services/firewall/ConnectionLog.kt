@@ -13,6 +13,7 @@ data class ConnectionLog(
     val protocol: String = "TCP",
     val timestamp: Long = System.currentTimeMillis(),
     val wasBlocked: Boolean = false,
+    val status: String = "UNKNOWN", // BLOCKED, ESTABLISHED, FAILED
     val bytesTransferred: Long = 0
 ) {
     /**
@@ -39,7 +40,8 @@ data class ConnectionLog(
             destinationPort,
             protocol,
             wasBlocked,
-            hostname
+            hostname,
+            status
         )
     }
 }

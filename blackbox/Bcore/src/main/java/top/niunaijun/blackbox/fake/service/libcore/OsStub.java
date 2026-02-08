@@ -109,43 +109,80 @@ public class OsStub extends ClassInvocationStub {
                 return method.invoke(who, args);
             }
 
+            java.net.InetAddress address = null;
+            int port = 0;
+            boolean shouldBlock = false;
+            Method logMethod = null;
+            Method checkMethod = null;
+
             try {
-                sIsChecking.set(true);
-                
-                // args: FileDescriptor fd, InetAddress address, int port
+                // Parse args
                 if (args != null && args.length >= 3) {
                     if (args[1] instanceof java.net.InetAddress && args[2] instanceof Integer) {
-                        java.net.InetAddress address = (java.net.InetAddress) args[1];
-                        int port = (Integer) args[2];
+                        address = (java.net.InetAddress) args[1];
+                        port = (Integer) args[2];
+                    }
+                }
+
+                if (address != null) {
+                    sIsChecking.set(true);
+                    
+                    // 1. Check if we should block (Reflection)
+                    try {
+                        Class<?> monitorClass = Class.forName("com.editech.services.firewall.NetworkConnectionMonitor");
+                        checkMethod = monitorClass.getMethod("shouldBlockSocket", java.net.InetAddress.class, int.class);
+                        logMethod = monitorClass.getMethod("logSocketConnection", java.net.InetAddress.class, int.class, boolean.class, String.class);
                         
-                        // Call Firewall Monitor using reflection to avoid compilation issues with Kotlin
-                        try {
-                            Class<?> monitorClass = Class.forName("com.editech.services.firewall.NetworkConnectionMonitor");
-                            // Kotlin object methods with @JvmStatic are static in Java
-                            Method checkMethod = monitorClass.getMethod("checkAndThrowIfBlocked", java.net.InetAddress.class, int.class);
-                            checkMethod.invoke(null, address, port);
-                        } catch (Exception e) {
-                            if (e.getCause() instanceof java.net.SocketException) {
-                                throw e.getCause();
-                            }
-                            // Ignore other reflection errors
+                        shouldBlock = (boolean) checkMethod.invoke(null, address, port);
+                    } catch (Exception e) {
+                        // Reflection failed, safely proceed
+                    }
+                    
+                    // 2. If blocked, Log and Throw
+                    if (shouldBlock) {
+                        if (logMethod != null) {
+                            try {
+                                logMethod.invoke(null, address, port, true, "BLOCKED");
+                            } catch (Exception e) {}
                         }
+                        throw new java.net.SocketException("Connection blocked by firewall");
                     }
                 }
             } catch (Throwable e) {
-                if (e instanceof java.net.SocketException) {
+                 if (e instanceof java.net.SocketException) {
                     throw e;
                 }
-                // top.niunaijun.blackbox.utils.Slog.e(TAG, "Firewall check failed: " + e.getMessage());
             } finally {
-                sIsChecking.remove(); // Use remove() instead of set(false) to prevent memory leaks
+                sIsChecking.remove();
             }
             
+            // 3. Attempt to connect (Original Method)
+            Object result;
             try {
-                return method.invoke(who, args);
+                result = method.invoke(who, args);
             } catch (java.lang.reflect.InvocationTargetException e) {
+                // Connection Failed at OS level
+                 if (address != null && logMethod != null) {
+                    try {
+                        // We need to re-set recursion guard briefly to log? 
+                        // Actually NetworkConnectionMonitor handles its own logic, safe to call.
+                        // But wait, logSocketConnection might trigger something? no it just DB writes.
+                        
+                        // Error message? e.getTargetException().getMessage()
+                        logMethod.invoke(null, address, port, false, "FAILED"); 
+                    } catch (Exception ex) {}
+                }
                 throw e.getTargetException();
             }
+
+            // 4. Connection Success
+            if (address != null && logMethod != null) {
+                 try {
+                    logMethod.invoke(null, address, port, false, "ESTABLISHED");
+                } catch (Exception e) {}
+            }
+
+            return result;
         }
     }
 

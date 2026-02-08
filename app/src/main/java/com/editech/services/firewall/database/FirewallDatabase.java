@@ -6,7 +6,7 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
 @Database(entities = { FirewallRuleEntity.class, ConnectionLogEntity.class,
-        FirewallAppStateEntity.class }, version = 1, exportSchema = false)
+        FirewallAppStateEntity.class }, version = 2, exportSchema = false)
 public abstract class FirewallDatabase extends RoomDatabase {
     public abstract FirewallRuleDao ruleDao();
 

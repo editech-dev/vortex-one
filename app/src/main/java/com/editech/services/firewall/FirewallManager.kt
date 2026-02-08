@@ -256,7 +256,8 @@ class FirewallManager private constructor(private val context: Context) {
         ip: String,
         port: Int,
         protocol: String = "TCP",
-        blocked: Boolean = false
+        blocked: Boolean = false,
+        status: String = "UNKNOWN"
     ) {
         val hostname = dnsCache[ip]
         
@@ -266,7 +267,8 @@ class FirewallManager private constructor(private val context: Context) {
             destinationPort = port,
             hostname = hostname,
             protocol = protocol,
-            wasBlocked = blocked
+            wasBlocked = blocked,
+            status = status
         )
         
         dbExecutor.execute {
@@ -277,7 +279,7 @@ class FirewallManager private constructor(private val context: Context) {
             }
         }
         
-        Log.d(TAG, "Connection: $packageName -> ${hostname ?: ip}:$port ${if (blocked) "[BLOCKED]" else ""}")
+        Log.d(TAG, "Connection: $packageName -> ${hostname ?: ip}:$port [$status]")
     }
     
     /**

@@ -51,31 +51,50 @@ object NetworkConnectionMonitor {
      * @param port The destination port
      * @return true if the connection should be blocked
      */
+    /**
+     * Check if a socket connection should be blocked
+     * Does NOT log the connection
+     */
     @JvmStatic
-    fun onSocketConnect(address: InetAddress, port: Int): Boolean {
+    fun shouldBlockSocket(address: InetAddress, port: Int): Boolean {
         val packageName = getCurrentPackageName() ?: return false
-
         val manager = FirewallManager.getInstance()
+        
+        if (!manager.isEnabled(packageName)) return false
+        
+        return manager.shouldBlock(packageName, address, port)
+    }
 
-        // Quick check: is monitoring enabled?
-        if (!manager.isEnabled(packageName)) {
-             // DEBUG LOG: Remove after fixing
-             Slog.d(TAG, "Firewall check skipped (DISABLED) for $packageName connecting to $address")
-             return false
-        }
+    /**
+     * Log a socket connection result
+     */
+    @JvmStatic
+    fun logSocketConnection(address: InetAddress, port: Int, blocked: Boolean, status: String) {
+        val packageName = getCurrentPackageName() ?: return
+        val manager = FirewallManager.getInstance()
+        
+        if (!manager.isEnabled(packageName)) return
 
-        val ip = address.hostAddress ?: return false
-        val blocked = manager.shouldBlock(packageName, address, port)
-
-        // Log the connection
-        manager.logConnection(packageName, ip, port, "TCP", blocked)
-
+        val ip = address.hostAddress ?: return
+        
+        manager.logConnection(packageName, ip, port, "TCP", blocked, status)
+        
         if (blocked) {
             Slog.d(TAG, "BLOCKED: $packageName -> $ip:$port")
         } else {
-            Slog.d(TAG, "ALLOWED: $packageName -> $ip:$port")
+            Slog.d(TAG, "ALLOWED ($status): $packageName -> $ip:$port")
         }
+    }
 
+    /**
+     * Legacy method - kept for potential other hooks, but OsStub will use new methods
+     */
+    @JvmStatic
+    fun onSocketConnect(address: InetAddress, port: Int): Boolean {
+        val blocked = shouldBlockSocket(address, port)
+        // Legacy: Assume if not blocked it is just allowed (unknown status)
+        val status = if (blocked) "BLOCKED" else "UNKNOWN"
+        logSocketConnection(address, port, blocked, status)
         return blocked
     }
 

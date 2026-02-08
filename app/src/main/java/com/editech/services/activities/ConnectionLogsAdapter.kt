@@ -14,7 +14,8 @@ data class ConnectionLogItem(
     val hostname: String?,
     val protocol: String,
     val timestamp: Long,
-    val wasBlocked: Boolean
+    val wasBlocked: Boolean,
+    val status: String // BLOCKED, ESTABLISHED, FAILED, UNKNOWN
 )
 
 class ConnectionLogsAdapter : RecyclerView.Adapter<ConnectionLogsAdapter.ViewHolder>() {
@@ -51,13 +52,24 @@ class ConnectionLogsAdapter : RecyclerView.Adapter<ConnectionLogsAdapter.ViewHol
             tvTimestamp.text = sdf.format(java.util.Date(log.timestamp))
 
             tvAppName.text = log.packageName.substringAfterLast('.')
-            tvDestination.text = log.hostname ?: log.destinationIp
+            
+            val destText = log.hostname?.let { "$it" } ?: log.destinationIp
+            tvDestination.text = destText
+            
             tvPort.text = ":${log.destinationPort}"
-            tvProtocol.text = "${log.protocol} ${if (log.wasBlocked) "• BLOCKED" else ""}"
+            
+            // Format: TCP • BLOCKED / ESTABLISHED / FAILED
+            val statusColor = when (log.status) {
+                "BLOCKED" -> 0xFFE57373.toInt() // Red
+                "ESTABLISHED" -> 0xFF81C784.toInt() // Green
+                "FAILED" -> 0xFFFFB74D.toInt() // Orange
+                else -> 0xFF90A4AE.toInt() // Grey
+            }
+            
+            tvProtocol.text = "${log.protocol} • ${log.status}"
+            tvProtocol.setTextColor(statusColor)
 
-            statusIndicator.setBackgroundColor(
-                if (log.wasBlocked) 0xFFE57373.toInt() else 0xFF81C784.toInt()
-            )
+            statusIndicator.setBackgroundColor(statusColor)
         }
     }
 }
