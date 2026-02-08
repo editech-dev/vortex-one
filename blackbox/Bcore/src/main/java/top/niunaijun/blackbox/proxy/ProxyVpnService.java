@@ -16,15 +16,23 @@ import top.niunaijun.blackbox.utils.Slog;
  * Enhanced VPN service for BlackBox to handle network routing and DNS
  * Created by BlackBox on 2022/2/25.\
  * improved 9/15/2025 by alex5404
+ * Firewall integration added 2026
  */
 public class ProxyVpnService extends VpnService {
     private static final String TAG = "ProxyVpnService";
     private static final int NOTIFICATION_ID = 1001;
     private static final String CHANNEL_ID = "BlackBoxVPN";
     
+    // Singleton for on-demand firewall activation
+    private static ProxyVpnService sInstance = null;
+    
     private ParcelFileDescriptor mVpnInterface = null;
     private boolean mIsEstablished = false;
     private Thread mNetworkThread = null;
+    
+    public static ProxyVpnService getInstance() {
+        return sInstance;
+    }
 
     @Override
     public void onCreate() {

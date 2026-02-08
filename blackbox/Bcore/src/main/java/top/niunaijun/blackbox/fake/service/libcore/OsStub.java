@@ -92,6 +92,63 @@ public class OsStub extends ClassInvocationStub {
         }
     }
 
+    @ProxyMethod("connect")
+    public static class connect extends MethodHook {
+        
+        // Recursion guard to prevent infinite loops if firewall logic triggers network calls
+        private static final ThreadLocal<Boolean> sIsChecking = new ThreadLocal<Boolean>() {
+            @Override
+            protected Boolean initialValue() {
+                return false;
+            }
+        };
+
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            if (sIsChecking.get()) {
+                return method.invoke(who, args);
+            }
+
+            try {
+                sIsChecking.set(true);
+                
+                // args: FileDescriptor fd, InetAddress address, int port
+                if (args != null && args.length >= 3) {
+                    if (args[1] instanceof java.net.InetAddress && args[2] instanceof Integer) {
+                        java.net.InetAddress address = (java.net.InetAddress) args[1];
+                        int port = (Integer) args[2];
+                        
+                        // Call Firewall Monitor using reflection to avoid compilation issues with Kotlin
+                        try {
+                            Class<?> monitorClass = Class.forName("com.editech.services.firewall.NetworkConnectionMonitor");
+                            // Kotlin object methods with @JvmStatic are static in Java
+                            Method checkMethod = monitorClass.getMethod("checkAndThrowIfBlocked", java.net.InetAddress.class, int.class);
+                            checkMethod.invoke(null, address, port);
+                        } catch (Exception e) {
+                            if (e.getCause() instanceof java.net.SocketException) {
+                                throw e.getCause();
+                            }
+                            // Ignore other reflection errors
+                        }
+                    }
+                }
+            } catch (Throwable e) {
+                if (e instanceof java.net.SocketException) {
+                    throw e;
+                }
+                // top.niunaijun.blackbox.utils.Slog.e(TAG, "Firewall check failed: " + e.getMessage());
+            } finally {
+                sIsChecking.remove(); // Use remove() instead of set(false) to prevent memory leaks
+            }
+            
+            try {
+                return method.invoke(who, args);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                throw e.getTargetException();
+            }
+        }
+    }
+
     private static int getFakeUid(int callUid) {
         if (callUid > 0 && callUid <= Process.FIRST_APPLICATION_UID)
             return callUid;

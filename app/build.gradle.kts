@@ -14,8 +14,8 @@ android {
         applicationId = "com.editech.services"
         minSdk = 21
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -68,6 +68,7 @@ android {
     
     kotlinOptions {
         jvmTarget = "1.8"
+        languageVersion = "1.9"
     }
     
     buildFeatures {
@@ -109,4 +110,10 @@ dependencies {
 
     // Unity Ads
     implementation("com.unity3d.ads:unity-ads:4.12.0")
+
+    // Room Database
+    val room_version = "2.6.1"
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    annotationProcessor("androidx.room:room-compiler:$room_version")
 }

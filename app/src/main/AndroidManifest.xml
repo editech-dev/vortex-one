@@ -53,9 +53,20 @@
             android:exported="false"
             tools:ignore="LockedOrientationActivity"
             android:theme="@style/Theme.VortexTV" />
+            
+        <activity
+            android:name=".activities.FirewallAppDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.VortexTV" />
         
         <activity
             android:name=".activities.SystemAppsActivity"
+            android:exported="false"
+            tools:ignore="LockedOrientationActivity"
+            android:theme="@style/Theme.VortexTV" />
+        
+        <activity
+            android:name=".activities.FirewallActivity"
             android:exported="false"
             tools:ignore="LockedOrientationActivity"
             android:theme="@style/Theme.VortexTV" />

@@ -37,4 +37,17 @@
     <string name="status_apps_found">%d applications found</string>
     <string name="status_searching_installed_apps">Searching installed applications...</string>
     <string name="status_error">Error: %s</string>
+
+    <!-- Firewall -->
+    <string name="firewall_title">Firewall</string>
+    <string name="title_firewall">Firewall</string>
+    <string name="firewall_subtitle">Control network access per app</string>
+    <string name="close">Close</string>
+    <string name="action_close">Close</string>
+    <string name="tab_apps">Apps</string>
+    <string name="tab_logs">Logs</string>
+    <string name="firewall_state_off">Off</string>
+    <string name="firewall_state_monitor">Monitor</string>
+    <string name="firewall_state_block">Block</string>
+    <string name="no_logs_found">No connection logs found</string>
 </resources>

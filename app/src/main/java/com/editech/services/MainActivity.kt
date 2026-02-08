@@ -10,6 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import com.editech.services.activities.FileScannerActivity
+import com.editech.services.activities.FirewallActivity
 import com.editech.services.activities.SystemAppsActivity
 import com.editech.services.adapters.VirtualAppsAdapter
 import com.editech.services.databinding.ActivityMainBinding
@@ -96,6 +97,10 @@ class MainActivity : AppCompatActivity() {
         binding.btnVirtualizeSystemApp.setOnClickListener {
             openSystemAppsActivity()
         }
+        
+        binding.btnFirewall.setOnClickListener {
+            openFirewallActivity()
+        }
     }
     
     private fun openFileScannerActivity() {
@@ -106,6 +111,11 @@ class MainActivity : AppCompatActivity() {
     private fun openSystemAppsActivity() {
         val intent = Intent(this, SystemAppsActivity::class.java)
         startActivityForResult(intent, REQUEST_CODE_SELECT_SYSTEM_APP)
+    }
+    
+    private fun openFirewallActivity() {
+        val intent = Intent(this, FirewallActivity::class.java)
+        startActivity(intent)
     }
     
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

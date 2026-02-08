@@ -52,10 +52,23 @@ public class IDnsResolverProxy extends BinderInvocationStub {
     public static class ResolveDns extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            Slog.d(TAG, "Intercepting DNS resolution request");
+            // Extract hostname from args if available
+            String hostname = null;
+            if (args != null && args.length > 0 && args[0] instanceof String) {
+                hostname = (String) args[0];
+            }
+            
+            Slog.d(TAG, "Intercepting DNS resolution request" + (hostname != null ? " for: " + hostname : ""));
+            
             try {
                 // Try to resolve using the original method first
                 Object result = method.invoke(who, args);
+                
+                // Notify firewall about DNS resolution for hostname tracking
+                if (hostname != null && result != null) {
+                    notifyFirewallDnsResolution(hostname, result);
+                }
+                
                 if (result != null) {
                     return result;
                 }
@@ -67,6 +80,48 @@ public class IDnsResolverProxy extends BinderInvocationStub {
             } catch (Exception e) {
                 Slog.w(TAG, "DNS resolution error, providing fallback: " + e.getMessage());
                 return createFallbackDnsResult();
+            }
+        }
+        
+        private void notifyFirewallDnsResolution(String hostname, Object result) {
+            try {
+                // Handle different result types
+                String[] ips = null;
+                if (result instanceof List) {
+                    List<?> addresses = (List<?>) result;
+                    ips = new String[addresses.size()];
+                    for (int i = 0; i < addresses.size(); i++) {
+                        Object addr = addresses.get(i);
+                        if (addr instanceof InetAddress) {
+                            ips[i] = ((InetAddress) addr).getHostAddress();
+                        } else {
+                            ips[i] = addr.toString();
+                        }
+                    }
+                } else if (result instanceof InetAddress[]) {
+                    InetAddress[] addresses = (InetAddress[]) result;
+                    ips = new String[addresses.length];
+                    for (int i = 0; i < addresses.length; i++) {
+                        ips[i] = addresses[i].getHostAddress();
+                    }
+                }
+                
+                if (ips != null && ips.length > 0) {
+                    // Use reflection to call Kotlin NetworkConnectionMonitor to avoid compile-time dependency
+                    try {
+                        Class<?> monitorClass = Class.forName("top.niunaijun.blackbox.core.firewall.NetworkConnectionMonitor");
+                        Method onDnsMethod = monitorClass.getMethod("onDnsResolution", String.class, String[].class);
+                        // Kotlin object INSTANCE
+                        java.lang.reflect.Field instanceField = monitorClass.getField("INSTANCE");
+                        Object instance = instanceField.get(null);
+                        onDnsMethod.invoke(instance, hostname, ips);
+                    } catch (ClassNotFoundException e) {
+                        // Firewall module not loaded yet - this is normal during early boot
+                        Slog.d(TAG, "Firewall module not available yet");
+                    }
+                }
+            } catch (Exception e) {
+                Slog.w(TAG, "Failed to notify firewall about DNS resolution: " + e.getMessage());
             }
         }
         
@@ -83,6 +138,7 @@ public class IDnsResolverProxy extends BinderInvocationStub {
             }
         }
     }
+
 
     // Hook for private DNS configuration (API 28+)
     @ProxyMethod("setPrivateDnsConfiguration")

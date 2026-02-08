@@ -5,8 +5,8 @@
     <item android:state_focused="true">
         <shape android:shape="rectangle">
             <stroke 
-                android:width="6dp" 
-                android:color="#FCD34D"/>
+                android:width="3dp" 
+                android:color="#FFFFFF"/>
             <corners android:radius="12dp"/>
             <!-- NO solid = transparente, se ve el contenido -->
         </shape>
