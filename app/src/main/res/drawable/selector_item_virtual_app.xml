@@ -5,10 +5,10 @@
     <item android:state_focused="true">
         <shape android:shape="rectangle">
             <stroke 
-                android:width="3dp" 
+                android:width="4dp" 
                 android:color="#FFFFFF"/>
-            <corners android:radius="12dp"/>
-            <!-- NO solid = transparente, se ve el contenido -->
+            <corners android:radius="8dp"/>
+            <solid android:color="#20FFFFFF"/> <!-- Slight highlight -->
         </shape>
     </item>
     
@@ -22,7 +22,7 @@
         </shape>
     </item>
     
-    <!-- Estado normal - completamente transparente -->
+    <!-- Estado normal - completamente transparente pero con ripple si es posible (en API 21+ debe ser ripple drawable, aqui simulamos) -->
     <item>
         <shape android:shape="rectangle">
             <solid android:color="#00000000"/>
