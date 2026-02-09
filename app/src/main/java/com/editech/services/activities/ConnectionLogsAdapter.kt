@@ -22,6 +22,16 @@ data class ConnectionLogItem(
 class ConnectionLogsAdapter : RecyclerView.Adapter<ConnectionLogsAdapter.ViewHolder>() {
 
     private var logs = listOf<ConnectionLogItem>()
+    
+    init {
+        setHasStableIds(true)
+    }
+    
+    override fun getItemId(position: Int): Long {
+        // Use timestamp or hashcode as stable ID. Timestamp might not be unique enough if fast?
+        // Combining hashcode of unique fields is better.
+        return logs[position].hashCode().toLong()
+    }
 
     fun submitList(newList: List<ConnectionLogItem>) {
         logs = newList

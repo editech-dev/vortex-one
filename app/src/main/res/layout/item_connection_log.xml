@@ -5,13 +5,15 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:focusable="true"
-    android:focusableInTouchMode="true"
     android:clickable="true"
+    android:minHeight="48dp"
     android:foreground="@drawable/selector_item_virtual_app"
+    android:stateListAnimator="@animator/scaler"
     android:background="@drawable/item_background"
     android:descendantFocusability="blocksDescendants"
     android:padding="12dp"
-    android:layout_marginVertical="2dp">
+    android:layout_marginVertical="4dp"
+    android:layout_marginHorizontal="8dp">
 
     <!-- Status indicator (blocked = red, allowed = green) -->
     <View

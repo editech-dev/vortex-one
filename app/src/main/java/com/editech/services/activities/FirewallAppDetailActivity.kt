@@ -86,7 +86,6 @@ class FirewallAppDetailActivity : AppCompatActivity() {
 
         // Initialize state
         val currentState = FirewallManager.getInstance().getState(packageName)
-        val isBlocking = currentState == FirewallState.BLOCKING_ALL || currentState == FirewallState.BLOCKING_PORTS
         val isMonitoring = currentState != FirewallState.DISABLED
 
         switchBlockAll.isChecked = currentState == FirewallState.BLOCKING_ALL
@@ -141,6 +140,24 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 else -> ""
             }
         }.attach()
+
+        // Fix for "Impossible to return": Force focus to content when tab is selected
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                // Delay slightly to allow ViewPager to switch
+                viewPager.postDelayed({
+                    val currentFragment = supportFragmentManager.findFragmentByTag("f" + viewPager.currentItem)
+                    if (currentFragment is BaseDetailFragment) {
+                        currentFragment.requestFocus()
+                    }
+                }, 100)
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {
+                 // Also force focus on reselect
+                 onTabSelected(tab)
+            }
+        })
     }
 
     inner class DetailPagerAdapter(activity: AppCompatActivity) : androidx.viewpager2.adapter.FragmentStateAdapter(activity) {
@@ -182,6 +199,17 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
         val rv = RecyclerView(requireContext())
         rv.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         rv.layoutManager = LinearLayoutManager(requireContext())
+        
+        // Fix for TV D-pad navigation: Container should NOT take focus, items should.
+        rv.isFocusable = false
+        rv.isFocusableInTouchMode = false
+        rv.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+        rv.hasFixedSize()
+        // Allow scaling animation to exceed bounds
+        rv.clipChildren = false
+        rv.clipToPadding = false
+        rv.setPadding(0, 16, 0, 120) // Increased bottom padding to prevent focus edge cases
+        
         recyclerView = rv
         return rv
     }
@@ -210,30 +238,85 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
                 }
                 
                 withContext(Dispatchers.Main) {
-                    recyclerView.adapter = PortsAdapter(items) { portItem, blocked ->
-                        togglePortBlock(portItem, blocked)
+                    // Update adapter
+                    if (recyclerView.adapter == null) {
+                        recyclerView.adapter = PortsAdapter(items) { portItem, blocked ->
+                            togglePortBlock(portItem, blocked)
+                        }
+                    } else {
+                        // Reuse adapter to PREVENT FOCUS JUMP
+                        (recyclerView.adapter as? PortsAdapter)?.updateData(items)
+                    }
+                    
+                    // Only request focus if this is the FIRST load or list is empty
+                    if (recyclerView.adapter?.itemCount ?: 0 > 0 && recyclerView.findFocus() == null) {
+                        recyclerView.post { 
+                             // Explicitly try to focus the first item if nothing is focused
+                             if (recyclerView.findFocus() == null) {
+                                  val firstView = recyclerView.layoutManager?.findViewByPosition(0)
+                                  if (firstView != null) {
+                                      firstView.requestFocus()
+                                  } else {
+                                      recyclerView.requestFocus()
+                                  }
+                             }
+                        }
                     }
                 }
             } else {
                 val logs = FirewallManager.getInstance().getRecentLogs(packageName)
                 withContext(Dispatchers.Main) {
-                    val adapter = ConnectionLogsAdapter()
-                    recyclerView.adapter = adapter
-                    
-                    val logItems = logs.map { log ->
-                        ConnectionLogItem(
-                            packageName = log.packageName,
-                            destinationIp = log.destinationIp,
-                            destinationPort = log.destinationPort,
-                            hostname = log.hostname,
-                            protocol = log.protocol,
-                            timestamp = log.timestamp,
-                            wasBlocked = log.wasBlocked,
-                            status = log.status,
-                            failureReason = log.failureReason
-                        )
+                    if (recyclerView.adapter == null) {
+                        val adapter = ConnectionLogsAdapter()
+                        recyclerView.adapter = adapter
+                        
+                        val logItems = logs.map { log ->
+                            ConnectionLogItem(
+                                packageName = log.packageName,
+                                destinationIp = log.destinationIp,
+                                destinationPort = log.destinationPort,
+                                hostname = log.hostname,
+                                protocol = log.protocol,
+                                timestamp = log.timestamp,
+                                wasBlocked = log.wasBlocked,
+                                status = log.status,
+                                failureReason = log.failureReason
+                            )
+                        }
+                        adapter.submitList(logItems)
+                    } else {
+                         // Reuse adapter
+                         val adapter = recyclerView.adapter as? ConnectionLogsAdapter
+                         val logItems = logs.map { log ->
+                            ConnectionLogItem(
+                                packageName = log.packageName,
+                                destinationIp = log.destinationIp,
+                                destinationPort = log.destinationPort,
+                                hostname = log.hostname,
+                                protocol = log.protocol,
+                                timestamp = log.timestamp,
+                                wasBlocked = log.wasBlocked,
+                                status = log.status,
+                                failureReason = log.failureReason
+                            )
+                        }
+                        adapter?.submitList(logItems)
                     }
-                    adapter.submitList(logItems)
+                    
+                    // Only request focus if this is the FIRST load or list is empty
+                    if (recyclerView.adapter?.itemCount ?: 0 > 0 && recyclerView.findFocus() == null) {
+                        recyclerView.post { 
+                             // Explicitly try to focus the first item if nothing is focused
+                             if (recyclerView.findFocus() == null) {
+                                  val firstView = recyclerView.layoutManager?.findViewByPosition(0)
+                                  if (firstView != null) {
+                                      firstView.requestFocus()
+                                  } else {
+                                      recyclerView.requestFocus()
+                                  }
+                             }
+                        }
+                    }
                 }
             }
         }
@@ -260,14 +343,40 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
             }
         }
     }
+
+    fun requestFocus() {
+        recyclerView.post {
+            val layoutManager = recyclerView.layoutManager
+            val firstView = layoutManager?.findViewByPosition(0)
+            if (firstView != null) {
+                firstView.requestFocus()
+            } else {
+                recyclerView.requestFocus()
+            }
+        }
+    }
 }
 
 data class PortItemModel(val port: Int, val protocol: String, var isBlocked: Boolean)
 
 class PortsAdapter(
-    private val items: List<PortItemModel>,
+    private var items: List<PortItemModel>,
     private val onToggle: (PortItemModel, Boolean) -> Unit
 ) : RecyclerView.Adapter<PortsAdapter.ViewHolder>() {
+
+    init {
+        setHasStableIds(true)
+    }
+
+    override fun getItemId(position: Int): Long {
+        return items[position].port.toLong()
+    }
+    
+    fun updateData(newItems: List<PortItemModel>) {
+        // Simple notify data set changed for now, can be improved with DiffUtil later
+        items = newItems
+        notifyDataSetChanged()
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_firewall_port, parent, false)
@@ -286,9 +395,17 @@ class PortsAdapter(
         val tvStatus: TextView = view.findViewById(R.id.tvStatus)
         val switchBlock: SwitchMaterial = view.findViewById(R.id.switchBlock)
 
+        init {
+            // Ensure switch doesn't steal focus/clicks
+            switchBlock.isClickable = false
+            switchBlock.isFocusable = false
+        }
+
         fun bind(item: PortItemModel) {
             tvPort.text = item.port.toString()
             tvProtocol.text = item.protocol
+            // Avoid triggering listener during binding
+            switchBlock.setOnCheckedChangeListener(null)
             switchBlock.isChecked = item.isBlocked
             
             updateStatus(item.isBlocked)
