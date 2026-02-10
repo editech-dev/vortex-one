@@ -16,7 +16,9 @@ data class ConnectionLogItem(
     val timestamp: Long,
     val wasBlocked: Boolean,
     val status: String, // BLOCKED, ESTABLISHED, FAILED, UNKNOWN
-    val failureReason: String?
+    val failureReason: String?,
+    val method: String? = null,
+    val path: String? = null
 )
 
 class ConnectionLogsAdapter : RecyclerView.Adapter<ConnectionLogsAdapter.ViewHolder>() {
@@ -64,8 +66,18 @@ class ConnectionLogsAdapter : RecyclerView.Adapter<ConnectionLogsAdapter.ViewHol
 
             tvAppName.text = log.packageName.substringAfterLast('.')
             
-            val destText = log.hostname?.let { "$it" } ?: log.destinationIp
-            tvDestination.text = destText
+            // Prioritize URL (Path) if available
+            if (!log.path.isNullOrEmpty()) {
+                 val methodPrefix = log.method?.let { "$it " } ?: ""
+                 // e.g. "REQ https://api.google.com/home"
+                 // Or if path is just path: "REQ /home"
+                 // Construct full display: "METHOD hostname/path"
+                 val displayPath = if (log.path.startsWith("http")) log.path else (log.hostname ?: log.destinationIp) + log.path
+                 tvDestination.text = "$methodPrefix$displayPath"
+            } else {
+                val destText = log.hostname?.let { "$it" } ?: log.destinationIp
+                tvDestination.text = destText
+            }
             
             tvPort.text = ":${log.destinationPort}"
             

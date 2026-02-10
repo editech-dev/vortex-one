@@ -476,6 +476,13 @@ public class BActivityThread extends IBActivityThread.Stub {
                 Slog.e(TAG, "makeApplication application Error! All attempts failed");
                 throw new RuntimeException("Unable to create application - all creation methods failed");
             }
+
+            // Inject NetworkHook for URL logging
+            try {
+                top.niunaijun.blackbox.fake.service.NetworkHook.inject();
+            } catch (Throwable t) {
+                Slog.e(TAG, "Failed to inject NetworkHook", t);
+            }
             
             mInitialApplication = application;
             BRActivityThread.get(BlackBoxCore.mainThread())._set_mInitialApplication(mInitialApplication);

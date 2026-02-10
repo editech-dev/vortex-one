@@ -15,6 +15,8 @@ data class ConnectionLog(
     val wasBlocked: Boolean = false,
     val status: String = "UNKNOWN", // BLOCKED, ESTABLISHED, FAILED
     val failureReason: String? = null,
+    val method: String? = null,     // GET, POST, etc.
+    val path: String? = null,       // /api/v1/resource
     val bytesTransferred: Long = 0
 ) {
     /**
@@ -43,7 +45,9 @@ data class ConnectionLog(
             wasBlocked,
             hostname,
             status,
-            failureReason
+            failureReason,
+            method,
+            path
         )
     }
 }

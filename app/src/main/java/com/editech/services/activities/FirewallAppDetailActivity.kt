@@ -280,7 +280,9 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
                                 timestamp = log.timestamp,
                                 wasBlocked = log.wasBlocked,
                                 status = log.status,
-                                failureReason = log.failureReason
+                                failureReason = log.failureReason,
+                                method = log.method,
+                                path = log.path
                             )
                         }
                         adapter.submitList(logItems)
@@ -297,7 +299,9 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
                                 timestamp = log.timestamp,
                                 wasBlocked = log.wasBlocked,
                                 status = log.status,
-                                failureReason = log.failureReason
+                                failureReason = log.failureReason,
+                                method = log.method,
+                                path = log.path
                             )
                         }
                         adapter?.submitList(logItems)

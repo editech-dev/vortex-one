@@ -258,9 +258,12 @@ class FirewallManager private constructor(private val context: Context) {
         protocol: String = "TCP",
         blocked: Boolean = false,
         status: String = "UNKNOWN",
-        failureReason: String? = null
+        failureReason: String? = null,
+        method: String? = null,
+        path: String? = null,
+        overrideHostname: String? = null
     ) {
-        val hostname = dnsCache[ip]
+        val hostname = overrideHostname ?: dnsCache[ip]
         
         val log = ConnectionLog(
             packageName = packageName,
@@ -270,7 +273,9 @@ class FirewallManager private constructor(private val context: Context) {
             protocol = protocol,
             wasBlocked = blocked,
             status = status,
-            failureReason = failureReason
+            failureReason = failureReason,
+            method = method,
+            path = path
         )
         
         dbExecutor.execute {
