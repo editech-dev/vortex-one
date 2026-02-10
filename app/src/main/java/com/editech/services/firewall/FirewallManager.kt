@@ -2,6 +2,10 @@ package com.editech.services.firewall
 
 import android.content.Context
 import android.util.Log // Added Log import
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import com.editech.services.firewall.database.FirewallDatabase
 import com.editech.services.firewall.database.FirewallRuleEntity
 // Removed ConnectionLogEntityAddress import
@@ -20,6 +24,9 @@ class FirewallManager private constructor(private val context: Context) {
     
     companion object {
         private const val TAG = "FirewallManager"
+        private const val ACTION_UPDATE_STATE = "com.editech.services.firewall.ACTION_UPDATE_STATE"
+        private const val EXTRA_PKG = "pkg"
+        private const val EXTRA_STATE = "state"
         
         @Volatile
         private var instance: FirewallManager? = null
@@ -56,9 +63,36 @@ class FirewallManager private constructor(private val context: Context) {
         FirewallDatabase.getInstance(context)
     }
     
+    private val stateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == ACTION_UPDATE_STATE) {
+                val pkg = intent.getStringExtra(EXTRA_PKG) ?: return
+                val stateName = intent.getStringExtra(EXTRA_STATE) ?: return
+                try {
+                    val state = FirewallState.valueOf(stateName)
+                    appStateCache[pkg] = state
+                    // Force reload rules as they might have changed too
+                    rulesCache.remove(pkg)
+                    Log.d(TAG, "Sync: Updated state for $pkg to $state")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Sync: Invalid state $stateName")
+                }
+            }
+        }
+    }
+
     init {
         // Load persisted state on init
         loadPersistedState()
+        
+        // Register receiver for cross-process updates
+        val filter = IntentFilter(ACTION_UPDATE_STATE)
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Context.RECEIVER_NOT_EXPORTED
+        } else {
+            0
+        }
+        context.registerReceiver(stateReceiver, filter, flags)
     }
     
     // ====================
@@ -96,6 +130,14 @@ class FirewallManager private constructor(private val context: Context) {
                 Log.e(TAG, "Failed to persist state: ${e.message}")
             }
         }
+        
+        // Broadcast change to other processes (e.g., Virtual Process)
+        val intent = Intent(ACTION_UPDATE_STATE).apply {
+            putExtra(EXTRA_PKG, packageName)
+            putExtra(EXTRA_STATE, state.name)
+            setPackage(context.packageName) // Restrict to own app
+        }
+        context.sendBroadcast(intent)
     }
     
     /**
@@ -165,6 +207,7 @@ class FirewallManager private constructor(private val context: Context) {
                     if (rule.port != port) return true
                 }
                 RuleType.BLOCK_ALL -> return true
+                RuleType.BLOCK_ENDPOINT -> { /* Ignore endpoint rules for port checks */ }
             }
         }
         return false
@@ -242,6 +285,53 @@ class FirewallManager private constructor(private val context: Context) {
     private fun refreshRulesCache(packageName: String) {
         rulesCache.remove(packageName)
         loadRulesForPackage(packageName)
+    }
+
+    // ====================
+    // ENDPOINT BLOCKING
+    // ====================
+
+    /**
+     * Check if a specific URL should be blocked based on rules
+     * Called from NetworkConnectionMonitor
+     */
+    fun shouldBlockEndpoint(packageName: String, url: String): Boolean {
+        if (!isEnabled(packageName)) return false
+        val state = getState(packageName)
+        if (state == FirewallState.BLOCKING_ALL) return true
+        
+        // Check rules
+        val rules = rulesCache[packageName] ?: loadRulesForPackage(packageName)
+        for (rule in rules) {
+            if (!rule.enabled) continue
+            if (rule.ruleType == RuleType.BLOCK_ENDPOINT) {
+                // strict blocking: if rule endpoint is contained in the URL or equals
+                val blockedEndpoint = rule.endpoint ?: continue
+                if (url.contains(blockedEndpoint, ignoreCase = true)) {
+                    Log.d(TAG, "Blocking URL $url due to rule: $blockedEndpoint")
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    /**
+     * Add an endpoint blocking rule
+     */
+    fun addBlockEndpointRule(packageName: String, endpoint: String) {
+        // Check if exists
+        val rules = getRulesForPackage(packageName)
+        if (rules.any { it.ruleType == RuleType.BLOCK_ENDPOINT && it.endpoint == endpoint }) {
+            return
+        }
+
+        val rule = FirewallRule(
+            packageName = packageName,
+            ruleType = RuleType.BLOCK_ENDPOINT,
+            endpoint = endpoint
+        )
+        addRule(rule)
     }
     
     // ====================
@@ -330,6 +420,18 @@ class FirewallManager private constructor(private val context: Context) {
         }
     }
     
+    /**
+     * Get list of unique endpoints (URLs) used by an app
+     */
+    fun getUsedEndpoints(packageName: String): List<String> {
+        return try {
+            database.logDao().getDistinctEndpoints(packageName)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get used endpoints: ${e.message}")
+            emptyList()
+        }
+    }
+
     /**
      * Clear old logs (retention policy)
      */

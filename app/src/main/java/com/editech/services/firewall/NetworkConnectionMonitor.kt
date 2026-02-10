@@ -7,6 +7,7 @@ import top.niunaijun.blackbox.utils.Slog
 import java.net.InetAddress
 import java.net.SocketException
 import java.net.UnknownHostException
+import java.io.IOException
 
 /**
  * Network Connection Monitor for Firewall
@@ -89,40 +90,53 @@ object NetworkConnectionMonitor {
      * Log a URL connection (from OkHttp or URL hook)
      */
     @JvmStatic
-    fun logUrlConnection(url: String, method: String, status: String, failureReason: String?) {
+    @Throws(IOException::class)
+    fun logUrlConnection(
+        url: String, 
+        method: String, 
+        status: String, 
+        failureReason: String?,
+        overrideHostname: String? = null
+    ) {
         val packageName = getCurrentPackageName() ?: return
+
         val manager = FirewallManager.getInstance()
-        
         if (!manager.isEnabled(packageName)) return
+
+        // 1. Check for blocking
+        val blocked = manager.shouldBlockEndpoint(packageName, url)
         
-        try {
-            val uri = java.net.URI(url)
-            val host = uri.host ?: return
-            val port = if (uri.port != -1) uri.port else (if (uri.scheme == "https") 443 else 80)
-            val path = uri.path ?: "/"
-            // Avoid DNS on main thread/hook if possible, but we need IP for consistency.
-            // For now, use 0.0.0.0 or look up in cache if logging requires IP.
-            // Better: Resolve async or assume hostname is enough if manager supports it.
-            // FirewallManager currently expects IP.
-            val ip = "0.0.0.0" // Placeholder, we rely on hostname
-            
+        if (blocked) {
             manager.logConnection(
-                packageName = packageName, 
-                ip = ip, 
-                port = port, 
-                protocol = "TCP", 
-                blocked = false, 
-                status = status, 
-                failureReason = failureReason,
+                packageName = packageName,
+                ip = "0.0.0.0", // Only URL known
+                port = 0,
+                protocol = "HTTP/S",
+                blocked = true,
+                status = "BLOCKED",
+                failureReason = "Endpoint Rule",
                 method = method,
-                path = path,
-                overrideHostname = host
+                path = url, // Changed path to url
+                overrideHostname = overrideHostname
             )
-            
-            Slog.d(TAG, "URL: $method $url [$status]")
-        } catch (e: Exception) {
-            Slog.e(TAG, "Failed to log URL: $url", e)
+            throw java.io.IOException("Connection blocked by Firewall Endpoint Rule")
         }
+
+        // If not blocked, proceed to log the connection
+        manager.logConnection(
+            packageName = packageName,
+            ip = "0.0.0.0",
+            port = 0,
+            protocol = "HTTP/S",
+            blocked = false, // We only know it started here. Success depends on connection.
+            status = status, 
+            failureReason = failureReason,
+            method = method,
+            path = url, // Changed path to url
+            overrideHostname = overrideHostname
+        )
+        
+        Slog.d(TAG, "URL: $method $url [$status]")
     }
 
     /**

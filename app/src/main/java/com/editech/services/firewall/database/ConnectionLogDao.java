@@ -19,8 +19,11 @@ public interface ConnectionLogDao {
     @Query("DELETE FROM connection_logs WHERE timestamp < :cutoffTime")
     void deleteOldLogs(long cutoffTime);
 
-    @Query("SELECT DISTINCT destinationPort, protocol FROM connection_logs WHERE packageName = :packageName")
+    @Query("SELECT DISTINCT destinationPort, protocol FROM connection_logs WHERE packageName = :packageName AND destinationPort != 0")
     List<PortInfo> getDistinctPorts(String packageName);
+
+    @Query("SELECT DISTINCT path FROM connection_logs WHERE packageName = :packageName AND path IS NOT NULL AND path != ''")
+    List<String> getDistinctEndpoints(String packageName);
 
     public static class PortInfo {
         public int destinationPort;

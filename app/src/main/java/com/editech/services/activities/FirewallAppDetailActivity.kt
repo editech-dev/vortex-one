@@ -129,6 +129,10 @@ class FirewallAppDetailActivity : AppCompatActivity() {
         }
     }
 
+    enum class DetailType {
+        PORTS, LOGS, ENDPOINTS
+    }
+
     private fun setupViewPager() {
         val adapter = DetailPagerAdapter(this)
         viewPager.adapter = adapter
@@ -136,7 +140,8 @@ class FirewallAppDetailActivity : AppCompatActivity() {
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
                 0 -> "Ports"
-                1 -> "Logs"
+                1 -> "Endpoints"
+                2 -> "Logs"
                 else -> ""
             }
         }.attach()
@@ -161,12 +166,13 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     }
 
     inner class DetailPagerAdapter(activity: AppCompatActivity) : androidx.viewpager2.adapter.FragmentStateAdapter(activity) {
-        override fun getItemCount(): Int = 2
+        override fun getItemCount(): Int = 3
 
         override fun createFragment(position: Int): androidx.fragment.app.Fragment {
             return when (position) {
-                0 -> BaseDetailFragment.newInstance(packageName, isPorts = true)
-                1 -> BaseDetailFragment.newInstance(packageName, isPorts = false)
+                0 -> BaseDetailFragment.newInstance(packageName, DetailType.PORTS)
+                1 -> BaseDetailFragment.newInstance(packageName, DetailType.ENDPOINTS)
+                2 -> BaseDetailFragment.newInstance(packageName, DetailType.LOGS)
                 else -> throw IllegalStateException("Invalid position")
             }
         }
@@ -177,20 +183,20 @@ class FirewallAppDetailActivity : AppCompatActivity() {
 class BaseDetailFragment : androidx.fragment.app.Fragment() {
     companion object {
         private const val ARG_PACKAGE = "pkg"
-        private const val ARG_IS_PORTS = "is_ports"
+        private const val ARG_TYPE = "type"
         
-        fun newInstance(packageName: String, isPorts: Boolean): BaseDetailFragment {
+        fun newInstance(packageName: String, type: FirewallAppDetailActivity.DetailType): BaseDetailFragment {
             return BaseDetailFragment().apply {
                 arguments = Bundle().apply {
                     putString(ARG_PACKAGE, packageName)
-                    putBoolean(ARG_IS_PORTS, isPorts)
+                    putString(ARG_TYPE, type.name)
                 }
             }
         }
     }
 
     private lateinit var recyclerView: RecyclerView
-    private var isPorts = true
+    private var type = FirewallAppDetailActivity.DetailType.PORTS
     private var packageName = ""
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -216,112 +222,129 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         packageName = arguments?.getString(ARG_PACKAGE) ?: ""
-        isPorts = arguments?.getBoolean(ARG_IS_PORTS) ?: true
+        type = FirewallAppDetailActivity.DetailType.valueOf(arguments?.getString(ARG_TYPE) ?: "PORTS")
         
         loadData()
     }
     
     private fun loadData() {
         CoroutineScope(Dispatchers.IO).launch {
-            if (isPorts) {
-                val usedPorts = FirewallManager.getInstance().getUsedPorts(packageName)
-                // Get existing rules to check if blocked
-                val rules = FirewallManager.getInstance().getRulesForPackage(packageName)
-                
-                val items = usedPorts.map { (port, protocol) ->
-                    val isBlocked = rules.any { 
-                        it.port == port && 
-                        (it.protocol.name == protocol || it.protocol == Protocol.BOTH) &&
-                        it.ruleType == com.editech.services.firewall.RuleType.BLOCK_PORT
-                    }
-                    PortItemModel(port, protocol, isBlocked)
-                }
-                
-                withContext(Dispatchers.Main) {
-                    // Update adapter
-                    if (recyclerView.adapter == null) {
-                        recyclerView.adapter = PortsAdapter(items) { portItem, blocked ->
-                            togglePortBlock(portItem, blocked)
-                        }
-                    } else {
-                        // Reuse adapter to PREVENT FOCUS JUMP
-                        (recyclerView.adapter as? PortsAdapter)?.updateData(items)
-                    }
-                    
-                    // Only request focus if this is the FIRST load or list is empty
-                    if (recyclerView.adapter?.itemCount ?: 0 > 0 && recyclerView.findFocus() == null) {
-                        recyclerView.post { 
-                             // Explicitly try to focus the first item if nothing is focused
-                             if (recyclerView.findFocus() == null) {
-                                  val firstView = recyclerView.layoutManager?.findViewByPosition(0)
-                                  if (firstView != null) {
-                                      firstView.requestFocus()
-                                  } else {
-                                      recyclerView.requestFocus()
-                                  }
-                             }
-                        }
-                    }
+            when (type) {
+                FirewallAppDetailActivity.DetailType.PORTS -> loadPorts()
+                FirewallAppDetailActivity.DetailType.ENDPOINTS -> loadEndpoints()
+                FirewallAppDetailActivity.DetailType.LOGS -> loadLogs()
+            }
+        }
+    }
+
+    private suspend fun loadPorts() {
+        val usedPorts = FirewallManager.getInstance().getUsedPorts(packageName)
+        val rules = FirewallManager.getInstance().getRulesForPackage(packageName)
+        
+        val items = usedPorts.map { (port, protocol) ->
+            val isBlocked = rules.any { 
+                it.port == port && 
+                (it.protocol.name == protocol || it.protocol == com.editech.services.firewall.Protocol.BOTH) &&
+                it.ruleType == com.editech.services.firewall.RuleType.BLOCK_PORT
+            }
+            PortItemModel(port, protocol, isBlocked)
+        }
+        
+        withContext(Dispatchers.Main) {
+            if (recyclerView.adapter == null) {
+                recyclerView.adapter = PortsAdapter(items) { portItem, blocked ->
+                    togglePortBlock(portItem, blocked)
                 }
             } else {
-                val logs = FirewallManager.getInstance().getRecentLogs(packageName)
-                withContext(Dispatchers.Main) {
-                    if (recyclerView.adapter == null) {
-                        val adapter = ConnectionLogsAdapter()
-                        recyclerView.adapter = adapter
-                        
-                        val logItems = logs.map { log ->
-                            ConnectionLogItem(
-                                packageName = log.packageName,
-                                destinationIp = log.destinationIp,
-                                destinationPort = log.destinationPort,
-                                hostname = log.hostname,
-                                protocol = log.protocol,
-                                timestamp = log.timestamp,
-                                wasBlocked = log.wasBlocked,
-                                status = log.status,
-                                failureReason = log.failureReason,
-                                method = log.method,
-                                path = log.path
-                            )
-                        }
-                        adapter.submitList(logItems)
-                    } else {
-                         // Reuse adapter
-                         val adapter = recyclerView.adapter as? ConnectionLogsAdapter
-                         val logItems = logs.map { log ->
-                            ConnectionLogItem(
-                                packageName = log.packageName,
-                                destinationIp = log.destinationIp,
-                                destinationPort = log.destinationPort,
-                                hostname = log.hostname,
-                                protocol = log.protocol,
-                                timestamp = log.timestamp,
-                                wasBlocked = log.wasBlocked,
-                                status = log.status,
-                                failureReason = log.failureReason,
-                                method = log.method,
-                                path = log.path
-                            )
-                        }
-                        adapter?.submitList(logItems)
-                    }
-                    
-                    // Only request focus if this is the FIRST load or list is empty
-                    if (recyclerView.adapter?.itemCount ?: 0 > 0 && recyclerView.findFocus() == null) {
-                        recyclerView.post { 
-                             // Explicitly try to focus the first item if nothing is focused
-                             if (recyclerView.findFocus() == null) {
-                                  val firstView = recyclerView.layoutManager?.findViewByPosition(0)
-                                  if (firstView != null) {
-                                      firstView.requestFocus()
-                                  } else {
-                                      recyclerView.requestFocus()
-                                  }
-                             }
-                        }
-                    }
+                (recyclerView.adapter as? PortsAdapter)?.updateData(items)
+            }
+            checkFocus()
+        }
+    }
+
+    private suspend fun loadEndpoints() {
+        // Load recent unique endpoints
+        val endpoints = FirewallManager.getInstance().getUsedEndpoints(packageName)
+        val rules = FirewallManager.getInstance().getRulesForPackage(packageName)
+        
+        val items = endpoints.map { endpoint ->
+            val isBlocked = rules.any { 
+                it.endpoint == endpoint && 
+                it.ruleType == com.editech.services.firewall.RuleType.BLOCK_ENDPOINT
+            }
+            EndpointItemModel(endpoint, isBlocked)
+        }
+
+        withContext(Dispatchers.Main) {
+            if (recyclerView.adapter == null) {
+                recyclerView.adapter = EndpointsAdapter(items) { item, blocked ->
+                    toggleEndpointBlock(item, blocked)
                 }
+            } else {
+                (recyclerView.adapter as? EndpointsAdapter)?.updateData(items)
+            }
+            checkFocus()
+        }
+    }
+
+    private suspend fun loadLogs() {
+        val logs = FirewallManager.getInstance().getRecentLogs(packageName)
+        withContext(Dispatchers.Main) {
+            if (recyclerView.adapter == null) {
+                val adapter = ConnectionLogsAdapter()
+                recyclerView.adapter = adapter
+                
+                val logItems = logs.map { log ->
+                    ConnectionLogItem(
+                        packageName = log.packageName,
+                        destinationIp = log.destinationIp,
+                        destinationPort = log.destinationPort,
+                        hostname = log.hostname,
+                        protocol = log.protocol,
+                        timestamp = log.timestamp,
+                        wasBlocked = log.wasBlocked,
+                        status = log.status,
+                        failureReason = log.failureReason,
+                        method = log.method,
+                        path = log.path
+                    )
+                }
+                adapter.submitList(logItems)
+            } else {
+                 val adapter = recyclerView.adapter as? ConnectionLogsAdapter
+                 val logItems = logs.map { log ->
+                    ConnectionLogItem(
+                        packageName = log.packageName,
+                        destinationIp = log.destinationIp,
+                        destinationPort = log.destinationPort,
+                        hostname = log.hostname,
+                        protocol = log.protocol,
+                        timestamp = log.timestamp,
+                        wasBlocked = log.wasBlocked,
+                        status = log.status,
+                        failureReason = log.failureReason,
+                        method = log.method,
+                        path = log.path
+                    )
+                }
+                adapter?.submitList(logItems)
+            }
+            checkFocus()
+        }
+    }
+    
+    private fun checkFocus() {
+        // Only request focus if this is the FIRST load or list is empty
+        if (recyclerView.adapter?.itemCount ?: 0 > 0 && recyclerView.findFocus() == null) {
+            recyclerView.post { 
+                 if (recyclerView.findFocus() == null) {
+                      val firstView = recyclerView.layoutManager?.findViewByPosition(0)
+                      if (firstView != null) {
+                          firstView.requestFocus()
+                      } else {
+                          recyclerView.requestFocus()
+                      }
+                 }
             }
         }
     }
@@ -332,14 +355,30 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
                 FirewallManager.getInstance().addBlockPortRule(
                     packageName, 
                     item.port, 
-                    try { Protocol.valueOf(item.protocol) } catch(e:Exception) { Protocol.BOTH }
+                    try { com.editech.services.firewall.Protocol.valueOf(item.protocol) } catch(e:Exception) { com.editech.services.firewall.Protocol.BOTH }
                 )
             } else {
-                // Find and remove rule
                 val rules = FirewallManager.getInstance().getRulesForPackage(packageName)
                 val ruleToRemove = rules.find { 
                     it.port == item.port && 
                     it.ruleType == com.editech.services.firewall.RuleType.BLOCK_PORT 
+                }
+                ruleToRemove?.let {
+                    FirewallManager.getInstance().removeRule(it.id, packageName)
+                }
+            }
+        }
+    }
+
+    private fun toggleEndpointBlock(item: EndpointItemModel, blocked: Boolean) {
+        CoroutineScope(Dispatchers.IO).launch {
+            if (blocked) {
+                FirewallManager.getInstance().addBlockEndpointRule(packageName, item.endpoint)
+            } else {
+                val rules = FirewallManager.getInstance().getRulesForPackage(packageName)
+                val ruleToRemove = rules.find { 
+                    it.endpoint == item.endpoint && 
+                    it.ruleType == com.editech.services.firewall.RuleType.BLOCK_ENDPOINT 
                 }
                 ruleToRemove?.let {
                     FirewallManager.getInstance().removeRule(it.id, packageName)
@@ -362,6 +401,80 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
 }
 
 data class PortItemModel(val port: Int, val protocol: String, var isBlocked: Boolean)
+data class EndpointItemModel(val endpoint: String, var isBlocked: Boolean)
+
+class EndpointsAdapter(
+    private var items: List<EndpointItemModel>,
+    private val onToggle: (EndpointItemModel, Boolean) -> Unit
+) : RecyclerView.Adapter<EndpointsAdapter.ViewHolder>() {
+
+    init {
+        setHasStableIds(true)
+    }
+
+    override fun getItemId(position: Int): Long {
+        return items[position].endpoint.hashCode().toLong()
+    }
+    
+    fun updateData(newItems: List<EndpointItemModel>) {
+        items = newItems
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        // Reuse item_firewall_port layout since it has text + switch
+        // We might want to adjust text IDs
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_firewall_port, parent, false)
+        return ViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.bind(items[position])
+    }
+
+    override fun getItemCount() = items.size
+
+    inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val tvPort: TextView = view.findViewById(R.id.tvPort) // Use generic names? This is tvPort in XML
+        val tvProtocol: TextView = view.findViewById(R.id.tvProtocol)
+        val tvStatus: TextView = view.findViewById(R.id.tvStatus)
+        val switchBlock: SwitchMaterial = view.findViewById(R.id.switchBlock)
+
+        init {
+            switchBlock.isClickable = false
+            switchBlock.isFocusable = false
+            // Hide protocol text view as it's not needed for Endpoints
+            tvProtocol.visibility = View.GONE
+            // Optional: Adjust layout params if needed
+        }
+
+        fun bind(item: EndpointItemModel) {
+            tvPort.text = item.endpoint // Use "Port" TextView for Endpoint Text
+            
+            switchBlock.setOnCheckedChangeListener(null)
+            switchBlock.isChecked = item.isBlocked
+            
+            updateStatus(item.isBlocked)
+            
+            itemView.setOnClickListener {
+                switchBlock.isChecked = !switchBlock.isChecked
+                item.isBlocked = switchBlock.isChecked
+                updateStatus(item.isBlocked)
+                onToggle(item, item.isBlocked)
+            }
+        }
+        
+        private fun updateStatus(blocked: Boolean) {
+            if (blocked) {
+                tvStatus.text = "Blocked"
+                tvStatus.setTextColor(0xFFE57373.toInt()) // Red
+            } else {
+                tvStatus.text = "Allowed"
+                tvStatus.setTextColor(0xFF81C784.toInt()) // Green
+            }
+        }
+    }
+}
 
 class PortsAdapter(
     private var items: List<PortItemModel>,

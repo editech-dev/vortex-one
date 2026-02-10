@@ -17,15 +17,17 @@ public class FirewallRuleEntity {
     public String protocol; // TCP, UDP, BOTH
     public boolean enabled;
     public long createdAt;
+    public String endpoint;
 
     public FirewallRuleEntity(String packageName, String ruleType, int port, String protocol, boolean enabled,
-            long createdAt) {
+            long createdAt, String endpoint) {
         this.packageName = packageName;
         this.ruleType = ruleType;
         this.port = port;
         this.protocol = protocol;
         this.enabled = enabled;
         this.createdAt = createdAt;
+        this.endpoint = endpoint;
     }
 
     public FirewallRule toModel() {
@@ -34,6 +36,7 @@ public class FirewallRuleEntity {
                 packageName,
                 RuleType.valueOf(ruleType),
                 port == -1 ? null : port, // Assuming -1 for null/all ports if needed, or handle nullability logic
+                endpoint,
                 Protocol.valueOf(protocol),
                 enabled,
                 createdAt);

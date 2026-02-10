@@ -120,14 +120,21 @@ public class NetworkHook {
              }
         }
         
-        private void logUrl(URL url) {
+        private void logUrl(URL url) throws java.io.IOException {
             try {
                 // Reflection to call NetworkConnectionMonitor.logUrlConnection
                 Class<?> monitorClass = Class.forName("com.editech.services.firewall.NetworkConnectionMonitor");
-                Method logMethod = monitorClass.getMethod("logUrlConnection", String.class, String.class, String.class, String.class);
-                // We don't know the Method (GET/POST) yet at this stage, default to "REQ" or "GET?" 
-                // Using "REQ" to indicate Request Initiation
-                logMethod.invoke(null, url.toString(), "REQ", "ESTABLISHED", null);
+                // Method signature: url, method, status, failureReason, overrideHostname
+                Method logMethod = monitorClass.getMethod("logUrlConnection", String.class, String.class, String.class, String.class, String.class);
+                
+                // We don't know the Method (GET/POST) yet at this stage, default to "REQ"
+                logMethod.invoke(null, url.toString(), "REQ", "ESTABLISHED", null, url.getHost());
+                
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                if (e.getTargetException() instanceof java.io.IOException) {
+                    throw (java.io.IOException) e.getTargetException();
+                }
+                // Slog.e(TAG, "Log invocation error", e);
             } catch (Exception e) {
                 // Slog.e(TAG, "Log error", e);
             }

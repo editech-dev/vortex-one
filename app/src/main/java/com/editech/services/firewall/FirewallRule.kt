@@ -9,6 +9,7 @@ data class FirewallRule(
     val packageName: String,
     val ruleType: RuleType,
     val port: Int? = null,           // null = all ports
+    val endpoint: String? = null,     // Specific URL or path
     val protocol: Protocol = Protocol.BOTH,
     val enabled: Boolean = true,
     val createdAt: Long = System.currentTimeMillis()
@@ -20,7 +21,8 @@ data class FirewallRule(
             port ?: -1,
             protocol.name,
             enabled,
-            createdAt
+            createdAt,
+            endpoint
         )
     }
 }
@@ -28,7 +30,8 @@ data class FirewallRule(
 enum class RuleType {
     BLOCK_ALL,        // Block all internet access
     BLOCK_PORT,       // Block specific port
-    ALLOW_ONLY_PORT   // Block all except this port
+    ALLOW_ONLY_PORT,   // Block all except this port
+    BLOCK_ENDPOINT    // Block specific URL endpoint
 }
 
 enum class Protocol {
