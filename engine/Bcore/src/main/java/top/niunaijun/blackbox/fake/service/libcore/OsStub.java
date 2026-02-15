@@ -283,69 +283,7 @@ public class OsStub extends ClassInvocationStub {
         }
     }
 
-    @ProxyMethod("write")
-    public static class writeHook extends MethodHook {
-        @Override
-        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            // write(FileDescriptor fd, byte[] bytes, int byteOffset, int byteCount)
-            Object result = method.invoke(who, args);
 
-            int bytesWritten = 0;
-            if (result instanceof Integer) {
-                bytesWritten = (int) result;
-            } else if (args.length >= 4 && args[3] instanceof Integer) {
-                bytesWritten = (int) args[3];
-            }
-
-            if (bytesWritten > 0) {
-                ensureBandwidthReflection();
-                if (sConsumeTxMethod != null) {
-                    try {
-                        String pkg = getCurrentPackageName();
-                        if (pkg != null) {
-                            long delayMs = (long) sConsumeTxMethod.invoke(null, pkg, bytesWritten);
-                            if (delayMs > 0) {
-                                Thread.sleep(delayMs);
-                            }
-                        }
-                    } catch (Exception ignored) {}
-                }
-            }
-
-            return result;
-        }
-    }
-
-    @ProxyMethod("read")
-    public static class readHook extends MethodHook {
-        @Override
-        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            // read(FileDescriptor fd, byte[] bytes, int byteOffset, int byteCount)
-            Object result = method.invoke(who, args);
-
-            int bytesRead = 0;
-            if (result instanceof Integer) {
-                bytesRead = (int) result;
-            }
-
-            if (bytesRead > 0) {
-                ensureBandwidthReflection();
-                if (sConsumeRxMethod != null) {
-                    try {
-                        String pkg = getCurrentPackageName();
-                        if (pkg != null) {
-                            long delayMs = (long) sConsumeRxMethod.invoke(null, pkg, bytesRead);
-                            if (delayMs > 0) {
-                                Thread.sleep(delayMs);
-                            }
-                        }
-                    } catch (Exception ignored) {}
-                }
-            }
-
-            return result;
-        }
-    }
 
     private static int getFakeUid(int callUid) {
         if (callUid > 0 && callUid <= Process.FIRST_APPLICATION_UID)

@@ -3,6 +3,7 @@ package com.editech.services.activities
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -830,6 +831,37 @@ class BandwidthAdapter(
                 override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
                 override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
             })
+            
+            // Handle TV D-pad navigation on the ITEM VIEW
+            itemView.setOnKeyListener { v, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_LEFT -> {
+                            if (seekBar.progress > 0) {
+                                seekBar.progress = seekBar.progress - 1
+                                // Manually trigger update since setProgress(x) doesn't set fromUser=true
+                                val limit = steps[seekBar.progress]
+                                item.limitBytes = limit
+                                updateValueText(limit)
+                                onLimitChanged(item.isUpload, limit)
+                                return@setOnKeyListener true
+                            }
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            if (seekBar.progress < seekBar.max) {
+                                seekBar.progress = seekBar.progress + 1
+                                // Manually trigger update
+                                val limit = steps[seekBar.progress]
+                                item.limitBytes = limit
+                                updateValueText(limit)
+                                onLimitChanged(item.isUpload, limit)
+                                return@setOnKeyListener true
+                            }
+                        }
+                    }
+                }
+                false
+            }
         }
 
         private fun updateValueText(limitBytes: Long) {
