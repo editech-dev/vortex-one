@@ -131,7 +131,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     }
 
     enum class DetailType {
-        PORTS, LOGS, ENDPOINTS, THREATS
+        PORTS, LOGS, ENDPOINTS, THREATS, BANDWIDTH
     }
 
     private fun setupViewPager() {
@@ -144,6 +144,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 1 -> "Endpoints"
                 2 -> "Logs"
                 3 -> "Threats"
+                4 -> "Speed"
                 else -> ""
             }
         }.attach()
@@ -168,7 +169,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     }
 
     inner class DetailPagerAdapter(activity: AppCompatActivity) : androidx.viewpager2.adapter.FragmentStateAdapter(activity) {
-        override fun getItemCount(): Int = 4
+        override fun getItemCount(): Int = 5
 
         override fun createFragment(position: Int): androidx.fragment.app.Fragment {
             return when (position) {
@@ -176,6 +177,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 1 -> BaseDetailFragment.newInstance(packageName, DetailType.ENDPOINTS)
                 2 -> BaseDetailFragment.newInstance(packageName, DetailType.LOGS)
                 3 -> BaseDetailFragment.newInstance(packageName, DetailType.THREATS)
+                4 -> BaseDetailFragment.newInstance(packageName, DetailType.BANDWIDTH)
                 else -> throw IllegalStateException("Invalid position")
             }
         }
@@ -237,6 +239,7 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
                 FirewallAppDetailActivity.DetailType.ENDPOINTS -> loadEndpoints()
                 FirewallAppDetailActivity.DetailType.LOGS -> loadLogs()
                 FirewallAppDetailActivity.DetailType.THREATS -> loadThreats()
+                FirewallAppDetailActivity.DetailType.BANDWIDTH -> loadBandwidth()
             }
         }
     }
@@ -396,6 +399,36 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
         }
     }
 
+    private fun loadBandwidth() {
+        CoroutineScope(Dispatchers.IO).launch {
+            // Get current limits
+            val limits = FirewallManager.getInstance().getBandwidthLimit(packageName)
+            val uploadLimit = limits.first
+            val downloadLimit = limits.second
+
+            val items = listOf(
+                BandwidthItemModel("Upload Limit", "Limit maximum upload speed", uploadLimit, true),
+                BandwidthItemModel("Download Limit", "Limit maximum download speed", downloadLimit, false)
+            )
+
+            withContext(Dispatchers.Main) {
+                recyclerView.adapter = BandwidthAdapter(items) { isUpload, limitBytes ->
+                     updateBandwidthLimit(isUpload, limitBytes)
+                }
+                checkFocus()
+            }
+        }
+    }
+
+    private fun updateBandwidthLimit(isUpload: Boolean, limitBytes: Long) {
+         CoroutineScope(Dispatchers.IO).launch {
+             val current = FirewallManager.getInstance().getBandwidthLimit(packageName)
+             val newUp = if (isUpload) limitBytes else current.first
+             val newDown = if (!isUpload) limitBytes else current.second
+             FirewallManager.getInstance().setBandwidthLimit(packageName, newUp, newDown)
+         }
+    }
+
     private fun checkFocus() {
         // Only request focus if this is the FIRST load or list is empty
         if (recyclerView.adapter?.itemCount ?: 0 > 0 && recyclerView.findFocus() == null) {
@@ -475,6 +508,13 @@ data class ThreatItemModel(
     val hostname: String? = null,
     val timestamp: Long = 0,
     val wasBlocked: Boolean = false
+)
+
+data class BandwidthItemModel(
+    val title: String,
+    val description: String,
+    var limitBytes: Long,
+    val isUpload: Boolean
 )
 
 class EndpointsAdapter(
@@ -724,6 +764,95 @@ class ThreatsAdapter(
             itemView.setOnClickListener(null)
             itemView.isFocusable = true
             itemView.isFocusableInTouchMode = true
+        }
+    }
+}
+
+class BandwidthAdapter(
+    private var items: List<BandwidthItemModel>,
+    private val onLimitChanged: (Boolean, Long) -> Unit
+) : RecyclerView.Adapter<BandwidthAdapter.ViewHolder>() {
+
+    // Scale: 0 (Unlimited) -> 8 (10 MB/s)
+    private val steps = listOf(
+        0L,             // Unlimited
+        64 * 1024L,     // 64 KB/s
+        128 * 1024L,    // 128 KB/s
+        256 * 1024L,    // 256 KB/s
+        512 * 1024L,    // 512 KB/s
+        1024 * 1024L,   // 1 MB/s
+        2 * 1024 * 1024L, // 2 MB/s
+        5 * 1024 * 1024L, // 5 MB/s
+        10 * 1024 * 1024L // 10 MB/s
+    )
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_bandwidth_limit, parent, false)
+        return ViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.bind(items[position])
+    }
+
+    override fun getItemCount() = items.size
+
+    inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val tvTitle: TextView = view.findViewById(R.id.tvTitle)
+        val tvValue: TextView = view.findViewById(R.id.tvValue)
+        val tvDescription: TextView = view.findViewById(R.id.tvDescription)
+        val seekBar: android.widget.SeekBar = view.findViewById(R.id.seekBar)
+
+        fun bind(item: BandwidthItemModel) {
+            tvTitle.text = item.title
+            tvDescription.text = item.description
+
+            // Convert limitBytes to progress index
+            var progress = steps.indexOf(item.limitBytes)
+            if (progress < 0) {
+                 // Use closest match if custom value
+                 progress = 0
+            }
+            seekBar.progress = progress
+            
+            updateValueText(item.limitBytes)
+
+            seekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                    if (fromUser) {
+                        val limit = steps[progress]
+                        item.limitBytes = limit
+                        updateValueText(limit)
+                        onLimitChanged(item.isUpload, limit)
+                    }
+                }
+
+                override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            })
+        }
+
+        private fun updateValueText(limitBytes: Long) {
+            val text = if (limitBytes <= 0) {
+                "Unlimited"
+            } else {
+                formatSpeed(limitBytes)
+            }
+            tvValue.text = text
+            
+            if (limitBytes <= 0) {
+                tvValue.setTextColor(0xFF81C784.toInt()) // Green
+            } else {
+                tvValue.setTextColor(0xFFFFB74D.toInt()) // Orange
+            }
+        }
+
+        private fun formatSpeed(bytesPerSec: Long): String {
+            return when {
+                bytesPerSec < 1024 -> "$bytesPerSec B/s"
+                bytesPerSec < 1_048_576 -> "${bytesPerSec / 1024} KB/s"
+                else -> "${bytesPerSec / 1_048_576} MB/s"
+            }
         }
     }
 }

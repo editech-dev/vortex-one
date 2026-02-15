@@ -62,6 +62,11 @@ class FirewallManager private constructor(private val context: Context) {
     private val database: FirewallDatabase by lazy {
         FirewallDatabase.getInstance(context)
     }
+
+    // Bandwidth preferences
+    private val bandwidthPrefs by lazy {
+        context.getSharedPreferences("bandwidth_limits", Context.MODE_PRIVATE)
+    }
     
     private val stateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -84,6 +89,7 @@ class FirewallManager private constructor(private val context: Context) {
     init {
         // Load persisted state on init
         loadPersistedState()
+        restoreBandwidthLimits()
         
         // Register receiver for cross-process updates
         val filter = IntentFilter(ACTION_UPDATE_STATE)
@@ -578,6 +584,58 @@ class FirewallManager private constructor(private val context: Context) {
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load persisted state: ${e.message}")
             }
+        }
+    }
+
+    // ====================
+    // BANDWIDTH LIMITS
+    // ====================
+
+    private fun restoreBandwidthLimits() {
+         try {
+            val allMap = bandwidthPrefs.all
+            for ((key, value) in allMap) {
+                if (value is Long && key.contains("_")) {
+                    // key format: packageName_up or packageName_down
+                    val isUpload = key.endsWith("_up")
+                    val isDownload = key.endsWith("_down")
+                    
+                    if (isUpload || isDownload) {
+                        val packageName = key.substringBeforeLast("_")
+                        
+                        // We need both up and down to set limit, so we might set them multiple times, which is fine
+                        val up = bandwidthPrefs.getLong("${packageName}_up", 0)
+                        val down = bandwidthPrefs.getLong("${packageName}_down", 0)
+                        
+                        if (up > 0 || down > 0) {
+                            BandwidthManager.setLimit(packageName, up, down)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+    
+    fun setBandwidthLimit(packageName: String, uploadBytesPerSec: Long, downloadBytesPerSec: Long) {
+        // Update runtime manager
+        BandwidthManager.setLimit(packageName, uploadBytesPerSec, downloadBytesPerSec)
+        
+        // Persist
+        bandwidthPrefs.edit().apply {
+            putLong("${packageName}_up", uploadBytesPerSec)
+            putLong("${packageName}_down", downloadBytesPerSec)
+            apply()
+        }
+    }
+    
+    fun getBandwidthLimit(packageName: String): Pair<Long, Long> {
+        // Read from manager as source of truth for runtime, or prefs if not loaded yet
+        return BandwidthManager.getLimit(packageName) ?: run {
+            val up = bandwidthPrefs.getLong("${packageName}_up", 0)
+            val down = bandwidthPrefs.getLong("${packageName}_down", 0)
+            Pair(up, down)
         }
     }
 }

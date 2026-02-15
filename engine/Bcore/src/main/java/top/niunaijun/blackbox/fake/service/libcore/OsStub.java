@@ -186,6 +186,167 @@ public class OsStub extends ClassInvocationStub {
         }
     }
 
+    // ============================
+    // BANDWIDTH THROTTLING HOOKS
+    // ============================
+
+    // Cached reflection references for BandwidthManager (avoid lookup on every call)
+    private static volatile Method sConsumeTxMethod;
+    private static volatile Method sConsumeRxMethod;
+    private static volatile boolean sBandwidthReflectionFailed = false;
+
+    private static void ensureBandwidthReflection() {
+        if (sBandwidthReflectionFailed || sConsumeTxMethod != null) return;
+        try {
+            Class<?> bwClass = Class.forName("com.editech.services.firewall.BandwidthManager");
+            sConsumeTxMethod = bwClass.getMethod("consumeTx", String.class, int.class);
+            sConsumeRxMethod = bwClass.getMethod("consumeRx", String.class, int.class);
+        } catch (Exception e) {
+            sBandwidthReflectionFailed = true;
+        }
+    }
+
+    private static String getCurrentPackageName() {
+        try {
+            if (BActivityThread.isThreadInit() && BActivityThread.currentActivityThread().isInit()) {
+                return BActivityThread.getAppPackageName();
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    @ProxyMethod("sendto")
+    public static class sendto extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            // sendto(FileDescriptor fd, byte[] bytes, int byteOffset, int byteCount, int flags, InetAddress inetAddress, int port)
+            // or sendto(FileDescriptor fd, ByteBuffer buffer, int flags, InetAddress inetAddress, int port)
+            Object result = method.invoke(who, args);
+            
+            // Throttle after send succeeds
+            int bytesSent = 0;
+            if (result instanceof Integer) {
+                bytesSent = (int) result;
+            } else if (args.length >= 4 && args[3] instanceof Integer) {
+                // byteCount argument
+                bytesSent = (int) args[3];
+            }
+
+            if (bytesSent > 0) {
+                ensureBandwidthReflection();
+                if (sConsumeTxMethod != null) {
+                    try {
+                        String pkg = getCurrentPackageName();
+                        if (pkg != null) {
+                            long delayMs = (long) sConsumeTxMethod.invoke(null, pkg, bytesSent);
+                            if (delayMs > 0) {
+                                Thread.sleep(delayMs);
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            return result;
+        }
+    }
+
+    @ProxyMethod("recvfrom")
+    public static class recvfrom extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            // recvfrom(FileDescriptor fd, byte[] bytes, int byteOffset, int byteCount, int flags, InetSocketAddress srcAddress)
+            Object result = method.invoke(who, args);
+
+            // Throttle after receive completes
+            int bytesReceived = 0;
+            if (result instanceof Integer) {
+                bytesReceived = (int) result;
+            }
+
+            if (bytesReceived > 0) {
+                ensureBandwidthReflection();
+                if (sConsumeRxMethod != null) {
+                    try {
+                        String pkg = getCurrentPackageName();
+                        if (pkg != null) {
+                            long delayMs = (long) sConsumeRxMethod.invoke(null, pkg, bytesReceived);
+                            if (delayMs > 0) {
+                                Thread.sleep(delayMs);
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            return result;
+        }
+    }
+
+    @ProxyMethod("write")
+    public static class writeHook extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            // write(FileDescriptor fd, byte[] bytes, int byteOffset, int byteCount)
+            Object result = method.invoke(who, args);
+
+            int bytesWritten = 0;
+            if (result instanceof Integer) {
+                bytesWritten = (int) result;
+            } else if (args.length >= 4 && args[3] instanceof Integer) {
+                bytesWritten = (int) args[3];
+            }
+
+            if (bytesWritten > 0) {
+                ensureBandwidthReflection();
+                if (sConsumeTxMethod != null) {
+                    try {
+                        String pkg = getCurrentPackageName();
+                        if (pkg != null) {
+                            long delayMs = (long) sConsumeTxMethod.invoke(null, pkg, bytesWritten);
+                            if (delayMs > 0) {
+                                Thread.sleep(delayMs);
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            return result;
+        }
+    }
+
+    @ProxyMethod("read")
+    public static class readHook extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            // read(FileDescriptor fd, byte[] bytes, int byteOffset, int byteCount)
+            Object result = method.invoke(who, args);
+
+            int bytesRead = 0;
+            if (result instanceof Integer) {
+                bytesRead = (int) result;
+            }
+
+            if (bytesRead > 0) {
+                ensureBandwidthReflection();
+                if (sConsumeRxMethod != null) {
+                    try {
+                        String pkg = getCurrentPackageName();
+                        if (pkg != null) {
+                            long delayMs = (long) sConsumeRxMethod.invoke(null, pkg, bytesRead);
+                            if (delayMs > 0) {
+                                Thread.sleep(delayMs);
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            return result;
+        }
+    }
+
     private static int getFakeUid(int callUid) {
         if (callUid > 0 && callUid <= Process.FIRST_APPLICATION_UID)
             return callUid;
