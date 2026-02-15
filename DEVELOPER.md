@@ -4,11 +4,11 @@ This document contains detailed technical information about the architecture, bu
 
 ## 🛠️ Technology Stack
 
-- **Language**: Kotlin 100%
+- **Language**: Kotlin (app) + Java (virtualization engine core)
 - **Min SDK**: 21 (Android 5.0 Lollipop)
 - **Target SDK**: 34
 - **UI**: XML with ViewBinding (No Jetpack Compose for better performance on TV)
-- **Virtualization Engine**: BlackBox
+- **Virtualization Engine**: Based on BlackBox (Apache 2.0) — see [NOTICE](NOTICE)
 - **Architectures**: ARM64-v8a, ARMeabi-v7a
 
 ## 🏗️ Architecture
@@ -28,41 +28,76 @@ This document contains detailed technical information about the architecture, bu
 └─────────┬───────────────────┬────────────┘
           ▼                   ▼
     ┌──────────┐      ┌──────────────┐
-    │APK Scanner│      │ BlackBox Core│
+    │APK Scanner│      │ Engine (Bcore)│
     └──────────┘      └──────────────┘
 ```
 
 ## 🔧 Project Structure
 
 ```
-app/src/main/
-├── java/com/editech/services/
-│   ├── App.kt                     # Application class (BlackBox & Ads Init)
-│   ├── MainActivity.kt            # Main Dashboard
-│   ├── activities/
-│   │   ├── FileScannerActivity.kt # APK fs scanner
-│   │   └── SystemAppsActivity.kt  # System app virtualizer
-│   ├── adapters/
-│   │   ├── VirtualAppsAdapter.kt  # App Grid Adapter
-│   │   └── ApkFileAdapter.kt      # APK List Adapter
-│   ├── models/
-│   │   ├── VirtualApp.kt
-│   │   └── ApkFile.kt
-│   └── utils/
-│       └── AdManager.kt           # Ad Utils (Unity Ads)
-└── res/
-    ├── layout/                    # Standardized XML Layouts
-    └── drawable/                  # Drawable resources
+VortexOne/
+├── app/src/main/
+│   └── java/com/editech/services/
+│       ├── App.kt                        # Application class
+│       ├── MainActivity.kt               # Main Dashboard
+│       ├── activities/
+│       │   ├── FileScannerActivity.kt     # APK filesystem scanner
+│       │   ├── FirewallActivity.kt        # Firewall management
+│       │   ├── FirewallAppDetailActivity.kt
+│       │   └── SystemAppsActivity.kt      # System app virtualizer
+│       ├── adapters/
+│       │   ├── VirtualAppsAdapter.kt      # App Grid Adapter
+│       │   ├── ApkFileAdapter.kt          # APK List Adapter
+│       │   └── SystemAppsAdapter.kt
+│       ├── firewall/
+│       │   ├── ConnectionLog.kt           # Connection log model
+│       │   ├── FirewallManager.kt         # Core firewall logic
+│       │   ├── FirewallRule.kt            # Rule model + enums
+│       │   ├── NetworkConnectionMonitor.kt
+│       │   └── database/                  # Room database (Kotlin)
+│       │       ├── ConnectionLogDao.kt
+│       │       ├── ConnectionLogEntity.kt
+│       │       ├── FirewallAppStateEntity.kt
+│       │       ├── FirewallDatabase.kt
+│       │       ├── FirewallRuleDao.kt
+│       │       └── FirewallRuleEntity.kt
+│       ├── models/
+│       │   ├── VirtualApp.kt
+│       │   ├── ApkFile.kt
+│       │   └── SystemApp.kt
+│       └── utils/
+│           ├── AdManager.kt              # Ad Utils (Unity Ads)
+│           └── FirewallBridge.kt
+├── engine/                                # Virtualization Engine (Apache 2.0)
+│   ├── Bcore/                             # Core virtualization library (Java)
+│   ├── black-reflection/                  # Reflection utilities
+│   └── compiler/                          # Annotation processor
+├── LICENSE                                # MIT (Vortex One) + Apache 2.0 credits
+├── NOTICE                                 # BlackBox attribution
+├── README.md
+└── DEVELOPER.md                           # This file
 ```
 
-## ⚙️ BlackBox Integration
+> [!NOTE]
+> The `engine/` directory contains the BlackBox-based virtualization engine.
+> Its Java code is intentionally kept in Java — these are low-level Android
+> framework stubs, AIDL interfaces, and JNI bindings that require exact Java
+> signatures. See the [NOTICE](NOTICE) file for full attribution.
 
-> [!IMPORTANT]
-> The project must integrate the BlackBox engine for virtualization.
+## ⚙️ Engine Integration
 
-1. **Download BlackBox**: `git clone https://github.com/FBlackBox/BlackBox.git`
-2. **Integrate**: Can be added as a module (`:Bcore`) or as an AAR in `app/libs`.
-3. **Dependencies**: Ensure `implementation("com.github.FBlackBox:BlackBox:0.6.0")` or the project reference is active in `build.gradle.kts`.
+The virtualization engine (based on BlackBox, Apache 2.0) is integrated as
+local Gradle modules:
+
+```kotlin
+// settings.gradle.kts
+include(":engine:Bcore")
+include(":engine:black-reflection")
+include(":engine:compiler")
+
+// app/build.gradle.kts
+implementation(project(":engine:Bcore"))
+```
 
 ## 🚀 Build Guide
 

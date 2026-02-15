@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 Vortex One
+Copyright (c) 2026 Editech Dev (Vortex One)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,18 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+===============================================================================
+THIRD-PARTY LICENSES
+===============================================================================
+
+This project incorporates components from the BlackBox virtual engine,
+which is licensed under the Apache License 2.0. The BlackBox components
+are located in the engine/ directory and retain their original Apache 2.0
+license. See engine/LICENSE for the full Apache License 2.0 text and the
+NOTICE file for detailed attribution.
+
+BlackBox - Virtual Engine
+Copyright (c) 2022 BlackBox / ALEX502
+Licensed under the Apache License, Version 2.0
+https://github.com/FBlackBox/BlackBox

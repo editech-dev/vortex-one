@@ -1,0 +1,35 @@
+Vortex One
+Copyright (c) 2026 Editech Dev
+
+This product includes software developed by the BlackBox project.
+
+=======================================================================
+BlackBox - Virtual Engine (Enhanced Edition)
+=======================================================================
+
+Original Project: BlackBox (NewBlackbox)
+Copyright (c) 2022 BlackBox
+Licensed under the Apache License, Version 2.0
+https://github.com/FBlackBox/BlackBox
+
+Main Developer: ALEX502
+
+The virtualization engine (engine/Bcore, engine/black-reflection,
+engine/compiler) is based on BlackBox and is used under the terms of
+the Apache License 2.0. Modifications have been made to adapt it for
+the Vortex One project, including bug fixes, stability improvements,
+and Android 14+ compatibility.
+
+=======================================================================
+Third-Party Components (via BlackBox)
+=======================================================================
+
+- VirtualApp / VirtualAPK — Original virtualization framework
+- Dobby — Native inline hook framework
+- xDL — Enhanced Android dynamic linker
+- BlackReflection / FreeReflection — Java reflection utilities
+
+=======================================================================
+
+A copy of the Apache License 2.0 is included in the file
+engine/LICENSE.

@@ -78,4 +78,18 @@ If you need help or have suggestions, contact us:
 - **GitHub**: [editech-dev](https://github.com/editech-dev)
 
 ---
+
+## 🙏 Acknowledgments
+
+Vortex One is built upon the incredible work of the open-source community:
+
+- **[BlackBox](https://github.com/FBlackBox/BlackBox)** — Virtual engine by **ALEX502** (Apache 2.0). The core virtualization that makes app cloning possible.
+- **VirtualApp / VirtualAPK** — Original virtualization framework
+- **Dobby** — Native inline hook framework
+- **xDL** — Enhanced Android dynamic linker
+- **BlackReflection / FreeReflection** — Java reflection utilities
+
+See the [NOTICE](NOTICE) file for complete attribution details.
+
+---
 *Made with ❤️ for the Android community.*
