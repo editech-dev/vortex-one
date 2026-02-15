@@ -16,8 +16,6 @@ android {
     }
     defaultConfig {
         minSdkVersion rootProject.ext.minSdk
-        versionCode rootProject.ext.versionCode
-        versionName rootProject.ext.versionName
 
         consumerProguardFiles "consumer-rules.pro"
         ndk {
