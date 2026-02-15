@@ -23,7 +23,7 @@ dependencyResolutionManagement {
 rootProject.name = "VortexTV"
 include(":app")
  
-// BlackBox Core Modules (Real - Enhanced Edition)
-include(":blackbox:Bcore")
-include(":blackbox:black-reflection")
-include(":blackbox:compiler")
+// Virtualization Engine Modules (based on BlackBox - Apache 2.0)
+include(":engine:Bcore")
+include(":engine:black-reflection")
+include(":engine:compiler")

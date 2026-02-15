@@ -97,8 +97,8 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("com.google.android.material:material:1.11.0")
     
-    // BlackBox Virtualization Engine (REAL - NewBlackbox Enhanced Edition)
-    implementation(project(":blackbox:Bcore"))
+    // Virtualization Engine (based on BlackBox - Apache 2.0, see NOTICE)
+    implementation(project(":engine:Bcore"))
     
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)
