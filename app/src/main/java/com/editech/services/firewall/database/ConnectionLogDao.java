@@ -32,4 +32,7 @@ public interface ConnectionLogDao {
 
     @Query("DELETE FROM connection_logs")
     void clearAll();
+
+    @Query("SELECT * FROM connection_logs WHERE packageName = :packageName AND failureReason LIKE 'THREAT:%' ORDER BY timestamp DESC LIMIT :limit")
+    List<ConnectionLogEntity> getThreatLogs(String packageName, int limit);
 }

@@ -77,12 +77,21 @@ object NetworkConnectionMonitor {
         if (!manager.isEnabled(packageName)) return
 
         val ip = address.hostAddress ?: return
+
+        // Classify threat and tag the log
+        val threat = manager.classifyThreat(address, port)
+        val taggedReason = when {
+            threat != null && failureReason != null -> "${ThreatType.toTag(threat)}|$failureReason"
+            threat != null -> ThreatType.toTag(threat)
+            else -> failureReason
+        }
         
-        manager.logConnection(packageName, ip, port, "TCP", blocked, status, failureReason)
+        manager.logConnection(packageName, ip, port, "TCP", blocked, status, taggedReason)
         
         if (blocked) {
-            Slog.d(TAG, "BLOCKED: $packageName -> $ip:$port ${failureReason?.let { "($it)" } ?: ""}")
-            Slog.d(TAG, "ALLOWED ($status): $packageName -> $ip:$port ${failureReason?.let { "($it)" } ?: ""}")
+            Slog.d(TAG, "BLOCKED: $packageName -> $ip:$port ${taggedReason?.let { "($it)" } ?: ""}")
+        } else {
+            Slog.d(TAG, "ALLOWED ($status): $packageName -> $ip:$port ${taggedReason?.let { "($it)" } ?: ""}")
         }
     }
 
@@ -165,10 +174,14 @@ object NetworkConnectionMonitor {
         val ip = address.hostAddress ?: return false
         val blocked = manager.shouldBlock(packageName, address, port)
 
-        manager.logConnection(packageName, ip, port, "UDP", blocked)
+        // Classify threat and tag the log
+        val threat = manager.classifyThreat(address, port)
+        val taggedReason = threat?.let { ThreatType.toTag(it) }
+
+        manager.logConnection(packageName, ip, port, "UDP", blocked, failureReason = taggedReason)
 
         if (blocked) {
-            Slog.d(TAG, "BLOCKED UDP: $packageName -> $ip:$port")
+            Slog.d(TAG, "BLOCKED UDP: $packageName -> $ip:$port ${taggedReason ?: ""}")
         }
 
         return blocked

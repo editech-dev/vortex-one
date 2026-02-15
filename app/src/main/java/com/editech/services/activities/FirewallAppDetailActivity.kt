@@ -17,6 +17,7 @@ import com.editech.services.firewall.ConnectionLog
 import com.editech.services.firewall.FirewallManager
 import com.editech.services.firewall.FirewallState
 import com.editech.services.firewall.Protocol
+import com.editech.services.firewall.ThreatType
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
@@ -130,7 +131,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     }
 
     enum class DetailType {
-        PORTS, LOGS, ENDPOINTS
+        PORTS, LOGS, ENDPOINTS, THREATS
     }
 
     private fun setupViewPager() {
@@ -142,6 +143,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 0 -> "Ports"
                 1 -> "Endpoints"
                 2 -> "Logs"
+                3 -> "Threats"
                 else -> ""
             }
         }.attach()
@@ -166,13 +168,14 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     }
 
     inner class DetailPagerAdapter(activity: AppCompatActivity) : androidx.viewpager2.adapter.FragmentStateAdapter(activity) {
-        override fun getItemCount(): Int = 3
+        override fun getItemCount(): Int = 4
 
         override fun createFragment(position: Int): androidx.fragment.app.Fragment {
             return when (position) {
                 0 -> BaseDetailFragment.newInstance(packageName, DetailType.PORTS)
                 1 -> BaseDetailFragment.newInstance(packageName, DetailType.ENDPOINTS)
                 2 -> BaseDetailFragment.newInstance(packageName, DetailType.LOGS)
+                3 -> BaseDetailFragment.newInstance(packageName, DetailType.THREATS)
                 else -> throw IllegalStateException("Invalid position")
             }
         }
@@ -233,6 +236,7 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
                 FirewallAppDetailActivity.DetailType.PORTS -> loadPorts()
                 FirewallAppDetailActivity.DetailType.ENDPOINTS -> loadEndpoints()
                 FirewallAppDetailActivity.DetailType.LOGS -> loadLogs()
+                FirewallAppDetailActivity.DetailType.THREATS -> loadThreats()
             }
         }
     }
@@ -333,6 +337,65 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
         }
     }
     
+    private suspend fun loadThreats() {
+        val manager = FirewallManager.getInstance()
+        val threatLogs = manager.getThreatLogs(packageName)
+
+        // Get blocking state for each threat type
+        val adbBlocked = manager.isThreatBlocked(packageName, ThreatType.ADB_ACCESS)
+        val localNetBlocked = manager.isThreatBlocked(packageName, ThreatType.LOCAL_NETWORK)
+
+        // Group threat logs by type
+        val items = mutableListOf<ThreatItemModel>()
+
+        // Add category headers/toggles
+        items.add(ThreatItemModel(
+            threatType = ThreatType.ADB_ACCESS,
+            isHeader = true,
+            isBlocked = adbBlocked,
+            count = threatLogs.count { ThreatType.fromTag(it.failureReason?.split("|")?.firstOrNull()) == ThreatType.ADB_ACCESS }
+        ))
+
+        items.add(ThreatItemModel(
+            threatType = ThreatType.LOCAL_NETWORK,
+            isHeader = true,
+            isBlocked = localNetBlocked,
+            count = threatLogs.count {
+                val t = ThreatType.fromTag(it.failureReason?.split("|")?.firstOrNull())
+                t == ThreatType.LOCAL_NETWORK || t == ThreatType.LOCALHOST_PROBE
+            }
+        ))
+
+        // Add individual threat log entries
+        for (log in threatLogs) {
+            val tag = log.failureReason?.split("|")?.firstOrNull()
+            val threat = ThreatType.fromTag(tag) ?: continue
+            items.add(ThreatItemModel(
+                threatType = threat,
+                isHeader = false,
+                isBlocked = false,
+                ip = log.destinationIp,
+                port = log.destinationPort,
+                hostname = log.hostname,
+                timestamp = log.timestamp,
+                wasBlocked = log.wasBlocked
+            ))
+        }
+
+        withContext(Dispatchers.Main) {
+            recyclerView.adapter = ThreatsAdapter(items) { threatType, blocked ->
+                toggleThreatBlock(threatType, blocked)
+            }
+            checkFocus()
+        }
+    }
+
+    private fun toggleThreatBlock(threatType: ThreatType, blocked: Boolean) {
+        CoroutineScope(Dispatchers.IO).launch {
+            FirewallManager.getInstance().setThreatBlocking(packageName, threatType, blocked)
+        }
+    }
+
     private fun checkFocus() {
         // Only request focus if this is the FIRST load or list is empty
         if (recyclerView.adapter?.itemCount ?: 0 > 0 && recyclerView.findFocus() == null) {
@@ -402,6 +465,17 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
 
 data class PortItemModel(val port: Int, val protocol: String, var isBlocked: Boolean)
 data class EndpointItemModel(val endpoint: String, var isBlocked: Boolean)
+data class ThreatItemModel(
+    val threatType: ThreatType,
+    val isHeader: Boolean,
+    var isBlocked: Boolean = false,
+    val count: Int = 0,
+    val ip: String? = null,
+    val port: Int = 0,
+    val hostname: String? = null,
+    val timestamp: Long = 0,
+    val wasBlocked: Boolean = false
+)
 
 class EndpointsAdapter(
     private var items: List<EndpointItemModel>,
@@ -544,6 +618,112 @@ class PortsAdapter(
                 tvStatus.text = "Allowed"
                 tvStatus.setTextColor(0xFF81C784.toInt()) // Green
             }
+        }
+    }
+}
+
+class ThreatsAdapter(
+    private var items: List<ThreatItemModel>,
+    private val onToggle: (ThreatType, Boolean) -> Unit
+) : RecyclerView.Adapter<ThreatsAdapter.ViewHolder>() {
+
+    companion object {
+        private const val TYPE_HEADER = 0
+        private const val TYPE_ENTRY = 1
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return if (items[position].isHeader) TYPE_HEADER else TYPE_ENTRY
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_firewall_port, parent, false)
+        return ViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.bind(items[position])
+    }
+
+    override fun getItemCount() = items.size
+
+    inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val tvPort: TextView = view.findViewById(R.id.tvPort)
+        val tvProtocol: TextView = view.findViewById(R.id.tvProtocol)
+        val tvStatus: TextView = view.findViewById(R.id.tvStatus)
+        val switchBlock: SwitchMaterial = view.findViewById(R.id.switchBlock)
+
+        fun bind(item: ThreatItemModel) {
+            if (item.isHeader) {
+                bindHeader(item)
+            } else {
+                bindEntry(item)
+            }
+        }
+
+        private fun bindHeader(item: ThreatItemModel) {
+            tvPort.text = "${item.threatType.icon}  ${item.threatType.label}"
+            tvPort.textSize = 16f
+            tvProtocol.text = "${item.count} detection${if (item.count != 1) "s" else ""}"
+            tvProtocol.visibility = View.VISIBLE
+
+            switchBlock.visibility = View.VISIBLE
+            switchBlock.isClickable = false
+            switchBlock.isFocusable = false
+            switchBlock.setOnCheckedChangeListener(null)
+            switchBlock.isChecked = item.isBlocked
+
+            if (item.isBlocked) {
+                tvStatus.text = "Blocking"
+                tvStatus.setTextColor(0xFFE57373.toInt())
+            } else {
+                tvStatus.text = "Monitoring"
+                tvStatus.setTextColor(0xFFFFB74D.toInt())
+            }
+
+            itemView.setOnClickListener {
+                switchBlock.isChecked = !switchBlock.isChecked
+                item.isBlocked = switchBlock.isChecked
+                if (item.isBlocked) {
+                    tvStatus.text = "Blocking"
+                    tvStatus.setTextColor(0xFFE57373.toInt())
+                } else {
+                    tvStatus.text = "Monitoring"
+                    tvStatus.setTextColor(0xFFFFB74D.toInt())
+                }
+                onToggle(item.threatType, item.isBlocked)
+            }
+        }
+
+        private fun bindEntry(item: ThreatItemModel) {
+            val dest = item.hostname?.let { "$it (${item.ip})" } ?: item.ip ?: "unknown"
+            tvPort.text = "    ${item.threatType.icon}  $dest:${item.port}"
+            tvPort.textSize = 14f
+
+            // Show time ago
+            val elapsed = System.currentTimeMillis() - item.timestamp
+            val timeAgo = when {
+                elapsed < 60_000 -> "just now"
+                elapsed < 3_600_000 -> "${elapsed / 60_000}m ago"
+                elapsed < 86_400_000 -> "${elapsed / 3_600_000}h ago"
+                else -> "${elapsed / 86_400_000}d ago"
+            }
+            tvProtocol.text = timeAgo
+            tvProtocol.visibility = View.VISIBLE
+
+            switchBlock.visibility = View.GONE
+
+            if (item.wasBlocked) {
+                tvStatus.text = "Blocked"
+                tvStatus.setTextColor(0xFFE57373.toInt())
+            } else {
+                tvStatus.text = "Detected"
+                tvStatus.setTextColor(0xFFFFB74D.toInt())
+            }
+
+            itemView.setOnClickListener(null)
+            itemView.isFocusable = true
+            itemView.isFocusableInTouchMode = true
         }
     }
 }

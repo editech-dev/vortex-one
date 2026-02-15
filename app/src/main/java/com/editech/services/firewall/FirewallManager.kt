@@ -184,9 +184,14 @@ class FirewallManager private constructor(private val context: Context) {
         
         return when (state) {
             FirewallState.DISABLED -> false
-            FirewallState.MONITORING -> false
+            FirewallState.MONITORING -> {
+                // Even in monitoring mode, check if threat blocking rules exist
+                checkThreatRules(packageName, address, port)
+            }
             FirewallState.BLOCKING_ALL -> true
-            FirewallState.BLOCKING_PORTS -> checkPortRules(packageName, port)
+            FirewallState.BLOCKING_PORTS -> {
+                checkPortRules(packageName, port) || checkThreatRules(packageName, address, port)
+            }
         }
     }
     
@@ -208,11 +213,118 @@ class FirewallManager private constructor(private val context: Context) {
                 }
                 RuleType.BLOCK_ALL -> return true
                 RuleType.BLOCK_ENDPOINT -> { /* Ignore endpoint rules for port checks */ }
+                RuleType.BLOCK_LOCAL_NETWORK -> { /* Handled by checkThreatRules */ }
+                RuleType.BLOCK_ADB_ACCESS -> { /* Handled by checkThreatRules */ }
             }
         }
         return false
     }
-    
+
+    // ====================
+    // THREAT DETECTION
+    // ====================
+
+    /**
+     * Classify a connection as a potential threat based on destination IP and port
+     * @return ThreatType if this is a suspicious connection, null if normal
+     */
+    fun classifyThreat(address: InetAddress, port: Int): ThreatType? {
+        val ip = address.hostAddress ?: return null
+
+        // ADB access detection: common ADB ports
+        if (port == 5555 || port == 5037 || port in 38000..39999) {
+            return ThreatType.ADB_ACCESS
+        }
+
+        // Localhost probe (exclude DNS on port 53)
+        if (address.isLoopbackAddress && port != 53) {
+            return ThreatType.LOCALHOST_PROBE
+        }
+
+        // Local/private network detection
+        if (address.isSiteLocalAddress || address.isLinkLocalAddress) {
+            return ThreatType.LOCAL_NETWORK
+        }
+
+        // Manual check for private ranges (backup for older APIs)
+        if (isPrivateIp(ip)) {
+            return ThreatType.LOCAL_NETWORK
+        }
+
+        return null
+    }
+
+    private fun isPrivateIp(ip: String): Boolean {
+        return ip.startsWith("10.") ||
+               ip.startsWith("192.168.") ||
+               ip.startsWith("169.254.") ||
+               ip.matches(Regex("^172\\.(1[6-9]|2[0-9]|3[01])\\..*"))
+    }
+
+    /**
+     * Check if a connection should be blocked based on threat rules
+     */
+    private fun checkThreatRules(packageName: String, address: InetAddress, port: Int): Boolean {
+        val threat = classifyThreat(address, port) ?: return false
+        val rules = rulesCache[packageName] ?: loadRulesForPackage(packageName)
+
+        for (rule in rules) {
+            if (!rule.enabled) continue
+            when {
+                threat == ThreatType.ADB_ACCESS && rule.ruleType == RuleType.BLOCK_ADB_ACCESS -> return true
+                threat == ThreatType.LOCAL_NETWORK && rule.ruleType == RuleType.BLOCK_LOCAL_NETWORK -> return true
+                threat == ThreatType.LOCALHOST_PROBE && rule.ruleType == RuleType.BLOCK_LOCAL_NETWORK -> return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * Get threat-tagged connection logs for an app
+     */
+    fun getThreatLogs(packageName: String, limit: Int = 100): List<ConnectionLog> {
+        val db = database ?: return emptyList()
+        return db.logDao().getThreatLogs(packageName, limit)
+            .map { it.toModel() }
+    }
+
+    /**
+     * Check if a threat blocking rule exists for an app
+     */
+    fun isThreatBlocked(packageName: String, threatType: ThreatType): Boolean {
+        val rules = rulesCache[packageName] ?: loadRulesForPackage(packageName)
+        val ruleType = when (threatType) {
+            ThreatType.ADB_ACCESS -> RuleType.BLOCK_ADB_ACCESS
+            ThreatType.LOCAL_NETWORK, ThreatType.LOCALHOST_PROBE -> RuleType.BLOCK_LOCAL_NETWORK
+        }
+        return rules.any { it.ruleType == ruleType && it.enabled }
+    }
+
+    /**
+     * Toggle threat blocking for an app
+     */
+    fun setThreatBlocking(packageName: String, threatType: ThreatType, enabled: Boolean) {
+        val ruleType = when (threatType) {
+            ThreatType.ADB_ACCESS -> RuleType.BLOCK_ADB_ACCESS
+            ThreatType.LOCAL_NETWORK, ThreatType.LOCALHOST_PROBE -> RuleType.BLOCK_LOCAL_NETWORK
+        }
+
+        if (enabled) {
+            // Add rule if it doesn't exist
+            if (!isThreatBlocked(packageName, threatType)) {
+                addRule(FirewallRule(
+                    packageName = packageName,
+                    ruleType = ruleType
+                ))
+            }
+        } else {
+            // Remove the rule
+            val rules = getRulesForPackage(packageName)
+            val ruleToRemove = rules.find { it.ruleType == ruleType }
+            ruleToRemove?.let { removeRule(it.id, packageName) }
+        }
+    }
+
     // ====================
     // PORT RULES
     // ====================
