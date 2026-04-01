@@ -195,6 +195,14 @@ public class OsStub extends ClassInvocationStub {
     private static volatile Method sConsumeRxMethod;
     private static volatile boolean sBandwidthReflectionFailed = false;
 
+    /**
+     * Cache the last known package name per-thread so that IO/async threads
+     * (OkHttp dispatcher, ExoPlayer loader, etc.) that run AFTER the app is
+     * initialized can still be throttled even if BActivityThread.isInit()
+     * returns false on that particular thread.
+     */
+    private static final ThreadLocal<String> sThreadPkgCache = new ThreadLocal<>();
+
     private static void ensureBandwidthReflection() {
         if (sBandwidthReflectionFailed || sConsumeTxMethod != null) return;
         try {
@@ -206,13 +214,25 @@ public class OsStub extends ClassInvocationStub {
         }
     }
 
+    /**
+     * Returns the package name of the currently running virtual app.
+     * Tries BActivityThread first (reliable on the main/binder thread).
+     * Falls back to a per-thread cache populated on previous successful calls
+     * so that IO/background threads are also throttled.
+     */
     private static String getCurrentPackageName() {
         try {
             if (BActivityThread.isThreadInit() && BActivityThread.currentActivityThread().isInit()) {
-                return BActivityThread.getAppPackageName();
+                String pkg = BActivityThread.getAppPackageName();
+                if (pkg != null) {
+                    // Populate cache for other threads that share this app context
+                    sThreadPkgCache.set(pkg);
+                    return pkg;
+                }
             }
         } catch (Exception ignored) {}
-        return null;
+        // Fallback: return whatever the last successful lookup stored for this thread
+        return sThreadPkgCache.get();
     }
 
     @ProxyMethod("sendto")
@@ -243,6 +263,9 @@ public class OsStub extends ClassInvocationStub {
                                 Thread.sleep(delayMs);
                             }
                         }
+                        // If pkg is still null here the thread cache has no entry yet;
+                        // this can happen on the very first call before any init thread
+                        // has run. In that case we skip throttling (no limit registered yet).
                     } catch (Exception ignored) {}
                 }
             }
@@ -275,6 +298,9 @@ public class OsStub extends ClassInvocationStub {
                                 Thread.sleep(delayMs);
                             }
                         }
+                        // If pkg is still null here the thread cache has no entry yet;
+                        // this can happen on the very first call before any init thread
+                        // has run. In that case we skip throttling (no limit registered yet).
                     } catch (Exception ignored) {}
                 }
             }
