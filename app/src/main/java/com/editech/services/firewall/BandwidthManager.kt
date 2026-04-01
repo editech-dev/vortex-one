@@ -56,9 +56,13 @@ object BandwidthManager {
             if (lastRefill.compareAndSet(last, now)) {
                 val newTokens = (elapsedNanos * rateBytesPerSec) / 1_000_000_000L
                 if (newTokens > 0) {
-                    val current = tokens.get()
-                    val refilled = (current + newTokens).coerceAtMost(rateBytesPerSec)
-                    tokens.set(refilled)
+                    // updateAndGet is atomic (CAS loop) — avoids the non-atomic
+                    // get()+set() race where concurrent threads could read the same
+                    // current value and then both set the same result, effectively
+                    // doubling the tokens and bypassing the bandwidth limit.
+                    tokens.updateAndGet { current ->
+                        (current + newTokens).coerceAtMost(rateBytesPerSec)
+                    }
                 }
             }
         }
