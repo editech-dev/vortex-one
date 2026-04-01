@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -45,6 +46,9 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager2
 
+    // Guard to prevent switch listeners from triggering each other (Bug #1)
+    private var isProgrammaticChange = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_firewall_app_detail)
@@ -70,64 +74,68 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     private fun setupHeader() {
         tvAppName.text = appName
         tvPackageName.text = packageName
-        
-        // Load icon
+
+        // Load icon in background
         CoroutineScope(Dispatchers.IO).launch {
             val pm = packageManager
             val icon = try {
-                 BlackBoxCore.get().getInstalledPackages(0, 0)
-                     .find { it.packageName == packageName }
-                     ?.applicationInfo?.loadIcon(pm)
-            } catch (e: Exception) {
-                null
-            }
+                BlackBoxCore.get().getInstalledPackages(0, 0)
+                    .find { it.packageName == packageName }
+                    ?.applicationInfo?.loadIcon(pm)
+            } catch (e: Exception) { null }
             withContext(Dispatchers.Main) {
                 icon?.let { ivIcon.setImageDrawable(it) }
             }
         }
 
-        // Initialize state
-        val currentState = FirewallManager.getInstance().getState(packageName)
-        val isMonitoring = currentState != FirewallState.DISABLED
+        // Sync UI to current state without triggering listeners
+        syncSwitchesToState(FirewallManager.getInstance().getState(packageName))
 
-        switchBlockAll.isChecked = currentState == FirewallState.BLOCKING_ALL
-        // Monitor is checked if we are monitoring OR blocking (since blocking implies active firewall)
-        switchMonitor.isChecked = isMonitoring
-        
-        // Monitor Toggle Listener
+        // Bug #1 fix: use isProgrammaticChange guard to prevent listener loops
         switchMonitor.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                // Enabled monitoring. If block was checked, it remains checked? 
-                // Let's just set to MONITORING if block is off.
-                if (!switchBlockAll.isChecked) {
-                    FirewallManager.getInstance().setState(packageName, FirewallState.MONITORING)
-                } else {
-                    // If block is checked, state is already BLOCKING_ALL, so monitor enable does nothing effectively
-                }
+            if (isProgrammaticChange) return@setOnCheckedChangeListener
+            val newState = if (isChecked) {
+                if (switchBlockAll.isChecked) FirewallState.BLOCKING_ALL else FirewallState.MONITORING
             } else {
-                // Disable everything
-                switchBlockAll.isChecked = false // This triggers block listener? No, usually distinct if programmatically set unless we use specialized listener
-                // We should suppress listener or handle it.
-                FirewallManager.getInstance().setState(packageName, FirewallState.DISABLED)
+                // Turning monitor off → also disable block
+                isProgrammaticChange = true
+                switchBlockAll.isChecked = false
+                isProgrammaticChange = false
+                FirewallState.DISABLED
             }
+            applyFirewallState(newState)
         }
 
-        // Block Toggle Listener
         switchBlockAll.setOnCheckedChangeListener { _, isChecked ->
+            if (isProgrammaticChange) return@setOnCheckedChangeListener
             if (isChecked) {
-                // Block All implies Monitoring is ON
-                if (!switchMonitor.isChecked) {
-                    switchMonitor.isChecked = true
-                }
-                FirewallManager.getInstance().setState(packageName, FirewallState.BLOCKING_ALL)
+                // Block All → also enable monitor switch visually
+                isProgrammaticChange = true
+                switchMonitor.isChecked = true
+                isProgrammaticChange = false
+                applyFirewallState(FirewallState.BLOCKING_ALL)
             } else {
-                // Unblocking checks monitor state
-                if (switchMonitor.isChecked) {
-                    FirewallManager.getInstance().setState(packageName, FirewallState.MONITORING)
-                } else {
-                    FirewallManager.getInstance().setState(packageName, FirewallState.DISABLED)
-                }
+                val newState = if (switchMonitor.isChecked) FirewallState.MONITORING
+                               else FirewallState.DISABLED
+                applyFirewallState(newState)
             }
+        }
+    }
+
+    /** Set both switches without triggering their listeners */
+    private fun syncSwitchesToState(state: FirewallState) {
+        isProgrammaticChange = true
+        switchMonitor.isChecked = state != FirewallState.DISABLED
+        switchBlockAll.isChecked = state == FirewallState.BLOCKING_ALL
+        isProgrammaticChange = false
+    }
+
+    /** Single point of truth for state changes */
+    private fun applyFirewallState(state: FirewallState) {
+        try {
+            FirewallManager.getInstance().setState(packageName, state)
+        } catch (e: Exception) {
+            android.util.Log.e("FirewallDetail", "Failed to set state: ${e.message}")
         }
     }
 
@@ -138,38 +146,33 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     private fun setupViewPager() {
         val adapter = DetailPagerAdapter(this)
         viewPager.adapter = adapter
-        
+
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
-                0 -> "Ports"
+                0 -> "Puertos"
                 1 -> "Endpoints"
                 2 -> "Logs"
-                3 -> "Threats"
-                4 -> "Speed"
+                3 -> "Amenazas"
+                4 -> "Velocidad"
                 else -> ""
             }
         }.attach()
 
-        // Fix for "Impossible to return": Force focus to content when tab is selected
-        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab?) {
-                // Delay slightly to allow ViewPager to switch
+        // Bug #3/#5 fix: use ViewPager2 page callback (more reliable than TabLayout listener)
+        // Always force focus to the first item of the incoming fragment
+        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
                 viewPager.postDelayed({
-                    val currentFragment = supportFragmentManager.findFragmentByTag("f" + viewPager.currentItem)
-                    if (currentFragment is BaseDetailFragment) {
-                        currentFragment.requestFocus()
-                    }
-                }, 100)
-            }
-            override fun onTabUnselected(tab: TabLayout.Tab?) {}
-            override fun onTabReselected(tab: TabLayout.Tab?) {
-                 // Also force focus on reselect
-                 onTabSelected(tab)
+                    val tag = "f$position"
+                    val fragment = supportFragmentManager.findFragmentByTag(tag)
+                    (fragment as? BaseDetailFragment)?.focusFirstItem()
+                }, 150)
             }
         })
     }
 
-    inner class DetailPagerAdapter(activity: AppCompatActivity) : androidx.viewpager2.adapter.FragmentStateAdapter(activity) {
+    inner class DetailPagerAdapter(activity: AppCompatActivity) :
+        androidx.viewpager2.adapter.FragmentStateAdapter(activity) {
         override fun getItemCount(): Int = 5
 
         override fun createFragment(position: Int): androidx.fragment.app.Fragment {
@@ -185,12 +188,15 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     }
 }
 
-// Simple Fragment to avoid creating separate files for now
+// ─────────────────────────────────────────────────────────────────────────────
+// BaseDetailFragment
+// ─────────────────────────────────────────────────────────────────────────────
+
 class BaseDetailFragment : androidx.fragment.app.Fragment() {
     companion object {
         private const val ARG_PACKAGE = "pkg"
         private const val ARG_TYPE = "type"
-        
+
         fun newInstance(packageName: String, type: FirewallAppDetailActivity.DetailType): BaseDetailFragment {
             return BaseDetailFragment().apply {
                 arguments = Bundle().apply {
@@ -205,184 +211,163 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
     private var type = FirewallAppDetailActivity.DetailType.PORTS
     private var packageName = ""
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        // We can reuse a simple recyclerview layout. item_connection_log.xml is item.
-        // Let's create a simple frame layout with recyclerview programmatically to avoid another xml file
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
         val rv = RecyclerView(requireContext())
-        rv.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        rv.layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
         rv.layoutManager = LinearLayoutManager(requireContext())
-        
-        // Fix for TV D-pad navigation: Container should NOT take focus, items should.
-        rv.isFocusable = false
-        rv.isFocusableInTouchMode = false
+
+        // Bug #4 fix: RecyclerView MUST be focusable so D-pad reaches its items
+        rv.isFocusable = true
+        rv.isFocusableInTouchMode = true
         rv.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
-        rv.hasFixedSize()
-        // Allow scaling animation to exceed bounds
         rv.clipChildren = false
         rv.clipToPadding = false
-        rv.setPadding(0, 16, 0, 120) // Increased bottom padding to prevent focus edge cases
-        
+        rv.setPadding(0, 8, 0, 120)
+
         recyclerView = rv
         return rv
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         packageName = arguments?.getString(ARG_PACKAGE) ?: ""
-        type = FirewallAppDetailActivity.DetailType.valueOf(arguments?.getString(ARG_TYPE) ?: "PORTS")
-        
+        type = FirewallAppDetailActivity.DetailType.valueOf(
+            arguments?.getString(ARG_TYPE) ?: "PORTS"
+        )
         loadData()
     }
-    
+
     private fun loadData() {
         CoroutineScope(Dispatchers.IO).launch {
             when (type) {
-                FirewallAppDetailActivity.DetailType.PORTS -> loadPorts()
-                FirewallAppDetailActivity.DetailType.ENDPOINTS -> loadEndpoints()
-                FirewallAppDetailActivity.DetailType.LOGS -> loadLogs()
-                FirewallAppDetailActivity.DetailType.THREATS -> loadThreats()
-                FirewallAppDetailActivity.DetailType.BANDWIDTH -> loadBandwidth()
+                FirewallAppDetailActivity.DetailType.PORTS      -> loadPorts()
+                FirewallAppDetailActivity.DetailType.ENDPOINTS  -> loadEndpoints()
+                FirewallAppDetailActivity.DetailType.LOGS       -> loadLogs()
+                FirewallAppDetailActivity.DetailType.THREATS    -> loadThreats()
+                FirewallAppDetailActivity.DetailType.BANDWIDTH  -> loadBandwidth()
             }
         }
     }
+
+    // ── Ports ────────────────────────────────────────────────────────────────
 
     private suspend fun loadPorts() {
         val usedPorts = FirewallManager.getInstance().getUsedPorts(packageName)
-        val rules = FirewallManager.getInstance().getRulesForPackage(packageName)
-        
-        val items = usedPorts.map { (port, protocol) ->
-            val isBlocked = rules.any { 
-                it.port == port && 
-                (it.protocol.name == protocol || it.protocol == com.editech.services.firewall.Protocol.BOTH) &&
+        val rules     = FirewallManager.getInstance().getRulesForPackage(packageName)
+
+        val newItems = usedPorts.map { (port, protocol) ->
+            val blocked = rules.any {
+                it.port == port &&
+                (it.protocol.name == protocol || it.protocol == Protocol.BOTH) &&
                 it.ruleType == com.editech.services.firewall.RuleType.BLOCK_PORT
             }
-            PortItemModel(port, protocol, isBlocked)
+            PortItemModel(port, protocol, blocked)
         }
-        
+
         withContext(Dispatchers.Main) {
-            if (recyclerView.adapter == null) {
-                recyclerView.adapter = PortsAdapter(items) { portItem, blocked ->
-                    togglePortBlock(portItem, blocked)
+            val adapter = recyclerView.adapter as? PortsAdapter
+            if (adapter == null) {
+                recyclerView.adapter = PortsAdapter(newItems) { item, blocked ->
+                    togglePortBlock(item, blocked)
                 }
             } else {
-                (recyclerView.adapter as? PortsAdapter)?.updateData(items)
+                adapter.updateData(newItems) // DiffUtil inside
             }
-            checkFocus()
+            focusFirstItem()
         }
     }
 
+    // ── Endpoints ────────────────────────────────────────────────────────────
+
     private suspend fun loadEndpoints() {
-        // Load recent unique endpoints
         val endpoints = FirewallManager.getInstance().getUsedEndpoints(packageName)
-        val rules = FirewallManager.getInstance().getRulesForPackage(packageName)
-        
-        val items = endpoints.map { endpoint ->
-            val isBlocked = rules.any { 
-                it.endpoint == endpoint && 
+        val rules     = FirewallManager.getInstance().getRulesForPackage(packageName)
+
+        val newItems = endpoints.map { endpoint ->
+            val blocked = rules.any {
+                it.endpoint == endpoint &&
                 it.ruleType == com.editech.services.firewall.RuleType.BLOCK_ENDPOINT
             }
-            EndpointItemModel(endpoint, isBlocked)
+            EndpointItemModel(endpoint, blocked)
         }
 
         withContext(Dispatchers.Main) {
-            if (recyclerView.adapter == null) {
-                recyclerView.adapter = EndpointsAdapter(items) { item, blocked ->
+            val adapter = recyclerView.adapter as? EndpointsAdapter
+            if (adapter == null) {
+                recyclerView.adapter = EndpointsAdapter(newItems) { item, blocked ->
                     toggleEndpointBlock(item, blocked)
                 }
             } else {
-                (recyclerView.adapter as? EndpointsAdapter)?.updateData(items)
+                adapter.updateData(newItems) // DiffUtil inside
             }
-            checkFocus()
+            focusFirstItem()
         }
     }
+
+    // ── Logs ─────────────────────────────────────────────────────────────────
 
     private suspend fun loadLogs() {
         val logs = FirewallManager.getInstance().getRecentLogs(packageName)
         withContext(Dispatchers.Main) {
-            if (recyclerView.adapter == null) {
-                val adapter = ConnectionLogsAdapter()
-                recyclerView.adapter = adapter
-                
-                val logItems = logs.map { log ->
-                    ConnectionLogItem(
-                        packageName = log.packageName,
-                        destinationIp = log.destinationIp,
-                        destinationPort = log.destinationPort,
-                        hostname = log.hostname,
-                        protocol = log.protocol,
-                        timestamp = log.timestamp,
-                        wasBlocked = log.wasBlocked,
-                        status = log.status,
-                        failureReason = log.failureReason,
-                        method = log.method,
-                        path = log.path
-                    )
-                }
-                adapter.submitList(logItems)
-            } else {
-                 val adapter = recyclerView.adapter as? ConnectionLogsAdapter
-                 val logItems = logs.map { log ->
-                    ConnectionLogItem(
-                        packageName = log.packageName,
-                        destinationIp = log.destinationIp,
-                        destinationPort = log.destinationPort,
-                        hostname = log.hostname,
-                        protocol = log.protocol,
-                        timestamp = log.timestamp,
-                        wasBlocked = log.wasBlocked,
-                        status = log.status,
-                        failureReason = log.failureReason,
-                        method = log.method,
-                        path = log.path
-                    )
-                }
-                adapter?.submitList(logItems)
+            val logItems = logs.map { log ->
+                ConnectionLogItem(
+                    packageName   = log.packageName,
+                    destinationIp = log.destinationIp,
+                    destinationPort = log.destinationPort,
+                    hostname      = log.hostname,
+                    protocol      = log.protocol,
+                    timestamp     = log.timestamp,
+                    wasBlocked    = log.wasBlocked,
+                    status        = log.status,
+                    failureReason = log.failureReason,
+                    method        = log.method,
+                    path          = log.path
+                )
             }
-            checkFocus()
+            val adapter = recyclerView.adapter as? ConnectionLogsAdapter
+            if (adapter == null) {
+                val a = ConnectionLogsAdapter()
+                recyclerView.adapter = a
+                a.submitList(logItems)
+            } else {
+                adapter.submitList(logItems)
+            }
+            focusFirstItem()
         }
     }
-    
+
+    // ── Threats ──────────────────────────────────────────────────────────────
+
     private suspend fun loadThreats() {
-        val manager = FirewallManager.getInstance()
-        val threatLogs = manager.getThreatLogs(packageName)
+        val manager       = FirewallManager.getInstance()
+        val threatLogs    = manager.getThreatLogs(packageName)
+        val adbBlocked    = manager.isThreatBlocked(packageName, ThreatType.ADB_ACCESS)
+        val localBlocked  = manager.isThreatBlocked(packageName, ThreatType.LOCAL_NETWORK)
 
-        // Get blocking state for each threat type
-        val adbBlocked = manager.isThreatBlocked(packageName, ThreatType.ADB_ACCESS)
-        val localNetBlocked = manager.isThreatBlocked(packageName, ThreatType.LOCAL_NETWORK)
-
-        // Group threat logs by type
         val items = mutableListOf<ThreatItemModel>()
-
-        // Add category headers/toggles
         items.add(ThreatItemModel(
-            threatType = ThreatType.ADB_ACCESS,
-            isHeader = true,
-            isBlocked = adbBlocked,
-            count = threatLogs.count { ThreatType.fromTag(it.failureReason?.split("|")?.firstOrNull()) == ThreatType.ADB_ACCESS }
+            threatType = ThreatType.ADB_ACCESS, isHeader = true, isBlocked = adbBlocked,
+            count = threatLogs.count {
+                ThreatType.fromTag(it.failureReason?.split("|")?.firstOrNull()) == ThreatType.ADB_ACCESS
+            }
         ))
-
         items.add(ThreatItemModel(
-            threatType = ThreatType.LOCAL_NETWORK,
-            isHeader = true,
-            isBlocked = localNetBlocked,
+            threatType = ThreatType.LOCAL_NETWORK, isHeader = true, isBlocked = localBlocked,
             count = threatLogs.count {
                 val t = ThreatType.fromTag(it.failureReason?.split("|")?.firstOrNull())
                 t == ThreatType.LOCAL_NETWORK || t == ThreatType.LOCALHOST_PROBE
             }
         ))
-
-        // Add individual threat log entries
         for (log in threatLogs) {
-            val tag = log.failureReason?.split("|")?.firstOrNull()
-            val threat = ThreatType.fromTag(tag) ?: continue
+            val threat = ThreatType.fromTag(log.failureReason?.split("|")?.firstOrNull()) ?: continue
             items.add(ThreatItemModel(
-                threatType = threat,
-                isHeader = false,
-                isBlocked = false,
-                ip = log.destinationIp,
-                port = log.destinationPort,
-                hostname = log.hostname,
-                timestamp = log.timestamp,
-                wasBlocked = log.wasBlocked
+                threatType = threat, isHeader = false, isBlocked = false,
+                ip = log.destinationIp, port = log.destinationPort,
+                hostname = log.hostname, timestamp = log.timestamp, wasBlocked = log.wasBlocked
             ))
         }
 
@@ -390,79 +375,56 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
             recyclerView.adapter = ThreatsAdapter(items) { threatType, blocked ->
                 toggleThreatBlock(threatType, blocked)
             }
-            checkFocus()
+            focusFirstItem()
         }
     }
 
-    private fun toggleThreatBlock(threatType: ThreatType, blocked: Boolean) {
-        CoroutineScope(Dispatchers.IO).launch {
-            FirewallManager.getInstance().setThreatBlocking(packageName, threatType, blocked)
-        }
-    }
+    // ── Bandwidth ────────────────────────────────────────────────────────────
 
     private fun loadBandwidth() {
         CoroutineScope(Dispatchers.IO).launch {
-            // Get current limits
-            val limits = FirewallManager.getInstance().getBandwidthLimit(packageName)
-            val uploadLimit = limits.first
-            val downloadLimit = limits.second
-
+            val limits        = FirewallManager.getInstance().getBandwidthLimit(packageName)
             val items = listOf(
-                BandwidthItemModel("Upload Limit", "Limit maximum upload speed", uploadLimit, true),
-                BandwidthItemModel("Download Limit", "Limit maximum download speed", downloadLimit, false)
+                BandwidthItemModel("Límite de Subida",   "Velocidad máxima de upload",    limits.first,  true),
+                BandwidthItemModel("Límite de Bajada",   "Velocidad máxima de download",  limits.second, false)
             )
-
             withContext(Dispatchers.Main) {
                 recyclerView.adapter = BandwidthAdapter(items) { isUpload, limitBytes ->
-                     updateBandwidthLimit(isUpload, limitBytes)
+                    updateBandwidthLimit(isUpload, limitBytes)
                 }
-                checkFocus()
+                focusFirstItem()
             }
         }
     }
 
-    private fun updateBandwidthLimit(isUpload: Boolean, limitBytes: Long) {
-         CoroutineScope(Dispatchers.IO).launch {
-             val current = FirewallManager.getInstance().getBandwidthLimit(packageName)
-             val newUp = if (isUpload) limitBytes else current.first
-             val newDown = if (!isUpload) limitBytes else current.second
-             FirewallManager.getInstance().setBandwidthLimit(packageName, newUp, newDown)
-         }
-    }
+    // ── Focus helper (Bug #5 fix) ─────────────────────────────────────────────
 
-    private fun checkFocus() {
-        // Only request focus if this is the FIRST load or list is empty
-        if (recyclerView.adapter?.itemCount ?: 0 > 0 && recyclerView.findFocus() == null) {
-            recyclerView.post { 
-                 if (recyclerView.findFocus() == null) {
-                      val firstView = recyclerView.layoutManager?.findViewByPosition(0)
-                      if (firstView != null) {
-                          firstView.requestFocus()
-                      } else {
-                          recyclerView.requestFocus()
-                      }
-                 }
+    /** Always move focus to first visible item — called after every tab switch */
+    fun focusFirstItem() {
+        recyclerView.post {
+            val lm         = recyclerView.layoutManager ?: return@post
+            val firstView  = lm.findViewByPosition(0)
+            if (firstView != null) {
+                firstView.requestFocus()
+            } else {
+                recyclerView.requestFocus()
             }
         }
     }
-    
+
+    // ── Toggle actions ───────────────────────────────────────────────────────
+
     private fun togglePortBlock(item: PortItemModel, blocked: Boolean) {
         CoroutineScope(Dispatchers.IO).launch {
             if (blocked) {
                 FirewallManager.getInstance().addBlockPortRule(
-                    packageName, 
-                    item.port, 
-                    try { com.editech.services.firewall.Protocol.valueOf(item.protocol) } catch(e:Exception) { com.editech.services.firewall.Protocol.BOTH }
+                    packageName, item.port,
+                    try { Protocol.valueOf(item.protocol) } catch (e: Exception) { Protocol.BOTH }
                 )
             } else {
-                val rules = FirewallManager.getInstance().getRulesForPackage(packageName)
-                val ruleToRemove = rules.find { 
-                    it.port == item.port && 
-                    it.ruleType == com.editech.services.firewall.RuleType.BLOCK_PORT 
-                }
-                ruleToRemove?.let {
-                    FirewallManager.getInstance().removeRule(it.id, packageName)
-                }
+                val rule = FirewallManager.getInstance().getRulesForPackage(packageName)
+                    .find { it.port == item.port && it.ruleType == com.editech.services.firewall.RuleType.BLOCK_PORT }
+                rule?.let { FirewallManager.getInstance().removeRule(it.id, packageName) }
             }
         }
     }
@@ -472,30 +434,32 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
             if (blocked) {
                 FirewallManager.getInstance().addBlockEndpointRule(packageName, item.endpoint)
             } else {
-                val rules = FirewallManager.getInstance().getRulesForPackage(packageName)
-                val ruleToRemove = rules.find { 
-                    it.endpoint == item.endpoint && 
-                    it.ruleType == com.editech.services.firewall.RuleType.BLOCK_ENDPOINT 
-                }
-                ruleToRemove?.let {
-                    FirewallManager.getInstance().removeRule(it.id, packageName)
-                }
+                val rule = FirewallManager.getInstance().getRulesForPackage(packageName)
+                    .find { it.endpoint == item.endpoint && it.ruleType == com.editech.services.firewall.RuleType.BLOCK_ENDPOINT }
+                rule?.let { FirewallManager.getInstance().removeRule(it.id, packageName) }
             }
         }
     }
 
-    fun requestFocus() {
-        recyclerView.post {
-            val layoutManager = recyclerView.layoutManager
-            val firstView = layoutManager?.findViewByPosition(0)
-            if (firstView != null) {
-                firstView.requestFocus()
-            } else {
-                recyclerView.requestFocus()
-            }
+    private fun toggleThreatBlock(threatType: ThreatType, blocked: Boolean) {
+        CoroutineScope(Dispatchers.IO).launch {
+            FirewallManager.getInstance().setThreatBlocking(packageName, threatType, blocked)
+        }
+    }
+
+    private fun updateBandwidthLimit(isUpload: Boolean, limitBytes: Long) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val current = FirewallManager.getInstance().getBandwidthLimit(packageName)
+            val newUp   = if (isUpload)  limitBytes else current.first
+            val newDown = if (!isUpload) limitBytes else current.second
+            FirewallManager.getInstance().setBandwidthLimit(packageName, newUp, newDown)
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Data models
+// ─────────────────────────────────────────────────────────────────────────────
 
 data class PortItemModel(val port: Int, val protocol: String, var isBlocked: Boolean)
 data class EndpointItemModel(val endpoint: String, var isBlocked: Boolean)
@@ -510,7 +474,6 @@ data class ThreatItemModel(
     val timestamp: Long = 0,
     val wasBlocked: Boolean = false
 )
-
 data class BandwidthItemModel(
     val title: String,
     val description: String,
@@ -518,194 +481,184 @@ data class BandwidthItemModel(
     val isUpload: Boolean
 )
 
+// ─────────────────────────────────────────────────────────────────────────────
+// EndpointsAdapter  (Bug #8: DiffUtil)
+// ─────────────────────────────────────────────────────────────────────────────
+
 class EndpointsAdapter(
     private var items: List<EndpointItemModel>,
     private val onToggle: (EndpointItemModel, Boolean) -> Unit
 ) : RecyclerView.Adapter<EndpointsAdapter.ViewHolder>() {
 
-    init {
-        setHasStableIds(true)
-    }
+    init { setHasStableIds(true) }
 
-    override fun getItemId(position: Int): Long {
-        return items[position].endpoint.hashCode().toLong()
-    }
-    
+    override fun getItemId(position: Int) = items[position].endpoint.hashCode().toLong()
+
+    /** Bug #8 fix: DiffUtil prevents full-list flicker */
     fun updateData(newItems: List<EndpointItemModel>) {
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize() = items.size
+            override fun getNewListSize() = newItems.size
+            override fun areItemsTheSame(o: Int, n: Int) = items[o].endpoint == newItems[n].endpoint
+            override fun areContentsTheSame(o: Int, n: Int) = items[o] == newItems[n]
+        })
         items = newItems
-        notifyDataSetChanged()
+        diff.dispatchUpdatesTo(this)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        // Reuse item_firewall_port layout since it has text + switch
-        // We might want to adjust text IDs
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_firewall_port, parent, false)
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_firewall_port, parent, false)
         return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(items[position])
-    }
-
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(items[position])
     override fun getItemCount() = items.size
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvPort: TextView = view.findViewById(R.id.tvPort) // Use generic names? This is tvPort in XML
+        val tvPort: TextView    = view.findViewById(R.id.tvPort)
         val tvProtocol: TextView = view.findViewById(R.id.tvProtocol)
-        val tvStatus: TextView = view.findViewById(R.id.tvStatus)
+        val tvStatus: TextView  = view.findViewById(R.id.tvStatus)
         val switchBlock: SwitchMaterial = view.findViewById(R.id.switchBlock)
 
         init {
             switchBlock.isClickable = false
             switchBlock.isFocusable = false
-            // Hide protocol text view as it's not needed for Endpoints
             tvProtocol.visibility = View.GONE
-            // Optional: Adjust layout params if needed
         }
 
         fun bind(item: EndpointItemModel) {
-            tvPort.text = item.endpoint // Use "Port" TextView for Endpoint Text
-            
+            tvPort.text = item.endpoint
             switchBlock.setOnCheckedChangeListener(null)
             switchBlock.isChecked = item.isBlocked
-            
             updateStatus(item.isBlocked)
-            
+
             itemView.setOnClickListener {
-                switchBlock.isChecked = !switchBlock.isChecked
-                item.isBlocked = switchBlock.isChecked
-                updateStatus(item.isBlocked)
-                onToggle(item, item.isBlocked)
+                val newBlocked = !item.isBlocked
+                item.isBlocked = newBlocked
+                switchBlock.isChecked = newBlocked
+                updateStatus(newBlocked)
+                onToggle(item, newBlocked)
             }
         }
-        
+
         private fun updateStatus(blocked: Boolean) {
             if (blocked) {
-                tvStatus.text = "Blocked"
-                tvStatus.setTextColor(0xFFE57373.toInt()) // Red
+                tvStatus.text = "Bloqueado"
+                tvStatus.setTextColor(0xFFE57373.toInt())
             } else {
-                tvStatus.text = "Allowed"
-                tvStatus.setTextColor(0xFF81C784.toInt()) // Green
+                tvStatus.text = "Permitido"
+                tvStatus.setTextColor(0xFF81C784.toInt())
             }
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PortsAdapter  (Bug #8: DiffUtil)
+// ─────────────────────────────────────────────────────────────────────────────
 
 class PortsAdapter(
     private var items: List<PortItemModel>,
     private val onToggle: (PortItemModel, Boolean) -> Unit
 ) : RecyclerView.Adapter<PortsAdapter.ViewHolder>() {
 
-    init {
-        setHasStableIds(true)
-    }
+    init { setHasStableIds(true) }
 
-    override fun getItemId(position: Int): Long {
-        return items[position].port.toLong()
-    }
-    
+    override fun getItemId(position: Int) = items[position].port.toLong()
+
+    /** Bug #8 fix: DiffUtil */
     fun updateData(newItems: List<PortItemModel>) {
-        // Simple notify data set changed for now, can be improved with DiffUtil later
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize() = items.size
+            override fun getNewListSize() = newItems.size
+            override fun areItemsTheSame(o: Int, n: Int) = items[o].port == newItems[n].port
+            override fun areContentsTheSame(o: Int, n: Int) = items[o] == newItems[n]
+        })
         items = newItems
-        notifyDataSetChanged()
+        diff.dispatchUpdatesTo(this)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_firewall_port, parent, false)
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_firewall_port, parent, false)
         return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(items[position])
-    }
-
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(items[position])
     override fun getItemCount() = items.size
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvPort: TextView = view.findViewById(R.id.tvPort)
+        val tvPort: TextView     = view.findViewById(R.id.tvPort)
         val tvProtocol: TextView = view.findViewById(R.id.tvProtocol)
-        val tvStatus: TextView = view.findViewById(R.id.tvStatus)
+        val tvStatus: TextView   = view.findViewById(R.id.tvStatus)
         val switchBlock: SwitchMaterial = view.findViewById(R.id.switchBlock)
 
         init {
-            // Ensure switch doesn't steal focus/clicks
             switchBlock.isClickable = false
             switchBlock.isFocusable = false
         }
 
         fun bind(item: PortItemModel) {
-            tvPort.text = item.port.toString()
+            tvPort.text     = item.port.toString()
             tvProtocol.text = item.protocol
-            // Avoid triggering listener during binding
             switchBlock.setOnCheckedChangeListener(null)
             switchBlock.isChecked = item.isBlocked
-            
             updateStatus(item.isBlocked)
-            
-            // Handle click on item to toggle switch
+
             itemView.setOnClickListener {
-                switchBlock.isChecked = !switchBlock.isChecked
-                item.isBlocked = switchBlock.isChecked
-                updateStatus(item.isBlocked)
-                onToggle(item, item.isBlocked)
+                val newBlocked = !item.isBlocked
+                item.isBlocked = newBlocked
+                switchBlock.isChecked = newBlocked
+                updateStatus(newBlocked)
+                onToggle(item, newBlocked)
             }
         }
-        
+
         private fun updateStatus(blocked: Boolean) {
             if (blocked) {
-                tvStatus.text = "Blocked"
-                tvStatus.setTextColor(0xFFE57373.toInt()) // Red
+                tvStatus.text = "Bloqueado"
+                tvStatus.setTextColor(0xFFE57373.toInt())
             } else {
-                tvStatus.text = "Allowed"
-                tvStatus.setTextColor(0xFF81C784.toInt()) // Green
+                tvStatus.text = "Permitido"
+                tvStatus.setTextColor(0xFF81C784.toInt())
             }
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ThreatsAdapter
+// ─────────────────────────────────────────────────────────────────────────────
 
 class ThreatsAdapter(
     private var items: List<ThreatItemModel>,
     private val onToggle: (ThreatType, Boolean) -> Unit
 ) : RecyclerView.Adapter<ThreatsAdapter.ViewHolder>() {
 
-    companion object {
-        private const val TYPE_HEADER = 0
-        private const val TYPE_ENTRY = 1
-    }
-
-    override fun getItemViewType(position: Int): Int {
-        return if (items[position].isHeader) TYPE_HEADER else TYPE_ENTRY
-    }
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_firewall_port, parent, false)
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_firewall_port, parent, false)
         return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(items[position])
-    }
-
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(items[position])
     override fun getItemCount() = items.size
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvPort: TextView = view.findViewById(R.id.tvPort)
+        val tvPort: TextView     = view.findViewById(R.id.tvPort)
         val tvProtocol: TextView = view.findViewById(R.id.tvProtocol)
-        val tvStatus: TextView = view.findViewById(R.id.tvStatus)
+        val tvStatus: TextView   = view.findViewById(R.id.tvStatus)
         val switchBlock: SwitchMaterial = view.findViewById(R.id.switchBlock)
 
         fun bind(item: ThreatItemModel) {
-            if (item.isHeader) {
-                bindHeader(item)
-            } else {
-                bindEntry(item)
-            }
+            if (item.isHeader) bindHeader(item) else bindEntry(item)
         }
 
         private fun bindHeader(item: ThreatItemModel) {
-            tvPort.text = "${item.threatType.icon}  ${item.threatType.label}"
-            tvPort.textSize = 16f
-            tvProtocol.text = "${item.count} detection${if (item.count != 1) "s" else ""}"
+            tvPort.text      = "${item.threatType.icon}  ${item.threatType.label}"
+            tvPort.textSize  = 16f
+            tvProtocol.text  = "${item.count} detección${if (item.count != 1) "es" else ""}"
             tvProtocol.visibility = View.VISIBLE
 
             switchBlock.visibility = View.VISIBLE
@@ -714,177 +667,155 @@ class ThreatsAdapter(
             switchBlock.setOnCheckedChangeListener(null)
             switchBlock.isChecked = item.isBlocked
 
-            if (item.isBlocked) {
-                tvStatus.text = "Blocking"
-                tvStatus.setTextColor(0xFFE57373.toInt())
-            } else {
-                tvStatus.text = "Monitoring"
-                tvStatus.setTextColor(0xFFFFB74D.toInt())
-            }
+            tvStatus.text = if (item.isBlocked) "Bloqueando" else "Monitoreando"
+            tvStatus.setTextColor(
+                if (item.isBlocked) 0xFFE57373.toInt() else 0xFFFFB74D.toInt()
+            )
 
+            itemView.isFocusable = true
+            itemView.isFocusableInTouchMode = true
             itemView.setOnClickListener {
-                switchBlock.isChecked = !switchBlock.isChecked
-                item.isBlocked = switchBlock.isChecked
-                if (item.isBlocked) {
-                    tvStatus.text = "Blocking"
-                    tvStatus.setTextColor(0xFFE57373.toInt())
-                } else {
-                    tvStatus.text = "Monitoring"
-                    tvStatus.setTextColor(0xFFFFB74D.toInt())
-                }
-                onToggle(item.threatType, item.isBlocked)
+                val newBlocked = !item.isBlocked
+                item.isBlocked = newBlocked
+                switchBlock.isChecked = newBlocked
+                tvStatus.text = if (newBlocked) "Bloqueando" else "Monitoreando"
+                tvStatus.setTextColor(
+                    if (newBlocked) 0xFFE57373.toInt() else 0xFFFFB74D.toInt()
+                )
+                onToggle(item.threatType, newBlocked)
             }
         }
 
         private fun bindEntry(item: ThreatItemModel) {
-            val dest = item.hostname?.let { "$it (${item.ip})" } ?: item.ip ?: "unknown"
-            tvPort.text = "    ${item.threatType.icon}  $dest:${item.port}"
-            tvPort.textSize = 14f
+            val dest     = item.hostname?.let { "$it (${item.ip})" } ?: item.ip ?: "desconocido"
+            tvPort.text  = "    ${item.threatType.icon}  $dest:${item.port}"
+            tvPort.textSize = 13f
 
-            // Show time ago
-            val elapsed = System.currentTimeMillis() - item.timestamp
-            val timeAgo = when {
-                elapsed < 60_000 -> "just now"
-                elapsed < 3_600_000 -> "${elapsed / 60_000}m ago"
-                elapsed < 86_400_000 -> "${elapsed / 3_600_000}h ago"
-                else -> "${elapsed / 86_400_000}d ago"
+            val elapsed  = System.currentTimeMillis() - item.timestamp
+            tvProtocol.text = when {
+                elapsed < 60_000     -> "ahora"
+                elapsed < 3_600_000  -> "${elapsed / 60_000}m atrás"
+                elapsed < 86_400_000 -> "${elapsed / 3_600_000}h atrás"
+                else                 -> "${elapsed / 86_400_000}d atrás"
             }
-            tvProtocol.text = timeAgo
             tvProtocol.visibility = View.VISIBLE
-
             switchBlock.visibility = View.GONE
 
-            if (item.wasBlocked) {
-                tvStatus.text = "Blocked"
-                tvStatus.setTextColor(0xFFE57373.toInt())
-            } else {
-                tvStatus.text = "Detected"
-                tvStatus.setTextColor(0xFFFFB74D.toInt())
-            }
+            tvStatus.text = if (item.wasBlocked) "Bloqueado" else "Detectado"
+            tvStatus.setTextColor(
+                if (item.wasBlocked) 0xFFE57373.toInt() else 0xFFFFB74D.toInt()
+            )
 
-            itemView.setOnClickListener(null)
             itemView.isFocusable = true
             itemView.isFocusableInTouchMode = true
+            itemView.setOnClickListener(null)
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BandwidthAdapter  (Bug #6: seekBar.max programático)
+// ─────────────────────────────────────────────────────────────────────────────
 
 class BandwidthAdapter(
     private var items: List<BandwidthItemModel>,
     private val onLimitChanged: (Boolean, Long) -> Unit
 ) : RecyclerView.Adapter<BandwidthAdapter.ViewHolder>() {
 
-    // Scale: 0 (Unlimited) -> 8 (10 MB/s)
     private val steps = listOf(
-        0L,             // Unlimited
-        64 * 1024L,     // 64 KB/s
-        128 * 1024L,    // 128 KB/s
-        256 * 1024L,    // 256 KB/s
-        512 * 1024L,    // 512 KB/s
-        1024 * 1024L,   // 1 MB/s
-        2 * 1024 * 1024L, // 2 MB/s
-        5 * 1024 * 1024L, // 5 MB/s
-        10 * 1024 * 1024L // 10 MB/s
+        0L,                    // Ilimitado
+        64  * 1024L,           // 64 KB/s
+        128 * 1024L,           // 128 KB/s
+        256 * 1024L,           // 256 KB/s
+        512 * 1024L,           // 512 KB/s
+        1_024 * 1024L,         // 1 MB/s
+        2 * 1_024 * 1024L,     // 2 MB/s
+        5 * 1_024 * 1024L,     // 5 MB/s
+        10 * 1_024 * 1024L     // 10 MB/s
     )
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_bandwidth_limit, parent, false)
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_bandwidth_limit, parent, false)
         return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(items[position])
-    }
-
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) = holder.bind(items[position])
     override fun getItemCount() = items.size
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvTitle: TextView = view.findViewById(R.id.tvTitle)
-        val tvValue: TextView = view.findViewById(R.id.tvValue)
+        val tvTitle: TextView       = view.findViewById(R.id.tvTitle)
+        val tvValue: TextView       = view.findViewById(R.id.tvValue)
         val tvDescription: TextView = view.findViewById(R.id.tvDescription)
         val seekBar: android.widget.SeekBar = view.findViewById(R.id.seekBar)
 
         fun bind(item: BandwidthItemModel) {
-            tvTitle.text = item.title
+            tvTitle.text       = item.title
             tvDescription.text = item.description
 
-            // Convert limitBytes to progress index
-            var progress = steps.indexOf(item.limitBytes)
-            if (progress < 0) {
-                 // Use closest match if custom value
-                 progress = 0
-            }
+            // Bug #6 fix: always sync max to steps array size
+            seekBar.max = steps.size - 1
+
+            val progress = steps.indexOf(item.limitBytes).takeIf { it >= 0 } ?: 0
             seekBar.progress = progress
-            
             updateValueText(item.limitBytes)
 
             seekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                override fun onProgressChanged(sb: android.widget.SeekBar?, p: Int, fromUser: Boolean) {
                     if (fromUser) {
-                        val limit = steps[progress]
+                        val limit = steps[p]
                         item.limitBytes = limit
                         updateValueText(limit)
                         onLimitChanged(item.isUpload, limit)
                     }
                 }
-
-                override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-                override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+                override fun onStartTrackingTouch(sb: android.widget.SeekBar?) {}
+                override fun onStopTrackingTouch(sb: android.widget.SeekBar?) {}
             })
-            
-            // Handle TV D-pad navigation on the ITEM VIEW
-            itemView.setOnKeyListener { v, keyCode, event ->
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    when (keyCode) {
-                        KeyEvent.KEYCODE_DPAD_LEFT -> {
-                            if (seekBar.progress > 0) {
-                                seekBar.progress = seekBar.progress - 1
-                                // Manually trigger update since setProgress(x) doesn't set fromUser=true
-                                val limit = steps[seekBar.progress]
-                                item.limitBytes = limit
-                                updateValueText(limit)
-                                onLimitChanged(item.isUpload, limit)
-                                return@setOnKeyListener true
-                            }
-                        }
-                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                            if (seekBar.progress < seekBar.max) {
-                                seekBar.progress = seekBar.progress + 1
-                                // Manually trigger update
-                                val limit = steps[seekBar.progress]
-                                item.limitBytes = limit
-                                updateValueText(limit)
-                                onLimitChanged(item.isUpload, limit)
-                                return@setOnKeyListener true
-                            }
-                        }
+
+            // D-pad ◀▶ navigation for TV — handled on itemView so it works
+            // whether the SeekBar or the card has focus
+            itemView.setOnKeyListener { _, keyCode, event ->
+                if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_LEFT  -> {
+                        if (seekBar.progress > 0) {
+                            val newP = seekBar.progress - 1
+                            seekBar.progress = newP
+                            val limit = steps[newP]
+                            item.limitBytes = limit
+                            updateValueText(limit)
+                            onLimitChanged(item.isUpload, limit)
+                            true
+                        } else false
                     }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        if (seekBar.progress < seekBar.max) {
+                            val newP = seekBar.progress + 1
+                            seekBar.progress = newP
+                            val limit = steps[newP]
+                            item.limitBytes = limit
+                            updateValueText(limit)
+                            onLimitChanged(item.isUpload, limit)
+                            true
+                        } else false
+                    }
+                    else -> false
                 }
-                false
             }
         }
 
         private fun updateValueText(limitBytes: Long) {
-            val text = if (limitBytes <= 0) {
-                "Unlimited"
-            } else {
-                formatSpeed(limitBytes)
-            }
-            tvValue.text = text
-            
-            if (limitBytes <= 0) {
-                tvValue.setTextColor(0xFF81C784.toInt()) // Green
-            } else {
-                tvValue.setTextColor(0xFFFFB74D.toInt()) // Orange
-            }
+            tvValue.text = if (limitBytes <= 0) "Ilimitado" else formatSpeed(limitBytes)
+            tvValue.setTextColor(
+                if (limitBytes <= 0) 0xFF81C784.toInt() else 0xFFFFB74D.toInt()
+            )
         }
 
-        private fun formatSpeed(bytesPerSec: Long): String {
-            return when {
-                bytesPerSec < 1024 -> "$bytesPerSec B/s"
-                bytesPerSec < 1_048_576 -> "${bytesPerSec / 1024} KB/s"
-                else -> "${bytesPerSec / 1_048_576} MB/s"
-            }
+        private fun formatSpeed(bps: Long) = when {
+            bps < 1024       -> "$bps B/s"
+            bps < 1_048_576  -> "${bps / 1024} KB/s"
+            else             -> "${bps / 1_048_576} MB/s"
         }
     }
 }

@@ -2,6 +2,7 @@ package com.editech.services.activities
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,11 +12,11 @@ import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.editech.services.R
 import com.editech.services.databinding.ActivityFirewallBinding
-import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,8 +27,8 @@ import com.editech.services.firewall.FirewallState
 
 /**
  * Firewall Activity
- * Manages network access control for virtualized applications.
- * Uses SharedPreferences for reliable state persistence.
+ * Lists all virtualized apps and their firewall state.
+ * Each item opens FirewallAppDetailActivity for per-app control.
  */
 class FirewallActivity : AppCompatActivity() {
 
@@ -44,8 +45,7 @@ class FirewallActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityFirewallBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
-        // Initialize SharedPreferences for state persistence
+
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
         setupRecyclerViews()
@@ -57,7 +57,7 @@ class FirewallActivity : AppCompatActivity() {
         super.onResume()
         loadVirtualizedApps()
     }
-    
+
     private fun loadBanner() {
         val bannerContainer = findViewById<RelativeLayout>(R.id.bannerContainer)
         if (bannerContainer != null) {
@@ -66,23 +66,21 @@ class FirewallActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerViews() {
-        appsAdapter = FirewallAppsAdapter(
-            prefs = prefs,
-            onStateChanged = { app, newState ->
-                onFirewallStateChanged(app, newState)
-            }
-        )
+        appsAdapter = FirewallAppsAdapter(prefs) { app, newState ->
+            onFirewallStateChanged(app, newState)
+        }
 
         binding.rvFirewallApps.apply {
             layoutManager = LinearLayoutManager(this@FirewallActivity)
             adapter = appsAdapter
+            // TV: allow items to get focus
+            isFocusable = true
+            descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
         }
     }
 
     private fun setupButtons() {
-        binding.btnClose.setOnClickListener {
-            finish()
-        }
+        binding.btnClose.setOnClickListener { finish() }
     }
 
     private fun loadVirtualizedApps() {
@@ -91,51 +89,19 @@ class FirewallActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Use BlackBox directly
                 val installedPackages = BlackBoxCore.get().getInstalledPackages(0, 0)
                 val appList = mutableListOf<FirewallAppItem>()
 
                 installedPackages?.forEach { packageInfo ->
                     try {
-                        val pkg = packageInfo.packageName ?: return@forEach
-                        val pm = packageManager
-                        
-                        val icon = try {
-                            packageInfo.applicationInfo?.loadIcon(pm)
-                        } catch (e: Exception) {
-                            null
-                        }
-                        
-                        val name = try {
-                            packageInfo.applicationInfo?.loadLabel(pm)?.toString() ?: pkg
-                        } catch (e: Exception) {
-                            pkg
-                        }
+                        val pkg  = packageInfo.packageName ?: return@forEach
+                        val pm   = packageManager
+                        val icon = try { packageInfo.applicationInfo?.loadIcon(pm) } catch (e: Exception) { null }
+                        val name = try { packageInfo.applicationInfo?.loadLabel(pm)?.toString() ?: pkg } catch (e: Exception) { pkg }
+                        val state = try { FirewallManager.getInstance().getState(pkg) } catch (e: Exception) { FirewallState.DISABLED }
 
-                        // Load state from FirewallManager directly, fallback to SharedPreferences
-                        // Prioritize Manager state if available
-                        val managerState = try {
-                             FirewallManager.getInstance().getState(pkg)
-                        } catch (e: Exception) {
-                             FirewallState.DISABLED 
-                        }
-                        
-                        // Also check prefs (UI persistence backup)
-                        val prefOrdinal = prefs.getInt(KEY_PREFIX + pkg, -1)
-                        
-                        // Use manager state if not DISABLED, or if prefs matches
-                        // If manager says DISABLED but prefs says MONITOR, we might want to sync?
-                        // For display, use manager state as truth.
-                        
-                        appList.add(FirewallAppItem(
-                            packageName = pkg,
-                            appName = name,
-                            icon = icon,
-                            firewallState = managerState
-                        ))
-                    } catch (e: Exception) {
-                        // Skip apps that fail to load
-                    }
+                        appList.add(FirewallAppItem(pkg, name, icon, state))
+                    } catch (e: Exception) { /* skip */ }
                 }
 
                 appList.sortBy { it.appName }
@@ -143,6 +109,7 @@ class FirewallActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
                     binding.rvFirewallApps.visibility = View.VISIBLE
+                    // Bug #10 fix: DiffUtil prevents scroll reset on resume
                     appsAdapter.submitList(appList)
                 }
             } catch (e: Exception) {
@@ -154,22 +121,19 @@ class FirewallActivity : AppCompatActivity() {
     }
 
     private fun onFirewallStateChanged(app: FirewallAppItem, newState: FirewallState) {
-        // Save to SharedPreferences (reliable persistence)
         prefs.edit().putInt(KEY_PREFIX + app.packageName, newState.ordinal).apply()
-        
-        // Call FirewallManager directly
         try {
             FirewallManager.getInstance().setState(app.packageName, newState)
-            android.util.Log.d("FirewallActivity", "Set state ${newState} for ${app.packageName}")
         } catch (e: Exception) {
-            android.util.Log.e("FirewallActivity", "Failed to set firewall state: ${e.message}")
+            android.util.Log.e("FirewallActivity", "Failed to set state: ${e.message}")
         }
     }
 }
 
-/**
- * Data class for firewall app item
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Data class
+// ─────────────────────────────────────────────────────────────────────────────
+
 data class FirewallAppItem(
     val packageName: String,
     val appName: String,
@@ -177,9 +141,10 @@ data class FirewallAppItem(
     var firewallState: FirewallState
 )
 
-/**
- * Adapter for virtualized apps with firewall controls
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// FirewallAppsAdapter — Bug #10: DiffUtil + visual state badge
+// ─────────────────────────────────────────────────────────────────────────────
+
 class FirewallAppsAdapter(
     private val prefs: SharedPreferences,
     private val onStateChanged: (FirewallAppItem, FirewallState) -> Unit
@@ -187,9 +152,19 @@ class FirewallAppsAdapter(
 
     private var items = listOf<FirewallAppItem>()
 
+    /** DiffUtil prevents scroll reset and reduces flicker (Bug #10) */
     fun submitList(newList: List<FirewallAppItem>) {
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize() = items.size
+            override fun getNewListSize() = newList.size
+            override fun areItemsTheSame(o: Int, n: Int) =
+                items[o].packageName == newList[n].packageName
+            override fun areContentsTheSame(o: Int, n: Int) =
+                items[o].firewallState == newList[n].firewallState &&
+                items[o].appName == newList[n].appName
+        })
         items = newList
-        notifyDataSetChanged()
+        diff.dispatchUpdatesTo(this)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -198,64 +173,43 @@ class FirewallAppsAdapter(
         return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) =
         holder.bind(items[position])
-    }
 
     override fun getItemCount() = items.size
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val ivIcon: ImageView = itemView.findViewById(R.id.ivAppIcon)
-        private val tvName: TextView = itemView.findViewById(R.id.tvAppName)
+        private val ivIcon: ImageView   = itemView.findViewById(R.id.ivAppIcon)
+        private val tvName: TextView    = itemView.findViewById(R.id.tvAppName)
         private val tvPackage: TextView = itemView.findViewById(R.id.tvPackageName)
-        private val tvStateButton: TextView = itemView.findViewById(R.id.tvStateButton)
+        private val tvState: TextView   = itemView.findViewById(R.id.tvStateButton)
 
         fun bind(item: FirewallAppItem) {
-            tvName.text = item.appName
+            tvName.text    = item.appName
             tvPackage.text = item.packageName
-
             item.icon?.let { ivIcon.setImageDrawable(it) }
 
-            val states = arrayOf(
-                itemView.context.getString(R.string.firewall_state_off),
-                itemView.context.getString(R.string.firewall_state_monitor),
-                itemView.context.getString(R.string.firewall_state_block)
-            )
-
-            // Map Bcore state to UI index
-            // 0=Off, 1=Monitor, 2=Block
-            val uiIndex = when (item.firewallState) {
-                FirewallState.DISABLED -> 0
-                FirewallState.MONITORING -> 1
-                FirewallState.BLOCKING_ALL -> 2
-                FirewallState.BLOCKING_PORTS -> 2 // Treat partial block as block for simple UI
+            // Visual state badge with color (visible indicator)
+            val (label, bgColor, textColor) = when (item.firewallState) {
+                FirewallState.DISABLED      -> Triple("Sin protección", 0xFF374151.toInt(), 0xFF94A3B8.toInt())
+                FirewallState.MONITORING    -> Triple("Monitoreando",   0xFF1E3A5F.toInt(), 0xFF60A5FA.toInt())
+                FirewallState.BLOCKING_PORTS -> Triple("Puertos",       0xFF3D2000.toInt(), 0xFFFFB74D.toInt())
+                FirewallState.BLOCKING_ALL  -> Triple("Bloqueado",      0xFF3B0000.toInt(), 0xFFEF9A9A.toInt())
             }
+            tvState.text = label
+            tvState.setBackgroundColor(bgColor)
+            tvState.setTextColor(textColor)
 
-            // Update button text with current state
-            tvStateButton.text = states.getOrElse(uiIndex) { states[0] }
-
-            // State button is just an indicator now, clicking anywhere opens details
-            // tvStateButton.setOnClickListener { ... } - REMOVED
-
-            // Click on card body opens Detail Activity
-            val clickListener = View.OnClickListener {
-                android.widget.Toast.makeText(itemView.context, "Opening ${item.appName} details...", android.widget.Toast.LENGTH_SHORT).show()
-                val intent = android.content.Intent(itemView.context, FirewallAppDetailActivity::class.java).apply {
+            // Full card opens detail activity
+            itemView.setOnClickListener {
+                val intent = android.content.Intent(
+                    itemView.context, FirewallAppDetailActivity::class.java
+                ).apply {
                     putExtra(FirewallAppDetailActivity.EXTRA_PACKAGE_NAME, item.packageName)
                     putExtra(FirewallAppDetailActivity.EXTRA_APP_NAME, item.appName)
                 }
                 itemView.context.startActivity(intent)
             }
-            
-            // Set listener on the card itself, but exclude the button area logically (button handles its own click)
-            itemView.setOnClickListener(clickListener)
         }
     }
 }
-
-
-
-/**
- * Adapter for connection logs
- */
-

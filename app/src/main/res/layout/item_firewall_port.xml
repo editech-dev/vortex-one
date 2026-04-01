@@ -1,59 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="16dp"
     android:layout_marginHorizontal="8dp"
-    android:layout_marginVertical="6dp"
-    android:background="@drawable/selector_item_virtual_app"
+    android:layout_marginVertical="5dp"
     android:focusable="true"
+    android:focusableInTouchMode="true"
     android:clickable="true"
-    android:minHeight="48dp"
     android:stateListAnimator="@animator/scaler"
-    android:descendantFocusability="blocksDescendants">
+    android:descendantFocusability="afterDescendants"
+    app:cardBackgroundColor="@color/primary_light"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="3dp">
 
-    <TextView
-        android:id="@+id/tvPort"
-        android:layout_width="wrap_content"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="8080"
-        android:textColor="@color/white"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:padding="16dp"
+        android:minHeight="56dp">
 
-    <TextView
-        android:id="@+id/tvProtocol"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="TCP"
-        android:textColor="#94A3B8"
-        android:textSize="14sp"
-        android:layout_marginStart="8dp"
-        app:layout_constraintStart_toEndOf="@id/tvPort"
-        app:layout_constraintBaseline_toBaselineOf="@id/tvPort" />
-        
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Allowed"
-        android:textColor="#81C784"
-        android:textSize="14sp"
-        android:layout_marginTop="4dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvPort" />
+        <TextView
+            android:id="@+id/tvPort"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="8080"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:maxLines="2"
+            android:ellipsize="end"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/switchBlock"
+            app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.switchmaterial.SwitchMaterial
-        android:id="@+id/switchBlock"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:focusable="false"
-        android:clickable="false"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        <TextView
+            android:id="@+id/tvProtocol"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TCP"
+            android:textColor="#94A3B8"
+            android:textSize="13sp"
+            android:layout_marginTop="4dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvPort" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Allowed"
+            android:textColor="#81C784"
+            android:textSize="13sp"
+            android:layout_marginStart="12dp"
+            app:layout_constraintStart_toEndOf="@id/tvProtocol"
+            app:layout_constraintBaseline_toBaselineOf="@id/tvProtocol" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchBlock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:focusable="false"
+            android:clickable="false"
+            android:importantForAccessibility="no"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

@@ -10,16 +10,17 @@
 
     <!-- Header -->
     <LinearLayout
+        android:id="@+id/headerLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="24dp"
+        android:padding="20dp"
         android:gravity="center_vertical">
 
         <ImageView
             android:id="@+id/ivAppIcon"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:contentDescription="@string/app_icon" />
 
         <LinearLayout
@@ -27,30 +28,34 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="16dp">
+            android:layout_marginStart="14dp">
 
             <TextView
                 android:id="@+id/tvAppName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="24sp"
+                android:textSize="20sp"
                 android:textColor="@color/white"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
 
             <TextView
                 android:id="@+id/tvPackageName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:textColor="#94A3B8" />
+                android:textSize="12sp"
+                android:textColor="#94A3B8"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:layout_marginTop="2dp" />
         </LinearLayout>
-        
-        <!-- Toggles Section -->
+
+        <!-- Toggles — nextFocusDown leads to tabLayout for D-pad flow -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_gravity="center_vertical"
             android:gravity="end">
 
             <com.google.android.material.switchmaterial.SwitchMaterial
@@ -58,34 +63,44 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Monitor"
-                android:textColor="@color/white" />
+                android:textColor="@color/white"
+                android:nextFocusDown="@id/switchBlockAll" />
 
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/switchBlockAll"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Block All"
-                android:textColor="@color/white" />
+                android:text="Bloquear"
+                android:textColor="@color/white"
+                android:nextFocusDown="@id/tabLayout"
+                android:nextFocusUp="@id/switchMonitor" />
         </LinearLayout>
 
     </LinearLayout>
 
+    <!-- Tab bar: navigable with D-pad left/right -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="48dp"
         android:background="@android:color/transparent"
+        android:nextFocusDown="@id/viewPager"
+        android:nextFocusUp="@id/switchBlockAll"
+        app:tabMode="scrollable"
         app:tabTextColor="#94A3B8"
         app:tabSelectedTextColor="@color/white"
         app:tabIndicatorColor="@color/accent_color"
-        android:nextFocusDown="@id/viewPager" />
+        app:tabIndicatorHeight="3dp"
+        app:tabTextAppearance="@android:style/TextAppearance.Small" />
 
+    <!-- ViewPager: descendantFocusability ensures items inside get focus -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:focusable="false"
-        android:descendantFocusability="afterDescendants" />
+        android:descendantFocusability="afterDescendants"
+        android:nextFocusUp="@id/tabLayout" />
 
 </LinearLayout>
