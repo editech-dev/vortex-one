@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">Vortex One</string>
+    <!-- App icon -->
+    <string name="app_icon">App icon</string>
+
     <!-- Dialogs -->
     <string name="dialog_install_warning_title">Compatibility Warning</string>
     <string name="dialog_install_warning_message">Direct APK installation may not work with all applications due to protections or restrictions from the original developer.\n\nIf installation fails or the application does not run correctly, we recommend:\n\n1. Install this APK on your device normally (outside this app).\n2. Return here and use the \'System Apps\' option to clone it.\n\nDo you want to continue with the direct installation attempt?</string>
@@ -15,27 +18,27 @@
     <string name="dialog_virtualize_error_message">Virtualization of %s failed: %s</string>
 
     <!-- Toasts -->
-    <string name="toast_installing_apk">Installing %s...</string>
-    <string name="toast_preparing_install">Preparing installation...</string>
+    <string name="toast_installing_apk">Installing %s…</string>
+    <string name="toast_preparing_install">Preparing installation…</string>
     <string name="toast_install_success">✓ %s installed successfully</string>
     <string name="toast_error_generic">✗ Error: %s</string>
     <string name="toast_load_apps_error">Error loading apps: %s</string>
     <string name="toast_launch_error">Error launching %s: %s</string>
     <string name="toast_uninstall_success">✓ %s uninstalled</string>
     <string name="toast_uninstall_error">Error uninstalling: %s</string>
-    <string name="toast_virtualizing_app">Virtualizing %s...</string>
+    <string name="toast_virtualizing_app">Virtualizing %s…</string>
     <string name="toast_virtualize_success">✓ %s is now running virtualized</string>
     <string name="toast_virtualize_error_generic">✗ Error virtualizing: %s</string>
 
-    <!-- Statuses (FileScanner / SystemApps) -->
-    <string name="status_no_results">No searching result</string>
+    <!-- Statuses -->
+    <string name="status_no_results">No search results</string>
     <string name="status_no_apks_found">No APK files found</string>
     <string name="status_apks_found">Found %d APKs</string>
     <string name="status_storage_permission_denied">Storage permission denied</string>
     <string name="status_all_files_permission_denied">All files access permission denied</string>
-    <string name="status_scanning_storage">Scanning storage...</string>
+    <string name="status_scanning_storage">Scanning storage…</string>
     <string name="status_apps_found">%d applications found</string>
-    <string name="status_searching_installed_apps">Searching installed applications...</string>
+    <string name="status_searching_installed_apps">Searching installed applications…</string>
     <string name="status_error">Error: %s</string>
 
     <!-- Firewall -->
@@ -50,4 +53,36 @@
     <string name="firewall_state_monitor">Monitor</string>
     <string name="firewall_state_block">Block</string>
     <string name="no_logs_found">No connection logs found</string>
+
+    <!-- Firewall detail tabs -->
+    <string name="tab_ports">Ports</string>
+    <string name="tab_endpoints">Endpoints</string>
+    <string name="tab_threats">Threats</string>
+    <string name="tab_speed">Speed</string>
+
+    <!-- Firewall detail labels -->
+    <string name="switch_monitor">Monitor</string>
+    <string name="switch_block_all">Block</string>
+    <string name="label_upload_limit">Upload Limit</string>
+    <string name="label_download_limit">Download Limit</string>
+    <string name="desc_upload_limit">Max upload speed for this app</string>
+    <string name="desc_download_limit">Max download speed for this app</string>
+    <string name="status_blocked">Blocked</string>
+    <string name="status_allowed">Allowed</string>
+    <string name="status_blocking">Blocking</string>
+    <string name="status_monitoring">Monitoring</string>
+    <string name="status_detected">Detected</string>
+    <string name="state_unprotected">Unprotected</string>
+    <string name="speed_unlimited">Unlimited</string>
+    <string name="time_just_now">just now</string>
+    <string name="time_minutes_ago">%dm ago</string>
+    <string name="time_hours_ago">%dh ago</string>
+    <string name="time_days_ago">%dd ago</string>
+    <string name="detections_count">%d detection(s)</string>
+
+    <!-- Language settings -->
+    <string name="language_title">Language / Idioma</string>
+    <string name="language_english">English</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_system">System default</string>
 </resources>

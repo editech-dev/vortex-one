@@ -1,38 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Subtle focus animator for TV D-pad navigation.
+  Scale 1.03 instead of 1.1 to avoid clipping by parent RecyclerView.
+  A glowing stroke is added programmatically for bandwidth cards.
+-->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <set>
             <objectAnimator
-                android:duration="200"
+                android:duration="150"
                 android:propertyName="scaleX"
-                android:valueTo="1.1"
+                android:valueTo="1.03"
                 android:valueType="floatType" />
             <objectAnimator
-                android:duration="200"
+                android:duration="150"
                 android:propertyName="scaleY"
-                android:valueTo="1.1"
+                android:valueTo="1.03"
                 android:valueType="floatType" />
             <objectAnimator
-                android:duration="200"
+                android:duration="150"
                 android:propertyName="translationZ"
-                android:valueTo="8dp"
+                android:valueTo="6dp"
                 android:valueType="floatType" />
         </set>
     </item>
     <item android:state_focused="false">
         <set>
             <objectAnimator
-                android:duration="200"
+                android:duration="150"
                 android:propertyName="scaleX"
                 android:valueTo="1.0"
                 android:valueType="floatType" />
             <objectAnimator
-                android:duration="200"
+                android:duration="150"
                 android:propertyName="scaleY"
                 android:valueTo="1.0"
                 android:valueType="floatType" />
             <objectAnimator
-                android:duration="200"
+                android:duration="150"
                 android:propertyName="translationZ"
                 android:valueTo="0dp"
                 android:valueType="floatType" />

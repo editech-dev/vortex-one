@@ -20,6 +20,8 @@ import com.editech.services.firewall.FirewallManager
 import com.editech.services.firewall.FirewallState
 import com.editech.services.firewall.Protocol
 import com.editech.services.firewall.ThreatType
+import com.editech.services.utils.LocaleHelper
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
@@ -48,6 +50,10 @@ class FirewallAppDetailActivity : AppCompatActivity() {
 
     // Guard to prevent switch listeners from triggering each other (Bug #1)
     private var isProgrammaticChange = false
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(LocaleHelper.applyLocale(base))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -149,11 +155,11 @@ class FirewallAppDetailActivity : AppCompatActivity() {
 
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
-                0 -> "Puertos"
-                1 -> "Endpoints"
-                2 -> "Logs"
-                3 -> "Amenazas"
-                4 -> "Velocidad"
+                0 -> getString(R.string.tab_ports)
+                1 -> getString(R.string.tab_endpoints)
+                2 -> getString(R.string.tab_logs)
+                3 -> getString(R.string.tab_threats)
+                4 -> getString(R.string.tab_speed)
                 else -> ""
             }
         }.attach()
@@ -225,6 +231,7 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
         rv.isFocusable = true
         rv.isFocusableInTouchMode = true
         rv.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+        // Fix clipping from scaler animation — must be false on every ancestor
         rv.clipChildren = false
         rv.clipToPadding = false
         rv.setPadding(0, 8, 0, 120)
@@ -758,14 +765,21 @@ class BandwidthAdapter(
 
             val progress = steps.indexOf(item.limitBytes).takeIf { it >= 0 } ?: 0
             seekBar.progress = progress
-            updateValueText(item.limitBytes)
+            updateValueText(item.limitBytes, itemView.context)
+
+            // Focus feedback for TV D-pad — draw a colored stroke when focused (issue #2)
+            val card = itemView as? MaterialCardView
+            itemView.setOnFocusChangeListener { _, hasFocus ->
+                card?.strokeWidth = if (hasFocus) 3 else 0
+                card?.strokeColor = if (hasFocus) 0xFF38BDF8.toInt() else android.graphics.Color.TRANSPARENT
+            }
 
             seekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: android.widget.SeekBar?, p: Int, fromUser: Boolean) {
                     if (fromUser) {
                         val limit = steps[p]
                         item.limitBytes = limit
-                        updateValueText(limit)
+                        updateValueText(limit, itemView.context)
                         onLimitChanged(item.isUpload, limit)
                     }
                 }
@@ -784,7 +798,7 @@ class BandwidthAdapter(
                             seekBar.progress = newP
                             val limit = steps[newP]
                             item.limitBytes = limit
-                            updateValueText(limit)
+                            updateValueText(limit, itemView.context)
                             onLimitChanged(item.isUpload, limit)
                             true
                         } else false
@@ -795,7 +809,7 @@ class BandwidthAdapter(
                             seekBar.progress = newP
                             val limit = steps[newP]
                             item.limitBytes = limit
-                            updateValueText(limit)
+                            updateValueText(limit, itemView.context)
                             onLimitChanged(item.isUpload, limit)
                             true
                         } else false
@@ -805,8 +819,9 @@ class BandwidthAdapter(
             }
         }
 
-        private fun updateValueText(limitBytes: Long) {
-            tvValue.text = if (limitBytes <= 0) "Ilimitado" else formatSpeed(limitBytes)
+        private fun updateValueText(limitBytes: Long, ctx: android.content.Context) {
+            tvValue.text = if (limitBytes <= 0) ctx.getString(R.string.speed_unlimited)
+                           else formatSpeed(limitBytes)
             tvValue.setTextColor(
                 if (limitBytes <= 0) 0xFF81C784.toInt() else 0xFFFFB74D.toInt()
             )

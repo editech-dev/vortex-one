@@ -16,7 +16,9 @@ import kotlinx.coroutines.launch
 class App : Application() {
 
     override fun attachBaseContext(base: Context) {
-        super.attachBaseContext(base)
+        // Apply user-selected language before any resource is inflated
+        val localeContext = com.editech.services.utils.LocaleHelper.applyLocale(base)
+        super.attachBaseContext(localeContext)
         // Inicializar BlackBox Core con configuración
         BlackBoxCore.get().doAttachBaseContext(base, object : ClientConfiguration() {
             override fun getHostPackageName(): String {

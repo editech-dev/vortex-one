@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Vortex One</string>
+    <string name="app_icon">Ícono de app</string>
+
     <!-- Dialogs -->
     <string name="dialog_install_warning_title">Aviso de Compatibilidad</string>
     <string name="dialog_install_warning_message">La instalación directa de APKs puede no funcionar con todas las aplicaciones debido a protecciones o restricciones del desarrollador original.\n\nSi la instalación falla o la aplicación no se ejecuta correctamente, te recomendamos:\n\n1. Instalar este APK en tu dispositivo de forma normal (fuera de esta app).\n2. Regresar aquí y utilizar la opción \'System Apps\' para clonarla.\n\n¿Deseas continuar con el intento de instalación directa?</string>
@@ -15,26 +17,71 @@
     <string name="dialog_virtualize_error_message">Falló la virtualización de %s: %s</string>
 
     <!-- Toasts -->
-    <string name="toast_installing_apk">Instalando %s...</string>
-    <string name="toast_preparing_install">Preparando instalación...</string>
+    <string name="toast_installing_apk">Instalando %s…</string>
+    <string name="toast_preparing_install">Preparando instalación…</string>
     <string name="toast_install_success">✓ %s instalado correctamente</string>
     <string name="toast_error_generic">✗ Error: %s</string>
     <string name="toast_load_apps_error">Error al cargar apps: %s</string>
     <string name="toast_launch_error">Error al lanzar %s: %s</string>
     <string name="toast_uninstall_success">✓ %s desinstalado</string>
     <string name="toast_uninstall_error">Error al desinstalar: %s</string>
-    <string name="toast_virtualizing_app">Virtualizando %s...</string>
+    <string name="toast_virtualizing_app">Virtualizando %s…</string>
     <string name="toast_virtualize_success">✓ %s ahora corre virtualizado</string>
     <string name="toast_virtualize_error_generic">✗ Error al virtualizar: %s</string>
 
-    <!-- Statuses (FileScanner / SystemApps) -->
+    <!-- Statuses -->
     <string name="status_no_results">Sin resultados de búsqueda</string>
     <string name="status_no_apks_found">No se encontraron archivos APK</string>
     <string name="status_apks_found">Encontrados %d APKs</string>
     <string name="status_storage_permission_denied">Permiso de almacenamiento denegado</string>
     <string name="status_all_files_permission_denied">Permiso de acceso a todos los archivos denegado</string>
-    <string name="status_scanning_storage">Escaneando almacenamiento...</string>
+    <string name="status_scanning_storage">Escaneando almacenamiento…</string>
     <string name="status_apps_found">%d aplicaciones encontradas</string>
-    <string name="status_searching_installed_apps">Buscando aplicaciones instaladas...</string>
+    <string name="status_searching_installed_apps">Buscando aplicaciones instaladas…</string>
     <string name="status_error">Error: %s</string>
+
+    <!-- Firewall -->
+    <string name="firewall_title">Firewall</string>
+    <string name="title_firewall">Firewall</string>
+    <string name="firewall_subtitle">Control de acceso a la red por app</string>
+    <string name="close">Cerrar</string>
+    <string name="action_close">Cerrar</string>
+    <string name="tab_apps">Apps</string>
+    <string name="tab_logs">Registros</string>
+    <string name="firewall_state_off">Apagado</string>
+    <string name="firewall_state_monitor">Monitor</string>
+    <string name="firewall_state_block">Bloquear</string>
+    <string name="no_logs_found">No se encontraron registros de conexión</string>
+
+    <!-- Firewall detail tabs -->
+    <string name="tab_ports">Puertos</string>
+    <string name="tab_endpoints">Endpoints</string>
+    <string name="tab_threats">Amenazas</string>
+    <string name="tab_speed">Velocidad</string>
+
+    <!-- Firewall detail labels -->
+    <string name="switch_monitor">Monitor</string>
+    <string name="switch_block_all">Bloquear</string>
+    <string name="label_upload_limit">Límite de Subida</string>
+    <string name="label_download_limit">Límite de Bajada</string>
+    <string name="desc_upload_limit">Velocidad máxima de upload</string>
+    <string name="desc_download_limit">Velocidad máxima de download</string>
+    <string name="status_blocked">Bloqueado</string>
+    <string name="status_allowed">Permitido</string>
+    <string name="status_blocking">Bloqueando</string>
+    <string name="status_monitoring">Monitoreando</string>
+    <string name="status_detected">Detectado</string>
+    <string name="state_unprotected">Sin protección</string>
+    <string name="speed_unlimited">Ilimitado</string>
+    <string name="time_just_now">ahora</string>
+    <string name="time_minutes_ago">hace %d min</string>
+    <string name="time_hours_ago">hace %dh</string>
+    <string name="time_days_ago">hace %dd</string>
+    <string name="detections_count">%d detección(es)</string>
+
+    <!-- Language settings -->
+    <string name="language_title">Idioma / Language</string>
+    <string name="language_english">English</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_system">Por defecto del sistema</string>
 </resources>

@@ -7,6 +7,8 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import androidx.appcompat.app.AlertDialog
+import com.editech.services.utils.LocaleHelper
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.RelativeLayout
@@ -40,6 +42,10 @@ class FirewallActivity : AppCompatActivity() {
     private lateinit var binding: ActivityFirewallBinding
     private lateinit var appsAdapter: FirewallAppsAdapter
     private lateinit var prefs: SharedPreferences
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(LocaleHelper.applyLocale(base))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +87,37 @@ class FirewallActivity : AppCompatActivity() {
 
     private fun setupButtons() {
         binding.btnClose.setOnClickListener { finish() }
+        binding.btnLanguage.setOnClickListener { showLanguagePicker() }
+    }
+
+    private fun showLanguagePicker() {
+        val options = arrayOf(
+            getString(R.string.language_system),
+            getString(R.string.language_english),
+            getString(R.string.language_spanish)
+        )
+        val codes = arrayOf(LocaleHelper.LANG_SYSTEM, LocaleHelper.LANG_EN, LocaleHelper.LANG_ES)
+        val current = LocaleHelper.getSavedLocale(this)
+        val checked = codes.indexOf(current).coerceAtLeast(0)
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.language_title))
+            .setSingleChoiceItems(options, checked) { dialog, which ->
+                val chosen = codes[which]
+                if (chosen != current) {
+                    LocaleHelper.setLocale(this, chosen)
+                    dialog.dismiss()
+                    // Restart all activities to apply the new locale
+                    val intent = packageManager.getLaunchIntentForPackage(packageName)
+                    intent?.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                } else {
+                    dialog.dismiss()
+                }
+            }
+            .setNegativeButton(getString(R.string.action_cancel), null)
+            .show()
     }
 
     private fun loadVirtualizedApps() {
@@ -191,10 +228,10 @@ class FirewallAppsAdapter(
 
             // Visual state badge with color (visible indicator)
             val (label, bgColor, textColor) = when (item.firewallState) {
-                FirewallState.DISABLED      -> Triple("Sin protección", 0xFF374151.toInt(), 0xFF94A3B8.toInt())
-                FirewallState.MONITORING    -> Triple("Monitoreando",   0xFF1E3A5F.toInt(), 0xFF60A5FA.toInt())
-                FirewallState.BLOCKING_PORTS -> Triple("Puertos",       0xFF3D2000.toInt(), 0xFFFFB74D.toInt())
-                FirewallState.BLOCKING_ALL  -> Triple("Bloqueado",      0xFF3B0000.toInt(), 0xFFEF9A9A.toInt())
+                FirewallState.DISABLED       -> Triple(itemView.context.getString(R.string.state_unprotected), 0xFF374151.toInt(), 0xFF94A3B8.toInt())
+                FirewallState.MONITORING     -> Triple(itemView.context.getString(R.string.status_monitoring),  0xFF1E3A5F.toInt(), 0xFF60A5FA.toInt())
+                FirewallState.BLOCKING_PORTS -> Triple(itemView.context.getString(R.string.tab_ports),          0xFF3D2000.toInt(), 0xFFFFB74D.toInt())
+                FirewallState.BLOCKING_ALL   -> Triple(itemView.context.getString(R.string.status_blocked),     0xFF3B0000.toInt(), 0xFFEF9A9A.toInt())
             }
             tvState.text = label
             tvState.setBackgroundColor(bgColor)
