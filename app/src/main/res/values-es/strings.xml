@@ -72,6 +72,7 @@
     <string name="status_monitoring">Monitoreando</string>
     <string name="status_detected">Detectado</string>
     <string name="state_unprotected">Sin protección</string>
+    <string name="state_active_ports">Activo (Puertos)</string>
     <string name="speed_unlimited">Ilimitado</string>
     <string name="time_just_now">ahora</string>
     <string name="time_minutes_ago">hace %d min</string>

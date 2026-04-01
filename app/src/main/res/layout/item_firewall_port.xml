@@ -25,26 +25,18 @@
             android:id="@+id/tvPort"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            app:layout_constrainedWidth="true"
             android:text="8080"
             android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:maxLines="2"
+            android:maxLines="3"
             android:ellipsize="end"
+            android:breakStrategy="simple"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@id/switchBlock"
             app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/tvProtocol"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="TCP"
-            android:textColor="#94A3B8"
-            android:textSize="13sp"
-            android:layout_marginTop="4dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvPort" />
 
         <TextView
             android:id="@+id/tvStatus"
@@ -53,9 +45,20 @@
             android:text="Allowed"
             android:textColor="#81C784"
             android:textSize="13sp"
-            android:layout_marginStart="12dp"
-            app:layout_constraintStart_toEndOf="@id/tvProtocol"
-            app:layout_constraintBaseline_toBaselineOf="@id/tvProtocol" />
+            android:layout_marginTop="4dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvPort" />
+
+        <TextView
+            android:id="@+id/tvProtocol"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TCP"
+            android:textColor="#94A3B8"
+            android:textSize="13sp"
+            android:layout_marginStart="8dp"
+            app:layout_constraintStart_toEndOf="@id/tvStatus"
+            app:layout_constraintBaseline_toBaselineOf="@id/tvStatus" />
 
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/switchBlock"

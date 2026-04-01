@@ -15,6 +15,7 @@ import com.editech.services.activities.SystemAppsActivity
 import com.editech.services.adapters.VirtualAppsAdapter
 import com.editech.services.databinding.ActivityMainBinding
 import com.editech.services.models.VirtualApp
+import com.editech.services.utils.LocaleHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,6 +35,10 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val USER_ID = 0 // ID de usuario virtual de BlackBox
         private const val REQUEST_CODE_SELECT_SYSTEM_APP = 2002
+    }
+
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(LocaleHelper.applyLocale(base))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,6 +106,40 @@ class MainActivity : AppCompatActivity() {
         binding.btnFirewall.setOnClickListener {
             openFirewallActivity()
         }
+
+        binding.btnLanguage.setOnClickListener {
+            showLanguagePicker()
+        }
+    }
+
+    private fun showLanguagePicker() {
+        val options = arrayOf(
+            getString(R.string.language_system),
+            getString(R.string.language_english),
+            getString(R.string.language_spanish)
+        )
+        val codes = arrayOf(LocaleHelper.LANG_SYSTEM, LocaleHelper.LANG_EN, LocaleHelper.LANG_ES)
+        val current = LocaleHelper.getSavedLocale(this)
+        val checked = codes.indexOf(current).coerceAtLeast(0)
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.language_title))
+            .setSingleChoiceItems(options, checked) { dialog, which ->
+                val chosen = codes[which]
+                if (chosen != current) {
+                    LocaleHelper.setLocale(this, chosen)
+                    dialog.dismiss()
+                    // Restart to apply new locale globally
+                    val intent = packageManager.getLaunchIntentForPackage(packageName)
+                    intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                } else {
+                    dialog.dismiss()
+                }
+            }
+            .setNegativeButton(getString(R.string.action_cancel), null)
+            .show()
     }
     
     private fun openFileScannerActivity() {

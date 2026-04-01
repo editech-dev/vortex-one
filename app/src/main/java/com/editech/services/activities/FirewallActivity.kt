@@ -230,7 +230,7 @@ class FirewallAppsAdapter(
             val (label, bgColor, textColor) = when (item.firewallState) {
                 FirewallState.DISABLED       -> Triple(itemView.context.getString(R.string.state_unprotected), 0xFF374151.toInt(), 0xFF94A3B8.toInt())
                 FirewallState.MONITORING     -> Triple(itemView.context.getString(R.string.status_monitoring),  0xFF1E3A5F.toInt(), 0xFF60A5FA.toInt())
-                FirewallState.BLOCKING_PORTS -> Triple(itemView.context.getString(R.string.tab_ports),          0xFF3D2000.toInt(), 0xFFFFB74D.toInt())
+                FirewallState.BLOCKING_PORTS -> Triple(itemView.context.getString(R.string.state_active_ports), 0xFF3D2000.toInt(), 0xFFFFB74D.toInt())
                 FirewallState.BLOCKING_ALL   -> Triple(itemView.context.getString(R.string.status_blocked),     0xFF3B0000.toInt(), 0xFFEF9A9A.toInt())
             }
             tvState.text = label
