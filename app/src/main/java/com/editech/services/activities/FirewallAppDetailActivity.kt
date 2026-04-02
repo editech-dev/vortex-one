@@ -175,18 +175,23 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 }, 150)
             }
         })
+    }
 
-        // Foolproof TV navigation: when exactly on a tab and pressing DOWN,
-        // manually send focus to the list to prevent getting trapped in invisible containers.
-        tabLayout.setOnKeyListener { _, keyCode, event ->
-            if (event.action == android.view.KeyEvent.ACTION_DOWN && keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        // Intercept TV D-pad DOWN key exactly when it originates from the Tabs.
+        // Direct View.setOnKeyListener fails because the inner TabViews hold the focus.
+        if (event.action == android.view.KeyEvent.ACTION_DOWN && event.keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+            val focused = currentFocus
+            // Check if focus is inside the TabLayout (focused.parent = SlidingTabIndicator, parent.parent = TabLayout)
+            if (focused != null && focused.parent?.parent === tabLayout) {
                 val tag = "f${viewPager.currentItem}"
                 val fragment = supportFragmentManager.findFragmentByTag(tag)
-                (fragment as? BaseDetailFragment)?.focusFirstItem()
-                return@setOnKeyListener true
+                if ((fragment as? BaseDetailFragment)?.focusFirstItemSynchronous() == true) {
+                    return true // Event successfully consumed! Focus jumped to the list!
+                }
             }
-            false
         }
+        return super.dispatchKeyEvent(event)
     }
 
     inner class DetailPagerAdapter(activity: AppCompatActivity) :
@@ -415,23 +420,31 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
 
     // ── Focus helper (Bug #5 fix) ─────────────────────────────────────────────
 
-    /** Always move focus to first visible item — called after every tab switch */
+    /**
+     * Executes the TV D-pad focus attempt synchronously.
+     * Returns true if it successfully landed focus inside the list.
+     */
+    fun focusFirstItemSynchronous(): Boolean {
+        val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return false
+        
+        // Try focused on the first item physically visible on screen
+        val firstVisiblePos = lm.findFirstVisibleItemPosition()
+        if (firstVisiblePos != androidx.recyclerview.widget.RecyclerView.NO_POSITION) {
+            val firstVisibleView = lm.findViewByPosition(firstVisiblePos)
+            if (firstVisibleView?.requestFocus() == true) {
+                return true
+            }
+        }
+        
+        // Backup: logical item 0 if layout calculation is fresh or incomplete
+        val firstView = lm.findViewByPosition(0)
+        return firstView?.requestFocus() == true
+    }
+
+    /** Always move focus to first visible item asynchronously — called after every tab switch */
     fun focusFirstItem() {
         recyclerView.post {
-            val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return@post
-            
-            // Intenta enfocar el primer elemento que realmente esté visible en la pantalla
-            val firstVisiblePos = lm.findFirstVisibleItemPosition()
-            if (firstVisiblePos != androidx.recyclerview.widget.RecyclerView.NO_POSITION) {
-                val firstVisibleView = lm.findViewByPosition(firstVisiblePos)
-                if (firstVisibleView?.requestFocus() == true) {
-                    return@post
-                }
-            }
-            
-            // Respaldo por si todavía no se ha pintado el layout visible
-            val firstView = lm.findViewByPosition(0)
-            firstView?.requestFocus()
+            focusFirstItemSynchronous()
         }
     }
 
