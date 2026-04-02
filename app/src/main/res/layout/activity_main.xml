@@ -67,7 +67,7 @@
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="Install APK"
+            android:text="@string/btn_install_apk"
             android:textSize="14sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed"
@@ -88,7 +88,7 @@
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="System Apps"
+            android:text="@string/btn_system_apps"
             android:textSize="14sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed"
@@ -111,7 +111,7 @@
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="Firewall"
+            android:text="@string/title_firewall"
             android:textSize="14sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed"
@@ -136,7 +136,7 @@
         android:background="@drawable/bg_search_input"
         android:drawableStart="@drawable/ic_search"
         android:drawablePadding="12dp"
-        android:hint="Search apps..."
+        android:hint="@string/hint_search_apps"
         android:textColorHint="#80FFFFFF"
         android:textColor="@color/white"
         android:textSize="16sp"
@@ -199,7 +199,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="No hay aplicaciones instaladas"
+            android:text="@string/empty_state_title"
             android:textColor="#94A3B8"
             android:textSize="18sp" />
 
@@ -207,7 +207,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Presiona '+' para instalar APKs"
+            android:text="@string/empty_state_desc"
             android:textColor="#64748B"
             android:textSize="14sp" />
     </LinearLayout>
