@@ -418,13 +418,20 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
     /** Always move focus to first visible item — called after every tab switch */
     fun focusFirstItem() {
         recyclerView.post {
-            val lm         = recyclerView.layoutManager ?: return@post
-            val firstView  = lm.findViewByPosition(0)
-            if (firstView != null) {
-                firstView.requestFocus()
-            } else {
-                recyclerView.requestFocus()
+            val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return@post
+            
+            // Intenta enfocar el primer elemento que realmente esté visible en la pantalla
+            val firstVisiblePos = lm.findFirstVisibleItemPosition()
+            if (firstVisiblePos != androidx.recyclerview.widget.RecyclerView.NO_POSITION) {
+                val firstVisibleView = lm.findViewByPosition(firstVisiblePos)
+                if (firstVisibleView?.requestFocus() == true) {
+                    return@post
+                }
             }
+            
+            // Respaldo por si todavía no se ha pintado el layout visible
+            val firstView = lm.findViewByPosition(0)
+            firstView?.requestFocus()
         }
     }
 
