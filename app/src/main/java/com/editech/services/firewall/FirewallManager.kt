@@ -58,6 +58,9 @@ class FirewallManager private constructor(private val context: Context) {
     // DNS resolution cache (IP -> hostname)
     private val dnsCache = ConcurrentHashMap<String, String>()
     
+    // Concurrency control for initial state load
+    private val stateLoadLatch = java.util.concurrent.CountDownLatch(1)
+    
     // Database (lazy initialization)
     private val database: FirewallDatabase by lazy {
         FirewallDatabase.getInstance(context)
@@ -118,6 +121,15 @@ class FirewallManager private constructor(private val context: Context) {
      * Get current firewall state for an app
      */
     fun getState(packageName: String): FirewallState {
+        // Wait for cache to load if called from a background thread
+        if (android.os.Looper.myLooper() != android.os.Looper.getMainLooper()) {
+            try {
+                // Wait up to 2 seconds to not block indefinitely if something goes wrong
+                stateLoadLatch.await(2, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (e: Exception) {
+                Log.e(TAG, "Interrupted waiting for state cache")
+            }
+        }
         return appStateCache[packageName] ?: FirewallState.DISABLED
     }
     
@@ -583,6 +595,8 @@ class FirewallManager private constructor(private val context: Context) {
                 Log.d(TAG, "Loaded ${appStateCache.size} app states from database")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load persisted state: ${e.message}")
+            } finally {
+                stateLoadLatch.countDown()
             }
         }
     }
