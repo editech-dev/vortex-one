@@ -84,7 +84,6 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="@android:color/transparent"
-        android:nextFocusDown="@id/viewPager"
         android:nextFocusUp="@id/switchBlockAll"
         app:tabMode="scrollable"
         app:tabTextColor="#94A3B8"
@@ -100,7 +99,6 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:focusable="false"
-        android:descendantFocusability="afterDescendants"
-        android:nextFocusUp="@id/tabLayout" />
+        android:descendantFocusability="afterDescendants" />
 
 </LinearLayout>

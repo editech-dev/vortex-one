@@ -175,6 +175,18 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 }, 150)
             }
         })
+
+        // Foolproof TV navigation: when exactly on a tab and pressing DOWN,
+        // manually send focus to the list to prevent getting trapped in invisible containers.
+        tabLayout.setOnKeyListener { _, keyCode, event ->
+            if (event.action == android.view.KeyEvent.ACTION_DOWN && keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+                val tag = "f${viewPager.currentItem}"
+                val fragment = supportFragmentManager.findFragmentByTag(tag)
+                (fragment as? BaseDetailFragment)?.focusFirstItem()
+                return@setOnKeyListener true
+            }
+            false
+        }
     }
 
     inner class DetailPagerAdapter(activity: AppCompatActivity) :
