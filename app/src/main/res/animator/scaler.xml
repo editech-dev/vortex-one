@@ -10,12 +10,12 @@
             <objectAnimator
                 android:duration="150"
                 android:propertyName="scaleX"
-                android:valueTo="1.03"
+                android:valueTo="1.015"
                 android:valueType="floatType" />
             <objectAnimator
                 android:duration="150"
                 android:propertyName="scaleY"
-                android:valueTo="1.03"
+                android:valueTo="1.015"
                 android:valueType="floatType" />
             <objectAnimator
                 android:duration="150"
