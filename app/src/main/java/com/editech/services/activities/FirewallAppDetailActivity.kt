@@ -227,14 +227,11 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
         )
         rv.layoutManager = LinearLayoutManager(requireContext())
 
-        // Bug #4 fix: RecyclerView MUST be focusable so D-pad reaches its items
-        rv.isFocusable = true
-        rv.isFocusableInTouchMode = true
+        // D-pad logic: list itself must NOT be focusable, only its children
+        rv.isFocusable = false
         rv.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
-        // Fix clipping from scaler animation — must be false on every ancestor
-        rv.clipChildren = false
-        rv.clipToPadding = false
         rv.setPadding(0, 8, 0, 120)
+        rv.clipToPadding = false
 
         recyclerView = rv
         return rv
@@ -540,6 +537,12 @@ class EndpointsAdapter(
             switchBlock.isChecked = item.isBlocked
             updateStatus(item.isBlocked)
 
+            val card = itemView as? com.google.android.material.card.MaterialCardView
+            itemView.setOnFocusChangeListener { _, hasFocus ->
+                card?.strokeWidth = if (hasFocus) 3 else 0
+                card?.strokeColor = if (hasFocus) 0xFF38BDF8.toInt() else android.graphics.Color.TRANSPARENT
+            }
+
             itemView.setOnClickListener {
                 val newBlocked = !item.isBlocked
                 item.isBlocked = newBlocked
@@ -613,6 +616,12 @@ class PortsAdapter(
             switchBlock.isChecked = item.isBlocked
             updateStatus(item.isBlocked)
 
+            val card = itemView as? com.google.android.material.card.MaterialCardView
+            itemView.setOnFocusChangeListener { _, hasFocus ->
+                card?.strokeWidth = if (hasFocus) 3 else 0
+                card?.strokeColor = if (hasFocus) 0xFF38BDF8.toInt() else android.graphics.Color.TRANSPARENT
+            }
+
             itemView.setOnClickListener {
                 val newBlocked = !item.isBlocked
                 item.isBlocked = newBlocked
@@ -660,6 +669,12 @@ class ThreatsAdapter(
 
         fun bind(item: ThreatItemModel) {
             if (item.isHeader) bindHeader(item) else bindEntry(item)
+
+            val card = itemView as? com.google.android.material.card.MaterialCardView
+            itemView.setOnFocusChangeListener { _, hasFocus ->
+                card?.strokeWidth = if (hasFocus) 3 else 0
+                card?.strokeColor = if (hasFocus) 0xFF38BDF8.toInt() else android.graphics.Color.TRANSPARENT
+            }
         }
 
         private fun bindHeader(item: ThreatItemModel) {
