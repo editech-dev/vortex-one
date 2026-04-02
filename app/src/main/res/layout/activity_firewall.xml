@@ -36,20 +36,7 @@
             android:textStyle="bold"
             android:layout_marginStart="8dp" />
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
 
-        <!-- Language picker button -->
-        <ImageButton
-            android:id="@+id/btnLanguage"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_language"
-            android:contentDescription="@string/language_title"
-            app:tint="#94A3B8" />
 
     </LinearLayout>
 

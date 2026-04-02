@@ -87,38 +87,9 @@ class FirewallActivity : AppCompatActivity() {
 
     private fun setupButtons() {
         binding.btnClose.setOnClickListener { finish() }
-        binding.btnLanguage.setOnClickListener { showLanguagePicker() }
     }
 
-    private fun showLanguagePicker() {
-        val options = arrayOf(
-            getString(R.string.language_system),
-            getString(R.string.language_english),
-            getString(R.string.language_spanish)
-        )
-        val codes = arrayOf(LocaleHelper.LANG_SYSTEM, LocaleHelper.LANG_EN, LocaleHelper.LANG_ES)
-        val current = LocaleHelper.getSavedLocale(this)
-        val checked = codes.indexOf(current).coerceAtLeast(0)
 
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.language_title))
-            .setSingleChoiceItems(options, checked) { dialog, which ->
-                val chosen = codes[which]
-                if (chosen != current) {
-                    LocaleHelper.setLocale(this, chosen)
-                    dialog.dismiss()
-                    // Restart all activities to apply the new locale
-                    val intent = packageManager.getLaunchIntentForPackage(packageName)
-                    intent?.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(intent)
-                    android.os.Process.killProcess(android.os.Process.myPid())
-                } else {
-                    dialog.dismiss()
-                }
-            }
-            .setNegativeButton(getString(R.string.action_cancel), null)
-            .show()
-    }
 
     private fun loadVirtualizedApps() {
         binding.progressBar.visibility = View.VISIBLE

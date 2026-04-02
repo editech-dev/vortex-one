@@ -60,7 +60,7 @@
     <string name="status_monitoring">Active (Monitor)</string>
     <string name="status_detected">Detected</string>
     <string name="state_unprotected">Inactive</string>
-    <string name="state_active_ports">Active (Ports)</string>
+    <string name="state_active_ports">Active (Rules)</string>
     <string name="speed_unlimited">Unlimited</string>
     <string name="status_blocked">Active (Blocked)</string>
     <string name="time_just_now">just now</string>
