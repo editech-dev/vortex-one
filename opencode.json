@@ -1,0 +1,83 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {},
+  "agent": {
+    "ui-ux-designer": {
+      "description": "Lead UI/UX Designer para Android TV y Mobile. Especialista en XML ViewBinding, navegación D-Pad y responsive design.",
+      "prompt": "{file:./.agents/agents/ui-ux-designer/AGENT.md}",
+      "tools": {
+        "bash": true,
+        "write": true,
+        "read": true,
+        "glob": true,
+        "grep": true,
+        "edit": true
+      }
+    },
+    "virtualization-engine-developer": {
+      "description": "Especialista en el motor de virtualización BlackBox Bcore (Java), interfaces AIDL, JNI native bindings y reflection.",
+      "prompt": "{file:./.agents/agents/virtualization-engine-developer/AGENT.md}",
+      "tools": {
+        "bash": true,
+        "write": true,
+        "read": true,
+        "glob": true,
+        "grep": true,
+        "edit": true
+      }
+    },
+    "firewall-network-engineer": {
+      "description": "Especialista en seguridad de red, Room Database (FirewallDatabase), NetworkConnectionMonitor y filtrado de tráfico.",
+      "prompt": "{file:./.agents/agents/firewall-network-engineer/AGENT.md}",
+      "tools": {
+        "bash": true,
+        "write": true,
+        "read": true,
+        "glob": true,
+        "grep": true,
+        "edit": true
+      }
+    },
+    "security-auditor": {
+      "description": "Auditor de seguridad en modo estrictamente Read-Only para aislamiento sandbox, permisos APK y análisis de dependencias.",
+      "prompt": "{file:./.agents/agents/security-auditor/AGENT.md}",
+      "tools": {
+        "bash": true,
+        "read": true,
+        "glob": true,
+        "grep": true
+      }
+    },
+    "test-engineer": {
+      "description": "Subagente experto en pruebas unitarias e integración en Android con JUnit, Robolectric, Room DB en memoria y mocks de Bcore.",
+      "prompt": "{file:./.agents/agents/test-engineer/AGENT.md}",
+      "tools": {
+        "bash": true,
+        "write": true,
+        "read": true,
+        "glob": true,
+        "grep": true,
+        "edit": true
+      }
+    },
+    "release-publisher": {
+      "description": "Subagente experto en compilación Gradle release, sincronización versionCode/versionName, reglas ProGuard/R8 y firmas APK.",
+      "prompt": "{file:./.agents/agents/release-publisher/AGENT.md}",
+      "tools": {
+        "bash": true,
+        "write": true,
+        "read": true,
+        "glob": true,
+        "grep": true,
+        "edit": true
+      }
+    },
+    "git-manager": {
+      "description": "Version Control Specialist. Analiza git diff, prepara staging y genera commits siguiendo Conventional Commits.",
+      "prompt": "{file:./.agents/agents/git-manager/AGENT.md}",
+      "tools": {
+        "bash": true
+      }
+    }
+  }
+}
