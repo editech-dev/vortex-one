@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_main"
-    android:padding="24dp"
+    android:padding="20dp"
     tools:context=".activities.SettingsActivity">
 
     <!-- Header -->
@@ -25,7 +25,7 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:focusable="true"
-            android:nextFocusDown="@id/btnClearAllCache"
+            android:clickable="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_arrow_back"
             app:tint="@color/white"
@@ -35,7 +35,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="12dp"
             android:orientation="vertical">
 
             <TextView
@@ -43,7 +43,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/settings_title"
                 android:textColor="@color/white"
-                android:textSize="22sp"
+                android:textSize="20sp"
                 android:textStyle="bold"
                 android:fontFamily="sans-serif-condensed" />
 
@@ -52,49 +52,67 @@
                 android:layout_height="wrap_content"
                 android:text="@string/settings_subtitle"
                 android:textColor="#94A3B8"
-                android:textSize="13sp" />
+                android:textSize="12sp"
+                android:layout_marginTop="2dp" />
         </LinearLayout>
-
-        <!-- Botón Limpiar Todo Caché -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnClearAllCache"
-            android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:text="@string/btn_clear_all_cache"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:focusable="true"
-            android:clickable="true"
-            android:stateListAnimator="@animator/scaler"
-            android:paddingHorizontal="16dp"
-            android:layout_marginStart="12dp"
-            android:nextFocusUp="@id/btnBack"
-            android:nextFocusDown="@id/rvSettingsApps"
-            android:background="@drawable/btn_gradient_secondary"
-            app:backgroundTint="@null"
-            app:strokeColor="#38BDF8"
-            app:strokeWidth="1dp"
-            app:cornerRadius="10dp"
-            app:icon="@drawable/ic_clean"
-            app:iconGravity="textStart"
-            app:iconTint="#38BDF8"
-            android:textColor="#F8FAFC" />
     </LinearLayout>
+
+    <!-- Card de Acciones Globales -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardGlobalActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:cardBackgroundColor="#1E293B"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="4dp"
+        app:strokeColor="#334155"
+        app:strokeWidth="1dp"
+        app:layout_constraintTop_toBottomOf="@id/headerContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnClearAllCache"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="@string/btn_clear_all_cache"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:focusable="true"
+                android:clickable="true"
+                android:stateListAnimator="@animator/scaler"
+                android:background="@drawable/btn_gradient_secondary"
+                app:backgroundTint="@null"
+                app:strokeColor="#38BDF8"
+                app:strokeWidth="1dp"
+                app:cornerRadius="10dp"
+                app:icon="@drawable/ic_clean"
+                app:iconGravity="textStart"
+                app:iconTint="#38BDF8"
+                android:textColor="#F8FAFC" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Apps List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvSettingsApps"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:clipToPadding="false"
         android:focusable="true"
         android:descendantFocusability="afterDescendants"
-        android:nextFocusUp="@id/btnClearAllCache"
         app:layout_constraintBottom_toTopOf="@+id/bannerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/headerContainer"
+        app:layout_constraintTop_toBottomOf="@id/cardGlobalActions"
         tools:listitem="@layout/item_settings_app" />
 
     <!-- Banner Ad Container -->
@@ -119,11 +137,11 @@
         app:layout_constraintBottom_toTopOf="@+id/bannerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/headerContainer">
+        app:layout_constraintTop_toBottomOf="@id/cardGlobalActions">
 
         <ImageView
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:alpha="0.3"
             android:src="@drawable/ic_apps_grid"
             app:tint="#94A3B8" />
@@ -131,10 +149,18 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:text="@string/empty_state_title"
             android:textColor="#94A3B8"
-            android:textSize="18sp" />
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/empty_state_desc"
+            android:textColor="#64748B"
+            android:textSize="13sp" />
     </LinearLayout>
 
     <!-- Progress Indicator -->
