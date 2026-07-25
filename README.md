@@ -31,9 +31,22 @@ Take virtualization with you. Vortex One adapts to your phone screen for intuiti
 
 Get the latest version of Vortex One:
 
-[![Download APK](https://img.shields.io/badge/Download-v1.0.2-brightgreen?style=for-the-badge&logo=android)](https://github.com/editech-dev/vortex-one/releases/download/v1.0.2/VortexOne-v1.0.2-universal.apk)
+[![Download APK](https://img.shields.io/badge/Download-v1.0.4-brightgreen?style=for-the-badge&logo=android)](https://github.com/editech-dev/vortex-one/releases/download/v1.0.4/VortexOne-v1.0.4-universal.apk)
 
-Or download directly: [VortexOne-v1.0.2-universal.apk](https://github.com/editech-dev/vortex-one/releases/download/v1.0.2/VortexOne-v1.0.2-universal.apk)
+Or download directly: [VortexOne-v1.0.4-universal.apk](https://github.com/editech-dev/vortex-one/releases/download/v1.0.4/VortexOne-v1.0.4-universal.apk)
+
+---
+
+## 📜 Novedades de la Versión v1.0.4 (Release Notes)
+
+- **🛡️ Integración y Estabilidad de Red Tor**:
+  - **Auto-Inicio de Servicio**: El servicio Tor arranca automáticamente en segundo plano al abrir Vortex One si alguna app virtual tiene Tor habilitado.
+  - **Sincronización de Estado en UI**: Solucionada la desincronización de estado ("Tor activo" / verde) al reabrir la app o navegar entre pestañas.
+  - **Hilo UI Seguro**: Corrección del error `NetworkOnMainThreadException` en las pruebas de conectividad de sockets local.
+  - **Kill-Switch con Tiempo de Gracia**: Retardo inteligente de 1.2s (3 reintentos) durante el arranque de Tor antes de bloquear conexiones por seguridad.
+- **🎮 Experiencia Android TV (D-Pad)**:
+  - Navegación fluida con control remoto mediante resaltado dinámico azul neón (`#38BDF8`) en tarjetas Material.
+  - Transferencia de foco de control remoto al cambiar de pestaña a la sección Tor.
 
 ---
 
