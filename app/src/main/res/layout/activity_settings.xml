@@ -109,18 +109,33 @@
         android:clipToPadding="false"
         android:focusable="true"
         android:descendantFocusability="afterDescendants"
-        app:layout_constraintBottom_toTopOf="@+id/bannerContainer"
+        app:layout_constraintBottom_toTopOf="@+id/tvVersionInfo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/cardGlobalActions"
         tools:listitem="@layout/item_settings_app" />
+
+    <!-- Version & Credit Footer -->
+    <TextView
+        android:id="@+id/tvVersionInfo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="8dp"
+        android:textColor="#94A3B8"
+        android:textSize="13sp"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        app:layout_constraintBottom_toTopOf="@id/bannerContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:text="Versión 1.0.4 • Creado por EDITECH" />
 
     <!-- Banner Ad Container -->
     <RelativeLayout
         android:id="@+id/bannerContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="4dp"
         android:gravity="center"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

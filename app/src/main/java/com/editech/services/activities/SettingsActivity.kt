@@ -44,8 +44,19 @@ class SettingsActivity : AppCompatActivity() {
 
         setupRecyclerView()
         setupButtons()
+        setupVersionInfo()
         loadBanner()
         loadVirtualApps()
+    }
+
+    private fun setupVersionInfo() {
+        val versionName = try {
+            val packageInfo = packageManager.getPackageInfo(packageName, 0)
+            packageInfo.versionName ?: com.editech.services.BuildConfig.VERSION_NAME
+        } catch (e: Exception) {
+            com.editech.services.BuildConfig.VERSION_NAME
+        }
+        binding.tvVersionInfo.text = getString(R.string.app_version_credit, versionName)
     }
 
     private fun loadBanner() {
