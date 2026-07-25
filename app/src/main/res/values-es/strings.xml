@@ -106,5 +106,5 @@
     <string name="toast_data_cleared">✓ Datos de %s reiniciados correctamente</string>
     <string name="toast_all_cache_cleared">✓ Se liberaron %s de caché en %d apps</string>
     <string name="toast_clear_error">Error al limpiar almacenamiento: %s</string>
-    <string name="app_version_credit">Versión %1$s • Creado por EDITECH</string>
+    <string name="app_version_credit">Versión %1$s • Hecho con ❤️ por EDITECH para la comunidad Android</string>
 </resources>

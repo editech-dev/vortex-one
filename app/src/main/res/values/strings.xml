@@ -106,5 +106,5 @@
     <string name="toast_data_cleared">✓ Data for %s has been reset</string>
     <string name="toast_all_cache_cleared">✓ Cleared %s of cache across %d apps</string>
     <string name="toast_clear_error">Error clearing storage: %s</string>
-    <string name="app_version_credit">Version %1$s • Created by EDITECH</string>
+    <string name="app_version_credit">Version %1$s • Made with ❤️ by EDITECH for the Android community</string>
 </resources>

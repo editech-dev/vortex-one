@@ -118,9 +118,11 @@
     <!-- Version & Credit Footer -->
     <TextView
         android:id="@+id/tvVersionInfo"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginVertical="8dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="16dp"
+        android:paddingHorizontal="24dp"
         android:textColor="#94A3B8"
         android:textSize="13sp"
         android:fontFamily="sans-serif-medium"
@@ -128,7 +130,7 @@
         app:layout_constraintBottom_toTopOf="@id/bannerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        tools:text="Versión 1.0.4 • Creado por EDITECH" />
+        tools:text="Versión 1.0.4 • Hecho con ❤️ por EDITECH para la comunidad Android" />
 
     <!-- Banner Ad Container -->
     <RelativeLayout
