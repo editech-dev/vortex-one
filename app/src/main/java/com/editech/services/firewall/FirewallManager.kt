@@ -307,6 +307,25 @@ class FirewallManager private constructor(private val context: Context) {
     }
 
     /**
+     * Get Tor connection logs for an app
+     */
+    fun getTorLogs(packageName: String, limit: Int = 50): List<ConnectionLog> {
+        val db = database ?: return emptyList()
+        return db.logDao().getTorLogs(packageName, limit)
+            .map { it.toModel() }
+    }
+
+    /**
+     * Get Tor statistics for an app (success count, failure count)
+     */
+    fun getTorStats(packageName: String): Pair<Int, Int> {
+        val db = database ?: return Pair(0, 0)
+        val s = db.logDao().getTorSuccessCount(packageName)
+        val f = db.logDao().getTorFailureCount(packageName)
+        return Pair(s, f)
+    }
+
+    /**
      * Check if a threat blocking rule exists for an app
      */
     fun isThreatBlocked(packageName: String, threatType: ThreatType): Boolean {

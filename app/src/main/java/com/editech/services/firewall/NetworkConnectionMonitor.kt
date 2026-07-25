@@ -96,6 +96,17 @@ object NetworkConnectionMonitor {
     }
 
     /**
+     * Log a Tor connection attempt (called from OsStub connect hook)
+     */
+    @JvmStatic
+    fun logTorConnection(ip: String, port: Int, blocked: Boolean, status: String, failureReason: String?, protocol: String) {
+        val packageName = getCurrentPackageName() ?: return
+        val manager = FirewallManager.getInstance()
+        manager.logConnection(packageName, ip, port, protocol, blocked, status, failureReason)
+        Slog.d(TAG, "TOR CONNECTION [$protocol]: $packageName -> $ip:$port ($status)")
+    }
+
+    /**
      * Log a URL connection (from OkHttp or URL hook)
      */
     @JvmStatic

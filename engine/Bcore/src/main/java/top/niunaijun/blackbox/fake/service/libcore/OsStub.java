@@ -94,7 +94,7 @@ public class OsStub extends ClassInvocationStub {
 
     @ProxyMethod("connect")
     public static class connect extends MethodHook {
-        
+
         // Recursion guard to prevent infinite loops if firewall logic triggers network calls
         private static final ThreadLocal<Boolean> sIsChecking = new ThreadLocal<Boolean>() {
             @Override
@@ -102,6 +102,11 @@ public class OsStub extends ClassInvocationStub {
                 return false;
             }
         };
+
+        // Cached Tor reflection refs — resolved once, reused on every connection
+        private static volatile java.lang.reflect.Method sTorEnabledMethod;
+        private static volatile java.lang.reflect.Method sTorProxyMethod;
+        private static volatile boolean sTorReflectionFailed = false;
 
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
@@ -126,19 +131,19 @@ public class OsStub extends ClassInvocationStub {
 
                 if (address != null) {
                     sIsChecking.set(true);
-                    
+
                     // 1. Check if we should block (Reflection)
                     try {
                         Class<?> monitorClass = Class.forName("com.editech.services.firewall.NetworkConnectionMonitor");
                         checkMethod = monitorClass.getMethod("shouldBlockSocket", java.net.InetAddress.class, int.class);
                         // Updated signature: logSocketConnection(InetAddress, int, boolean, String, String)
                         logMethod = monitorClass.getMethod("logSocketConnection", java.net.InetAddress.class, int.class, boolean.class, String.class, String.class);
-                        
+
                         shouldBlock = (boolean) checkMethod.invoke(null, address, port);
                     } catch (Exception e) {
                         // Reflection failed, safely proceed
                     }
-                    
+
                     // 2. If blocked, Log and Throw
                     if (shouldBlock) {
                         if (logMethod != null) {
@@ -148,28 +153,61 @@ public class OsStub extends ClassInvocationStub {
                         }
                         throw new java.net.SocketException("Connection blocked by firewall");
                     }
+
+                    // ── TOR REDIRECT ──────────────────────────────────────────────────────────
+                    // Check if this virtual app has Tor routing enabled.
+                    // If yes, tunnel through 127.0.0.1:9150 (SOCKS5).
+                    // If Tor is enabled but proxy is down -> BLOCK (kill-switch).
+                    if (!sTorReflectionFailed) {
+                        try {
+                            ensureTorReflection();
+                            if (sTorEnabledMethod != null) {
+                                String pkg = top.niunaijun.blackbox.app.BActivityThread.getAppPackageName();
+                                if (pkg != null) {
+                                    boolean torEnabled = (boolean) sTorEnabledMethod.invoke(null, pkg);
+                                    if (torEnabled) {
+                                        boolean proxyUp = (boolean) sTorProxyMethod.invoke(null);
+                                        if (!proxyUp) {
+                                            // Kill-switch: log as TOR/BLOCKED and refuse connection
+                                            logTorConnection(address.getHostAddress(), port,
+                                                    true, "BLOCKED", "Tor proxy not ready",
+                                                    "TOR/BLOCKED", pkg);
+                                            throw new java.net.SocketException(
+                                                    "[Tor] Proxy not ready — connection blocked for safety");
+                                        }
+                                        // Proxy is up — tunnel through SOCKS5
+                                        sIsChecking.remove();
+                                        return connectViaTorSocks5(who, method, args, address, port, pkg);
+                                    }
+                                }
+                            }
+                        } catch (java.net.SocketException se) {
+                            throw se; // Re-throw kill-switch blocks
+                        } catch (Exception ignored) {}
+                    }
+                    // ── END TOR REDIRECT ──────────────────────────────────────────────────────
                 }
             } catch (Throwable e) {
-                 if (e instanceof java.net.SocketException) {
+                if (e instanceof java.net.SocketException) {
                     throw e;
                 }
             } finally {
                 sIsChecking.remove();
             }
-            
+
             // 3. Attempt to connect (Original Method)
             Object result;
             try {
                 result = method.invoke(who, args);
             } catch (java.lang.reflect.InvocationTargetException e) {
                 // Connection Failed at OS level
-                 if (address != null && logMethod != null) {
+                if (address != null && logMethod != null) {
                     try {
                         Throwable cause = e.getTargetException();
                         String reason = cause != null ? cause.getMessage() : "Unknown Error";
                         if (reason == null) reason = cause.getClass().getSimpleName();
-                        
-                        logMethod.invoke(null, address, port, false, "FAILED", reason); 
+
+                        logMethod.invoke(null, address, port, false, "FAILED", reason);
                     } catch (Exception ex) {}
                 }
                 throw e.getTargetException();
@@ -177,12 +215,165 @@ public class OsStub extends ClassInvocationStub {
 
             // 4. Connection Success
             if (address != null && logMethod != null) {
-                 try {
+                try {
                     logMethod.invoke(null, address, port, false, "ESTABLISHED", null);
                 } catch (Exception e) {}
             }
 
             return result;
+        }
+
+        // ── Tor helpers ───────────────────────────────────────────────────────────
+
+        private static void ensureTorReflection() {
+            if (sTorEnabledMethod != null || sTorReflectionFailed) return;
+            try {
+                Class<?> torMgr = Class.forName("com.editech.services.tor.TorManager");
+                sTorEnabledMethod = torMgr.getMethod("isTorEnabledForPackage", String.class);
+                sTorProxyMethod   = torMgr.getMethod("isProxyReachable");
+            } catch (Exception e) {
+                sTorReflectionFailed = true;
+            }
+        }
+
+        /**
+         * Tunnels the connection through the local Tor SOCKS5 proxy (127.0.0.1:9150).
+         *
+         * Protocol (RFC 1928):
+         *  1. Connect the OS-level fd to 127.0.0.1:9150
+         *  2. ClientHello   -> [0x05, 0x01, 0x00]           (SOCKS5, NO_AUTH)
+         *  3. ServerHello   <- [0x05, 0x00]                  (accepted)
+         *  4. CONNECT req   -> [0x05, 0x01, 0x00, atyp, addr, port]
+         *  5. CONNECT resp  <- [0x05, 0x00, 0x00, ...]       (success)
+         *
+         * The FileDescriptor in args[0] is now transparently connected to
+         * the target host via the Tor exit node.
+         */
+        private static Object connectViaTorSocks5(
+                Object who, Method method, Object[] args,
+                java.net.InetAddress targetAddr, int targetPort,
+                String pkg) throws Throwable {
+
+            java.net.InetAddress proxyAddr =
+                    java.net.InetAddress.getByName("127.0.0.1");
+            int proxyPort = 9150;
+
+            // Step 1: Connect the underlying fd to the SOCKS5 proxy
+            Object[] proxyArgs = args.clone();
+            proxyArgs[1] = proxyAddr;
+            proxyArgs[2] = proxyPort;
+            method.invoke(who, proxyArgs);
+
+            // Step 2: Obtain streams from the FileDescriptor
+            java.io.FileDescriptor fd = (java.io.FileDescriptor) args[0];
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(fd);
+            java.io.FileInputStream  fis = new java.io.FileInputStream(fd);
+
+            try {
+                // Step 3: SOCKS5 greeting
+                fos.write(new byte[]{0x05, 0x01, 0x00}); // VER=5, NMETHODS=1, NO_AUTH
+                fos.flush();
+                byte[] greeting = readExact(fis, 2);
+                if (greeting[0] != 0x05 || greeting[1] != 0x00) {
+                    throw new java.net.SocketException(
+                            "[Tor] SOCKS5 auth negotiation failed: 0x"
+                                    + Integer.toHexString(greeting[1] & 0xFF));
+                }
+
+                // Step 4: CONNECT request
+                byte[] ip = targetAddr.getAddress();
+                byte[] req;
+                if (ip.length == 4) {
+                    // IPv4 - ATYP=0x01
+                    req = new byte[]{
+                            0x05, 0x01, 0x00, 0x01,
+                            ip[0], ip[1], ip[2], ip[3],
+                            (byte) (targetPort >> 8), (byte) (targetPort & 0xFF)
+                    };
+                } else {
+                    // IPv6 - ATYP=0x04
+                    req = new byte[22];
+                    req[0] = 0x05; req[1] = 0x01; req[2] = 0x00; req[3] = 0x04;
+                    System.arraycopy(ip, 0, req, 4, 16);
+                    req[20] = (byte) (targetPort >> 8);
+                    req[21] = (byte) (targetPort & 0xFF);
+                }
+                fos.write(req);
+                fos.flush();
+
+                // Step 5: Read response
+                byte[] rep = readExact(fis, 4);
+                if (rep[0] != 0x05 || rep[1] != 0x00) {
+                    String socks5Error = socks5ErrorMessage(rep[1] & 0xFF);
+                    logTorConnection(targetAddr.getHostAddress(), targetPort,
+                            false, "FAILED", "SOCKS5: " + socks5Error,
+                            "TOR/FAILED", pkg);
+                    throw new java.net.SocketException("[Tor] CONNECT rejected: " + socks5Error);
+                }
+                // Consume remaining response bytes (bound address + port)
+                int atyp = rep[3] & 0xFF;
+                if      (atyp == 0x01) readExact(fis, 6);  // IPv4 (4 bytes) + port (2 bytes)
+                else if (atyp == 0x03) { int len = fis.read(); readExact(fis, len + 2); } // domain
+                else if (atyp == 0x04) readExact(fis, 18); // IPv6 (16 bytes) + port (2 bytes)
+
+                // Success
+                logTorConnection(targetAddr.getHostAddress(), targetPort,
+                        false, "ESTABLISHED", null, "TOR/TCP", pkg);
+                return null;
+
+            } catch (java.net.SocketException se) {
+                throw se;
+            } catch (Exception e) {
+                logTorConnection(targetAddr.getHostAddress(), targetPort,
+                        false, "FAILED", e.getMessage(), "TOR/FAILED", pkg);
+                throw new java.net.SocketException("[Tor] SOCKS5 error: " + e.getMessage());
+            }
+        }
+
+        /** Reads exactly {@code count} bytes from the stream. */
+        private static byte[] readExact(java.io.InputStream is, int count) throws java.io.IOException {
+            byte[] buf = new byte[count];
+            int read = 0;
+            while (read < count) {
+                int n = is.read(buf, read, count - read);
+                if (n < 0) throw new java.io.EOFException("Stream ended prematurely");
+                read += n;
+            }
+            return buf;
+        }
+
+        /** Human-readable SOCKS5 REP error code. */
+        private static String socks5ErrorMessage(int code) {
+            switch (code) {
+                case 0x01: return "General failure";
+                case 0x02: return "Connection not allowed by ruleset";
+                case 0x03: return "Network unreachable";
+                case 0x04: return "Host unreachable";
+                case 0x05: return "Connection refused";
+                case 0x06: return "TTL expired";
+                case 0x07: return "Command not supported";
+                case 0x08: return "Address type not supported";
+                default:   return "Unknown (0x" + Integer.toHexString(code) + ")";
+            }
+        }
+
+        /**
+         * Logs a Tor connection attempt into FirewallManager via reflection.
+         * Uses the protocol tag ("TOR/TCP", "TOR/BLOCKED", "TOR/FAILED") so that
+         * the Logs tab can display the onion badge and purple color.
+         */
+        private static void logTorConnection(
+                String ip, int port, boolean blocked,
+                String status, String reason,
+                String protocol, String pkg) {
+            try {
+                Class<?> ncClass = Class.forName(
+                        "com.editech.services.firewall.NetworkConnectionMonitor");
+                java.lang.reflect.Method m = ncClass.getMethod("logTorConnection",
+                        String.class, int.class, boolean.class,
+                        String.class, String.class, String.class);
+                m.invoke(null, ip, port, blocked, status, reason, protocol);
+            } catch (Exception ignored) {}
         }
     }
 

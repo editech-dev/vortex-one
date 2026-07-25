@@ -81,16 +81,21 @@ class ConnectionLogsAdapter : RecyclerView.Adapter<ConnectionLogsAdapter.ViewHol
             
             tvPort.text = ":${log.destinationPort}"
             
-            // Format: TCP • BLOCKED / ESTABLISHED / FAILED
+            // Format: TCP • BLOCKED / ESTABLISHED / FAILED (Tor connections use Purple for ESTABLISHED)
+            val isTor = log.protocol.startsWith("TOR")
             val statusColor = when (log.status) {
                 "BLOCKED" -> 0xFFE57373.toInt() // Red
-                "ESTABLISHED" -> 0xFF81C784.toInt() // Green
+                "ESTABLISHED" -> if (isTor) 0xFFB39DDB.toInt() else 0xFF81C784.toInt() // Purple for Tor, Green for Direct
                 "FAILED" -> 0xFFFFB74D.toInt() // Orange
                 else -> 0xFF90A4AE.toInt() // Grey
             }
             
             val statusText = StringBuilder()
-            statusText.append("${log.protocol} • ${log.status}")
+            if (isTor) {
+                statusText.append("🧅 ${log.protocol} • ${log.status}")
+            } else {
+                statusText.append("${log.protocol} • ${log.status}")
+            }
             
             if (!log.failureReason.isNullOrEmpty()) {
                 statusText.append(" (${log.failureReason})")

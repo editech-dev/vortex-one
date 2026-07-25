@@ -35,4 +35,21 @@ public interface ConnectionLogDao {
 
     @Query("SELECT * FROM connection_logs WHERE packageName = :packageName AND failureReason LIKE 'THREAT:%' ORDER BY timestamp DESC LIMIT :limit")
     List<ConnectionLogEntity> getThreatLogs(String packageName, int limit);
+
+    // ── Tor-specific queries ─────────────────────────────────────────────────
+
+    @Query("SELECT * FROM connection_logs " +
+           "WHERE packageName = :packageName AND protocol LIKE 'TOR%' " +
+           "ORDER BY timestamp DESC LIMIT :limit")
+    List<ConnectionLogEntity> getTorLogs(String packageName, int limit);
+
+    @Query("SELECT COUNT(*) FROM connection_logs " +
+           "WHERE packageName = :packageName AND protocol LIKE 'TOR%' " +
+           "AND status = 'ESTABLISHED'")
+    int getTorSuccessCount(String packageName);
+
+    @Query("SELECT COUNT(*) FROM connection_logs " +
+           "WHERE packageName = :packageName AND protocol LIKE 'TOR%' " +
+           "AND status != 'ESTABLISHED'")
+    int getTorFailureCount(String packageName);
 }
