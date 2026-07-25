@@ -130,7 +130,7 @@
         app:layout_constraintBottom_toTopOf="@id/bannerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        tools:text="Versión 1.0.4 • Hecho con ❤️ por EDITECH para la comunidad Android" />
+        tools:text="Versión 1.0.4 • Hecho con ❤️ por editech-dev para la comunidad Android" />
 
     <!-- Banner Ad Container -->
     <RelativeLayout
