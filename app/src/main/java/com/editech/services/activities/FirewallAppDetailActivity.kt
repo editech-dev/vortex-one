@@ -146,7 +146,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     }
 
     enum class DetailType {
-        PORTS, LOGS, ENDPOINTS, THREATS, BANDWIDTH
+        PORTS, LOGS, ENDPOINTS, THREATS, BANDWIDTH, TOR
     }
 
     private fun setupViewPager() {
@@ -160,6 +160,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 2 -> getString(R.string.tab_logs)
                 3 -> getString(R.string.tab_threats)
                 4 -> getString(R.string.tab_speed)
+                5 -> getString(R.string.tab_tor)
                 else -> ""
             }
         }.attach()
@@ -171,7 +172,10 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 viewPager.postDelayed({
                     val tag = "f$position"
                     val fragment = supportFragmentManager.findFragmentByTag(tag)
-                    (fragment as? BaseDetailFragment)?.focusFirstItem()
+                    when (fragment) {
+                        is BaseDetailFragment -> fragment.focusFirstItem()
+                        is TorFragment -> fragment.focusFirstItem()
+                    }
                 }, 150)
             }
         })
@@ -186,8 +190,13 @@ class FirewallAppDetailActivity : AppCompatActivity() {
             if (focused != null && focused.parent?.parent === tabLayout) {
                 val tag = "f${viewPager.currentItem}"
                 val fragment = supportFragmentManager.findFragmentByTag(tag)
-                if ((fragment as? BaseDetailFragment)?.focusFirstItemSynchronous() == true) {
-                    return true // Event successfully consumed! Focus jumped to the list!
+                val handled = when (fragment) {
+                    is BaseDetailFragment -> fragment.focusFirstItemSynchronous()
+                    is TorFragment -> fragment.focusFirstItemSynchronous()
+                    else -> false
+                }
+                if (handled) {
+                    return true // Event successfully consumed! Focus jumped into the fragment!
                 }
             }
         }
@@ -196,7 +205,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
 
     inner class DetailPagerAdapter(activity: AppCompatActivity) :
         androidx.viewpager2.adapter.FragmentStateAdapter(activity) {
-        override fun getItemCount(): Int = 5
+        override fun getItemCount(): Int = 6
 
         override fun createFragment(position: Int): androidx.fragment.app.Fragment {
             return when (position) {
@@ -205,6 +214,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 2 -> BaseDetailFragment.newInstance(packageName, DetailType.LOGS)
                 3 -> BaseDetailFragment.newInstance(packageName, DetailType.THREATS)
                 4 -> BaseDetailFragment.newInstance(packageName, DetailType.BANDWIDTH)
+                5 -> TorFragment.newInstance(packageName)
                 else -> throw IllegalStateException("Invalid position")
             }
         }
@@ -270,6 +280,7 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
                 FirewallAppDetailActivity.DetailType.LOGS       -> loadLogs()
                 FirewallAppDetailActivity.DetailType.THREATS    -> loadThreats()
                 FirewallAppDetailActivity.DetailType.BANDWIDTH  -> loadBandwidth()
+                FirewallAppDetailActivity.DetailType.TOR        -> { /* TorFragment handles TOR */ }
             }
         }
     }

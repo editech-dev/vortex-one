@@ -77,4 +77,19 @@
     <string name="hint_search_apps">Search apps...</string>
     <string name="empty_state_title">No apps installed</string>
     <string name="empty_state_desc">Press Install APK or System Apps to add some</string>
+    <string name="tab_tor">Tor</string>
+    <string name="tor_title">Tor Network</string>
+    <string name="tor_subtitle">Route traffic for this app through the Tor network</string>
+    <string name="tor_status_running">Tor Active</string>
+    <string name="tor_status_starting">Connecting to Tor…</string>
+    <string name="tor_status_stopped">Tor Stopped</string>
+    <string name="tor_status_error">Tor Connection Error</string>
+    <string name="tor_enable_for_app">Route %s through Tor</string>
+    <string name="tor_circuit_title">Network Circuit</string>
+    <string name="tor_circuit_subtitle">Change exit nodes to obtain a new IP address</string>
+    <string name="tor_new_identity">New identity</string>
+    <string name="tor_logs_title">Recent Tor Activity</string>
+    <string name="tor_stats_format">✅ %1$d successful  ·  ❌ %2$d failed</string>
+    <string name="tor_no_logs">No Tor connections recorded yet</string>
+    <string name="tor_killswitch_info">If Tor disconnects or fails, connections for this app will be automatically blocked to prevent leaks.</string>
 </resources>

@@ -77,4 +77,19 @@
     <string name="hint_search_apps">Buscar aplicaciones...</string>
     <string name="empty_state_title">No hay aplicaciones instaladas</string>
     <string name="empty_state_desc">Presiona Instalar APK o Apps de Sistema para agregar alguna</string>
+    <string name="tab_tor">Tor</string>
+    <string name="tor_title">Red Tor</string>
+    <string name="tor_subtitle">Enruta el tráfico de esta app a través de la red Tor</string>
+    <string name="tor_status_running">Tor Activo</string>
+    <string name="tor_status_starting">Conectando a Tor…</string>
+    <string name="tor_status_stopped">Tor Detenido</string>
+    <string name="tor_status_error">Error de conexión Tor</string>
+    <string name="tor_enable_for_app">Enrutar %s por Tor</string>
+    <string name="tor_circuit_title">Circuito de Red</string>
+    <string name="tor_circuit_subtitle">Cambia los nodos de salida para obtener una nueva IP</string>
+    <string name="tor_new_identity">Nueva identidad</string>
+    <string name="tor_logs_title">Actividad Tor Reciente</string>
+    <string name="tor_stats_format">✅ %1$d exitosas  ·  ❌ %2$d fallidas</string>
+    <string name="tor_no_logs">No hay conexiones Tor registradas aún</string>
+    <string name="tor_killswitch_info">Si Tor se desconecta o no responde, las conexiones de esta app se bloquearán automáticamente para proteger tu privacidad.</string>
 </resources>
