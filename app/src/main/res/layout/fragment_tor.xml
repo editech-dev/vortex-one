@@ -147,61 +147,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 3. Statistics & Connection Log Summary -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardBackgroundColor="@color/primary_light"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="4dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/tor_logs_title"
-                    android:textColor="@color/white"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvTorStats"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textColor="#B39DDB"
-                    android:textSize="12sp"
-                    tools:text="✅ 12 exitosas · ❌ 0 fallidas" />
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvTorLogs"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:nestedScrollingEnabled="false"
-                    tools:itemCount="3"
-                    tools:listitem="@layout/item_connection_log" />
-
-                <TextView
-                    android:id="@+id/tvTorEmptyLogs"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:gravity="center"
-                    android:text="@string/tor_no_logs"
-                    android:textColor="@color/text_disabled"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
         <!-- 4. Kill-Switch Warning Info Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

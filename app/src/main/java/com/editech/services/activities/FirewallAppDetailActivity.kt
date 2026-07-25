@@ -394,14 +394,6 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
                 t == ThreatType.LOCAL_NETWORK || t == ThreatType.LOCALHOST_PROBE
             }
         ))
-        for (log in threatLogs) {
-            val threat = ThreatType.fromTag(log.failureReason?.split("|")?.firstOrNull()) ?: continue
-            items.add(ThreatItemModel(
-                threatType = threat, isHeader = false, isBlocked = false,
-                ip = log.destinationIp, port = log.destinationPort,
-                hostname = log.hostname, timestamp = log.timestamp, wasBlocked = log.wasBlocked
-            ))
-        }
 
         withContext(Dispatchers.Main) {
             recyclerView.adapter = ThreatsAdapter(items) { threatType, blocked ->

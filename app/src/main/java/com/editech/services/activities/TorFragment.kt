@@ -6,14 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.editech.services.R
-import com.editech.services.firewall.FirewallManager
 import com.editech.services.tor.TorManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.switchmaterial.SwitchMaterial
-import java.util.concurrent.Executors
 
 class TorFragment : Fragment() {
 
@@ -22,12 +18,6 @@ class TorFragment : Fragment() {
     private lateinit var tvTorStatus: TextView
     private lateinit var torStatusIndicator: View
     private lateinit var btnNewIdentity: MaterialButton
-    private lateinit var tvTorStats: TextView
-    private lateinit var rvTorLogs: RecyclerView
-    private lateinit var tvTorEmptyLogs: TextView
-
-    private val logsAdapter = ConnectionLogsAdapter()
-    private val executor = Executors.newSingleThreadExecutor()
 
     companion object {
         private const val ARG_PKG = "pkg_name"
@@ -61,12 +51,6 @@ class TorFragment : Fragment() {
         tvTorStatus = view.findViewById(R.id.tvTorStatus)
         torStatusIndicator = view.findViewById(R.id.torStatusIndicator)
         btnNewIdentity = view.findViewById(R.id.btnNewIdentity)
-        tvTorStats = view.findViewById(R.id.tvTorStats)
-        rvTorLogs = view.findViewById(R.id.rvTorLogs)
-        tvTorEmptyLogs = view.findViewById(R.id.tvTorEmptyLogs)
-
-        rvTorLogs.layoutManager = LinearLayoutManager(requireContext())
-        rvTorLogs.adapter = logsAdapter
 
         // Initial switch state
         val isEnabled = TorManager.isTorEnabled(packageName)
@@ -95,7 +79,6 @@ class TorFragment : Fragment() {
 
         switchTorEnable.setOnCheckedChangeListener { _, checked ->
             TorManager.setTorEnabled(packageName, checked)
-            updateLogsAndStats()
         }
 
         btnNewIdentity.setOnClickListener {
@@ -106,8 +89,6 @@ class TorFragment : Fragment() {
         TorManager.status.observe(viewLifecycleOwner) { status ->
             updateStatusUi(status)
         }
-
-        updateLogsAndStats()
     }
 
     /** TV D-pad focus helpers */
@@ -121,11 +102,6 @@ class TorFragment : Fragment() {
                 switchTorEnable.requestFocus()
             }
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        updateLogsAndStats()
     }
 
     private fun updateStatusUi(status: TorManager.TorStatus) {
@@ -156,48 +132,5 @@ class TorFragment : Fragment() {
         tvTorStatus.setTextColor(textColor)
         torStatusIndicator.setBackgroundColor(indicatorColor)
         btnNewIdentity.isEnabled = (status == TorManager.TorStatus.RUNNING)
-    }
-
-    private fun updateLogsAndStats() {
-        if (packageName.isEmpty()) return
-
-        executor.execute {
-            val manager = FirewallManager.getInstance()
-            val (success, failure) = manager.getTorStats(packageName)
-            val logs = manager.getTorLogs(packageName, limit = 20).map { log ->
-                ConnectionLogItem(
-                    packageName = log.packageName,
-                    destinationIp = log.destinationIp,
-                    destinationPort = log.destinationPort,
-                    hostname = log.hostname,
-                    protocol = log.protocol,
-                    timestamp = log.timestamp,
-                    wasBlocked = log.wasBlocked,
-                    status = log.status,
-                    failureReason = log.failureReason,
-                    method = log.method,
-                    path = log.path
-                )
-            }
-
-            activity?.runOnUiThread {
-                if (isAdded) {
-                    tvTorStats.text = getString(R.string.tor_stats_format, success, failure)
-                    if (logs.isEmpty()) {
-                        rvTorLogs.visibility = View.GONE
-                        tvTorEmptyLogs.visibility = View.VISIBLE
-                    } else {
-                        rvTorLogs.visibility = View.VISIBLE
-                        tvTorEmptyLogs.visibility = View.GONE
-                        logsAdapter.submitList(logs)
-                    }
-                }
-            }
-        }
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        executor.shutdown()
     }
 }
