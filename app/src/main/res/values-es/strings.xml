@@ -92,4 +92,18 @@
     <string name="tor_stats_format">✅ %1$d exitosas  ·  ❌ %2$d fallidas</string>
     <string name="tor_no_logs">No hay conexiones Tor registradas aún</string>
     <string name="tor_killswitch_info">Si Tor se desconecta o no responde, las conexiones de esta app se bloquearán automáticamente para proteger tu privacidad.</string>
+    <string name="btn_settings">Configuración</string>
+    <string name="settings_title">Configuración y Mantenimiento</string>
+    <string name="settings_subtitle">Gestión de datos y caché de aplicaciones</string>
+    <string name="btn_clear_all_cache">Limpiar Caché de Todas las Apps</string>
+    <string name="label_cache_size">Caché: %s</string>
+    <string name="label_data_size">Datos: %s</string>
+    <string name="action_clear_cache">Borrar Caché</string>
+    <string name="action_clear_data">Borrar Datos</string>
+    <string name="dialog_clear_data_title">¿Reiniciar %s?</string>
+    <string name="dialog_clear_data_msg">Se eliminarán permanentemente todas las sesiones, cuentas y datos almacenados de %s. La aplicación quedará limpia como recién instalada.\n\n¿Deseas continuar?</string>
+    <string name="toast_cache_cleared">✓ Se liberaron %s de caché de %s</string>
+    <string name="toast_data_cleared">✓ Datos de %s reiniciados correctamente</string>
+    <string name="toast_all_cache_cleared">✓ Se liberaron %s de caché en %d apps</string>
+    <string name="toast_clear_error">Error al limpiar almacenamiento: %s</string>
 </resources>

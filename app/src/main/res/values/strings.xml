@@ -92,4 +92,18 @@
     <string name="tor_stats_format">✅ %1$d successful  ·  ❌ %2$d failed</string>
     <string name="tor_no_logs">No Tor connections recorded yet</string>
     <string name="tor_killswitch_info">If Tor disconnects or fails, connections for this app will be automatically blocked to prevent leaks.</string>
+    <string name="btn_settings">Settings</string>
+    <string name="settings_title">Settings &amp; Storage</string>
+    <string name="settings_subtitle">Manage app cache and storage data</string>
+    <string name="btn_clear_all_cache">Clear All Apps Cache</string>
+    <string name="label_cache_size">Cache: %s</string>
+    <string name="label_data_size">Data: %s</string>
+    <string name="action_clear_cache">Clear Cache</string>
+    <string name="action_clear_data">Clear Data</string>
+    <string name="dialog_clear_data_title">Reset %s?</string>
+    <string name="dialog_clear_data_msg">All app data, login sessions, and databases for %s will be permanently deleted. The app will be reset to its initial state.\n\nDo you want to proceed?</string>
+    <string name="toast_cache_cleared">✓ Cleared %s of cache for %s</string>
+    <string name="toast_data_cleared">✓ Data for %s has been reset</string>
+    <string name="toast_all_cache_cleared">✓ Cleared %s of cache across %d apps</string>
+    <string name="toast_clear_error">Error clearing storage: %s</string>
 </resources>

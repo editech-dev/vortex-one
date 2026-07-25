@@ -74,6 +74,12 @@
             tools:ignore="LockedOrientationActivity"
             android:theme="@style/Theme.VortexTV" />
 
+        <activity
+            android:name=".activities.SettingsActivity"
+            android:exported="false"
+            tools:ignore="LockedOrientationActivity"
+            android:theme="@style/Theme.VortexTV" />
+
         <!-- Tor embedded service -->
         <service
             android:name=".tor.TorService"

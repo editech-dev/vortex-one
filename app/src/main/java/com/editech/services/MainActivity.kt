@@ -107,9 +107,18 @@ class MainActivity : AppCompatActivity() {
             openFirewallActivity()
         }
 
+        binding.btnSettings.setOnClickListener {
+            openSettingsActivity()
+        }
+
         binding.btnLanguage.setOnClickListener {
             showLanguagePicker()
         }
+    }
+
+    private fun openSettingsActivity() {
+        val intent = Intent(this, com.editech.services.activities.SettingsActivity::class.java)
+        startActivity(intent)
     }
 
     private fun showLanguagePicker() {

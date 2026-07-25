@@ -118,11 +118,34 @@
             android:focusable="true"
             android:nextFocusDown="@id/etSearch"
             android:nextFocusLeft="@id/btnVirtualizeSystemApp"
+            android:nextFocusRight="@id/btnSettings"
             android:background="@drawable/btn_gradient_secondary"
             app:backgroundTint="@null"
             android:stateListAnimator="@animator/scaler"
             app:cornerRadius="12dp"
             app:icon="@drawable/ic_shield"
+            app:iconGravity="textStart"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp" />
+
+        <!-- Botón Configuración -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSettings"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="@string/btn_settings"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-condensed"
+            android:focusable="true"
+            android:nextFocusDown="@id/etSearch"
+            android:nextFocusLeft="@id/btnFirewall"
+            android:background="@drawable/btn_gradient_secondary"
+            app:backgroundTint="@null"
+            android:stateListAnimator="@animator/scaler"
+            app:cornerRadius="12dp"
+            app:icon="@drawable/ic_settings"
             app:iconGravity="textStart"
             android:layout_marginStart="8dp" />
     </LinearLayout>

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="6dp"
+    android:focusable="true"
+    android:clickable="true"
+    android:focusableInTouchMode="true"
+    android:descendantFocusability="afterDescendants"
+    android:stateListAnimator="@animator/scaler"
+    android:foreground="@drawable/selector_item_virtual_app"
+    app:cardBackgroundColor="#1E293B"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="4dp"
+    app:strokeColor="#334155"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:descendantFocusability="afterDescendants"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/ivAppIcon"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_apps_grid"
+                tools:ignore="ContentDescription" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvAppName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="WhatsApp" />
+
+                <TextView
+                    android:id="@+id/tvPackageName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp"
+                    tools:text="com.whatsapp" />
+
+                <TextView
+                    android:id="@+id/tvStorageInfo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#38BDF8"
+                    android:textSize="13sp"
+                    android:layout_marginTop="4dp"
+                    tools:text="Caché: 1.2 MB | Datos: 15.4 MB" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Actions Container -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:descendantFocusability="afterDescendants"
+            android:layout_marginTop="14dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnClearCache"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="@string/action_clear_cache"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:focusable="true"
+                android:clickable="true"
+                android:focusableInTouchMode="true"
+                android:stateListAnimator="@animator/scaler"
+                android:nextFocusRight="@id/btnClearData"
+                app:backgroundTint="@color/btn_bg_cache"
+                app:strokeColor="@color/btn_stroke_cache"
+                app:strokeWidth="2.5dp"
+                app:cornerRadius="10dp"
+                app:icon="@drawable/ic_clean"
+                app:iconGravity="textStart"
+                app:iconTint="#38BDF8"
+                android:textColor="#F8FAFC"
+                android:layout_marginEnd="6dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnClearData"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="@string/action_clear_data"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:focusable="true"
+                android:clickable="true"
+                android:focusableInTouchMode="true"
+                android:stateListAnimator="@animator/scaler"
+                android:nextFocusLeft="@id/btnClearCache"
+                app:backgroundTint="@color/btn_bg_data"
+                app:strokeColor="@color/btn_stroke_data"
+                app:strokeWidth="2.5dp"
+                app:cornerRadius="10dp"
+                app:icon="@drawable/ic_restore"
+                app:iconGravity="textStart"
+                app:iconTint="#FBBF24"
+                android:textColor="#FDE68A"
+                android:layout_marginStart="6dp" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
