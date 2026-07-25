@@ -89,7 +89,6 @@
         android:layout_marginTop="16dp"
         android:clipToPadding="false"
         android:focusable="true"
-        android:focusableInTouchMode="true"
         android:descendantFocusability="afterDescendants"
         android:nextFocusUp="@id/btnClearAllCache"
         app:layout_constraintBottom_toTopOf="@+id/bannerContainer"
