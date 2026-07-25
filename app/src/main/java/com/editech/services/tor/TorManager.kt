@@ -46,6 +46,51 @@ object TorManager {
             if (v is Boolean) torEnabledApps[k] = v
         }
         Log.d(TAG, "Initialized. Apps with Tor: ${torEnabledApps.filter { it.value }.keys}")
+
+        // Auto-start or sync status if running in main process and any app has Tor enabled
+        val processName = getCurrentProcessName(appContext)
+        if (processName == context.packageName) {
+            val anyEnabled = torEnabledApps.any { it.value }
+            if (anyEnabled) {
+                if (isProxyReachable()) {
+                    updateStatus(TorStatus.RUNNING)
+                } else {
+                    startService()
+                }
+            }
+        }
+    }
+
+    private fun getCurrentProcessName(context: Context): String? {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            android.app.Application.getProcessName()
+        } else {
+            try {
+                val pid = android.os.Process.myPid()
+                val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+                am?.runningAppProcesses?.find { it.pid == pid }?.processName
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    /**
+     * Sinks current proxy connectivity state into LiveData and returns it.
+     */
+    @JvmStatic
+    fun checkCurrentStatus(): TorStatus {
+        val isReachable = isProxyReachable()
+        val current = _status.value
+        val newStatus = when {
+            isReachable -> TorStatus.RUNNING
+            current == TorStatus.RUNNING -> TorStatus.STOPPED
+            else -> current ?: TorStatus.STOPPED
+        }
+        if (newStatus != current) {
+            updateStatus(newStatus)
+        }
+        return newStatus
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -61,9 +106,10 @@ object TorManager {
         Log.d(TAG, "Tor ${if (enabled) "enabled" else "disabled"} for $packageName")
 
         val anyEnabled = torEnabledApps.any { it.value }
+        val current = _status.value
         when {
-            enabled && _status.value == TorStatus.STOPPED  -> startService()
-            !anyEnabled && _status.value != TorStatus.STOPPED -> stopService()
+            enabled && (current == TorStatus.STOPPED || current == TorStatus.ERROR) -> startService()
+            !anyEnabled && current != TorStatus.STOPPED -> stopService()
         }
     }
 
@@ -80,11 +126,29 @@ object TorManager {
 
     /**
      * Fast check: can we reach the Tor SOCKS5 proxy at 127.0.0.1:9150?
-     * Called from OsStub before each Tor-routed connection.
+     * Called from OsStub before each Tor-routed connection and from UI status checks.
      * Uses a short timeout (300 ms) to minimize hook latency.
+     * Safe to call from both main thread and background threads.
      */
     @JvmStatic
-    fun isProxyReachable(): Boolean = try {
+    fun isProxyReachable(): Boolean {
+        return if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+            try {
+                val future = executor.submit(java.util.concurrent.Callable { performProxyPing() })
+                val result = future.get(400, java.util.concurrent.TimeUnit.MILLISECONDS)
+                executor.shutdown()
+                result
+            } catch (e: Exception) {
+                executor.shutdownNow()
+                false
+            }
+        } else {
+            performProxyPing()
+        }
+    }
+
+    private fun performProxyPing(): Boolean = try {
         val sock = java.net.Socket()
         sock.connect(
             java.net.InetSocketAddress(SOCKS_HOST, SOCKS_PORT),

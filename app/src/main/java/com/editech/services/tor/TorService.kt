@@ -76,6 +76,23 @@ class TorService : Service() {
     // ─────────────────────────────────────────────────────────────────────────
 
     private fun startTor() {
+        if (TorManager.isProxyReachable()) {
+            Log.d(TAG, "Tor SOCKS5 proxy is already reachable")
+            TorManager.updateStatus(TorManager.TorStatus.RUNNING)
+            updateNotification("Tor activo — tu tráfico está protegido")
+            return
+        }
+
+        if (torProcess?.isAlive == true) {
+            Log.d(TAG, "Tor process is already running, waiting for bootstrap")
+            TorManager.updateStatus(TorManager.TorStatus.STARTING)
+            updateNotification("Conectando a Tor…")
+            if (bootstrapJob?.isActive != true) {
+                serviceScope.launch { waitForBootstrap() }
+            }
+            return
+        }
+
         TorManager.updateStatus(TorManager.TorStatus.STARTING)
         updateNotification("Conectando a Tor…")
 

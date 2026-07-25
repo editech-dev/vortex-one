@@ -91,6 +91,14 @@ class TorFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::switchTorEnable.isInitialized && packageName.isNotEmpty()) {
+            switchTorEnable.isChecked = TorManager.isTorEnabled(packageName)
+        }
+        TorManager.checkCurrentStatus()
+    }
+
     /** TV D-pad focus helpers */
     fun focusFirstItemSynchronous(): Boolean {
         return if (::switchTorEnable.isInitialized) switchTorEnable.requestFocus() else false

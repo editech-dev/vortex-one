@@ -168,6 +168,14 @@ public class OsStub extends ClassInvocationStub {
                                     if (torEnabled) {
                                         boolean proxyUp = (boolean) sTorProxyMethod.invoke(null);
                                         if (!proxyUp) {
+                                            // Retry up to 3 times with 400ms delay if Tor service is bootstrapping
+                                            for (int retry = 0; retry < 3; retry++) {
+                                                try { Thread.sleep(400); } catch (InterruptedException ignored) {}
+                                                proxyUp = (boolean) sTorProxyMethod.invoke(null);
+                                                if (proxyUp) break;
+                                            }
+                                        }
+                                        if (!proxyUp) {
                                             // Kill-switch: log as TOR/BLOCKED and refuse connection
                                             logTorConnection(address.getHostAddress(), port,
                                                     true, "BLOCKED", "Tor proxy not ready",
