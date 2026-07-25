@@ -343,7 +343,7 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
     // ── Logs ─────────────────────────────────────────────────────────────────
 
     private suspend fun loadLogs() {
-        val logs = FirewallManager.getInstance().getRecentLogs(packageName)
+        val logs = FirewallManager.getInstance().getRecentLogs(packageName, limit = 20)
         withContext(Dispatchers.Main) {
             val logItems = logs.map { log ->
                 ConnectionLogItem(
@@ -376,7 +376,7 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
 
     private suspend fun loadThreats() {
         val manager       = FirewallManager.getInstance()
-        val threatLogs    = manager.getThreatLogs(packageName)
+        val threatLogs    = manager.getThreatLogs(packageName, limit = 20)
         val adbBlocked    = manager.isThreatBlocked(packageName, ThreatType.ADB_ACCESS)
         val localBlocked  = manager.isThreatBlocked(packageName, ThreatType.LOCAL_NETWORK)
 

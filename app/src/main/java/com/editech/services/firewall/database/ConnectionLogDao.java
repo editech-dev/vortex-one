@@ -19,6 +19,9 @@ public interface ConnectionLogDao {
     @Query("DELETE FROM connection_logs WHERE timestamp < :cutoffTime")
     void deleteOldLogs(long cutoffTime);
 
+    @Query("DELETE FROM connection_logs WHERE id NOT IN (SELECT id FROM connection_logs ORDER BY timestamp DESC LIMIT :maxKeep)")
+    void trimLogsToMax(int maxKeep);
+
     @Query("SELECT DISTINCT destinationPort, protocol FROM connection_logs WHERE packageName = :packageName AND destinationPort != 0")
     List<PortInfo> getDistinctPorts(String packageName);
 

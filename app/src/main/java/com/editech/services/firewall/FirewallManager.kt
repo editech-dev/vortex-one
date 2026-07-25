@@ -302,7 +302,7 @@ class FirewallManager private constructor(private val context: Context) {
     /**
      * Get threat-tagged connection logs for an app
      */
-    fun getThreatLogs(packageName: String, limit: Int = 100): List<ConnectionLog> {
+    fun getThreatLogs(packageName: String, limit: Int = 20): List<ConnectionLog> {
         val db = database ?: return emptyList()
         return db.logDao().getThreatLogs(packageName, limit)
             .map { it.toModel() }
@@ -311,7 +311,7 @@ class FirewallManager private constructor(private val context: Context) {
     /**
      * Get Tor connection logs for an app
      */
-    fun getTorLogs(packageName: String, limit: Int = 50): List<ConnectionLog> {
+    fun getTorLogs(packageName: String, limit: Int = 20): List<ConnectionLog> {
         val db = database ?: return emptyList()
         return db.logDao().getTorLogs(packageName, limit)
             .map { it.toModel() }
@@ -523,11 +523,12 @@ class FirewallManager private constructor(private val context: Context) {
             try {
                 database.logDao().insert(log.toEntity())
                 logCounter++
-                if (logCounter >= 100) {
+                if (logCounter >= 50) {
                     logCounter = 0
-                    // Auto-prune logs older than 7 days to prevent database bloat
+                    // Auto-prune logs older than 7 days AND trim total logs to max 500 records
                     val cutoff = System.currentTimeMillis() - (7L * 24 * 60 * 60 * 1000)
                     database.logDao().deleteOldLogs(cutoff)
+                    database.logDao().trimLogsToMax(500)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to log connection: ${e.message}")
@@ -548,7 +549,7 @@ class FirewallManager private constructor(private val context: Context) {
     /**
      * Get recent connection logs
      */
-    fun getRecentLogs(packageName: String? = null, limit: Int = 100): List<ConnectionLog> {
+    fun getRecentLogs(packageName: String? = null, limit: Int = 20): List<ConnectionLog> {
         return try {
             val entities = if (packageName != null) {
                 database.logDao().getLogsForApp(packageName, limit)

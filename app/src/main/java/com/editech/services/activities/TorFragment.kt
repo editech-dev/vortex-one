@@ -164,7 +164,7 @@ class TorFragment : Fragment() {
         executor.execute {
             val manager = FirewallManager.getInstance()
             val (success, failure) = manager.getTorStats(packageName)
-            val logs = manager.getTorLogs(packageName, limit = 15).map { log ->
+            val logs = manager.getTorLogs(packageName, limit = 20).map { log ->
                 ConnectionLogItem(
                     packageName = log.packageName,
                     destinationIp = log.destinationIp,
