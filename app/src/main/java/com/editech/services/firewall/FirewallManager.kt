@@ -71,6 +71,8 @@ class FirewallManager private constructor(private val context: Context) {
         context.getSharedPreferences("bandwidth_limits", Context.MODE_PRIVATE)
     }
     
+    private var logCounter = 0
+    
     private val stateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == ACTION_UPDATE_STATE) {
@@ -520,6 +522,13 @@ class FirewallManager private constructor(private val context: Context) {
         dbExecutor.execute {
             try {
                 database.logDao().insert(log.toEntity())
+                logCounter++
+                if (logCounter >= 100) {
+                    logCounter = 0
+                    // Auto-prune logs older than 7 days to prevent database bloat
+                    val cutoff = System.currentTimeMillis() - (7L * 24 * 60 * 60 * 1000)
+                    database.logDao().deleteOldLogs(cutoff)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to log connection: ${e.message}")
             }
