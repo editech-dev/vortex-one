@@ -8,14 +8,14 @@ import java.io.FileInputStream
 
 android {
     namespace = "com.editech.services"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.editech.services"
         minSdk = 21
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -116,4 +116,8 @@ dependencies {
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
     annotationProcessor("androidx.room:room-compiler:$room_version")
+
+    // Tor embebido (Guardian Project — Apache 2.0)
+    implementation("info.guardianproject:tor-android:0.4.9.11")
+    implementation("info.guardianproject:jtorctl:0.4.5.7")
 }

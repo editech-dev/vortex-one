@@ -59,6 +59,14 @@ class App : Application() {
         } catch (e: Exception) {
             android.util.Log.e("App", "BlackBoxCore.doCreate() failed", e)
         }
+
+        // Inicializar TorManager (per-app Tor routing)
+        try {
+            com.editech.services.tor.TorManager.init(this)
+            android.util.Log.d("App", "TorManager.init() success")
+        } catch (e: Exception) {
+            android.util.Log.e("App", "TorManager.init() failed", e)
+        }
         
         // Initialize Unity Ads (Background Thread)
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {

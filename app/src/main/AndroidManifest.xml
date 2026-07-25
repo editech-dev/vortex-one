@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-sdk tools:overrideLibrary="org.torproject.jni, info.guardianproject.tor" />
+
     <!-- Permisos para escaneo e instalación de APKs -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
@@ -13,6 +15,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!-- Declaración de hardware para Android TV -->
     <uses-feature 
@@ -70,6 +73,12 @@
             android:exported="false"
             tools:ignore="LockedOrientationActivity"
             android:theme="@style/Theme.VortexTV" />
+
+        <!-- Tor embedded service -->
+        <service
+            android:name=".tor.TorService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 
 </manifest>
