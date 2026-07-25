@@ -67,10 +67,8 @@
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="@string/btn_install_apk"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-condensed"
+            android:contentDescription="@string/btn_install_apk"
+            app:tooltipText="@string/btn_install_apk"
             android:focusable="true"
             android:nextFocusDown="@id/etSearch"
             android:nextFocusRight="@id/btnVirtualizeSystemApp"
@@ -80,18 +78,19 @@
             app:cornerRadius="12dp"
             app:icon="@drawable/ic_download"
             app:iconGravity="textStart"
-            android:layout_marginEnd="8dp" />
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="@color/white"
+            android:layout_marginEnd="4dp" />
 
-        <!-- Botón NUEVO: Virtualizar App del Sistema -->
+        <!-- Botón: Virtualizar App del Sistema -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnVirtualizeSystemApp"
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="@string/btn_system_apps"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-condensed"
+            android:contentDescription="@string/btn_system_apps"
+            app:tooltipText="@string/btn_system_apps"
             android:focusable="true"
             android:nextFocusDown="@id/etSearch"
             android:nextFocusLeft="@id/btnInstallApk"
@@ -102,8 +101,11 @@
             app:cornerRadius="12dp"
             app:icon="@drawable/ic_apps_grid"
             app:iconGravity="textStart"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp" />
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="@color/white"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp" />
 
         <!-- Botón Firewall -->
         <com.google.android.material.button.MaterialButton
@@ -111,10 +113,8 @@
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="@string/title_firewall"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-condensed"
+            android:contentDescription="@string/title_firewall"
+            app:tooltipText="@string/title_firewall"
             android:focusable="true"
             android:nextFocusDown="@id/etSearch"
             android:nextFocusLeft="@id/btnVirtualizeSystemApp"
@@ -125,8 +125,11 @@
             app:cornerRadius="12dp"
             app:icon="@drawable/ic_shield"
             app:iconGravity="textStart"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp" />
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="@color/white"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp" />
 
         <!-- Botón Configuración -->
         <com.google.android.material.button.MaterialButton
@@ -134,10 +137,8 @@
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            android:text="@string/btn_settings"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-condensed"
+            android:contentDescription="@string/btn_settings"
+            app:tooltipText="@string/btn_settings"
             android:focusable="true"
             android:nextFocusDown="@id/etSearch"
             android:nextFocusLeft="@id/btnFirewall"
@@ -147,7 +148,10 @@
             app:cornerRadius="12dp"
             app:icon="@drawable/ic_settings"
             app:iconGravity="textStart"
-            android:layout_marginStart="8dp" />
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="@color/white"
+            android:layout_marginStart="4dp" />
     </LinearLayout>
 
     <!-- Search Bar -->

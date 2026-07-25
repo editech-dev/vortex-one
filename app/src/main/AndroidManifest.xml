@@ -76,7 +76,7 @@
 
         <activity
             android:name=".activities.SettingsActivity"
-            android:exported="false"
+            android:exported="true"
             tools:ignore="LockedOrientationActivity"
             android:theme="@style/Theme.VortexTV" />
 

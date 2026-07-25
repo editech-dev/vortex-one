@@ -26,6 +26,15 @@ object AppStorageManager {
         return "$formatted ${units[digitGroups]}"
     }
 
+    private fun safeGetFile(provider: () -> File?): File? {
+        return try {
+            provider()
+        } catch (t: Throwable) {
+            Log.w(TAG, "Safe path resolution failed: ${t.message}")
+            null
+        }
+    }
+
     /**
      * Calcula el tamaño total de la memoria caché de una aplicación virtual.
      */
@@ -33,13 +42,13 @@ object AppStorageManager {
         if (packageName.isBlank()) return 0L
         var size = 0L
         try {
-            val internalCache = BEnvironment.getDataCacheDir(packageName, userId)
-            val externalCache = BEnvironment.getExternalDataCacheDir(packageName, userId)
-            val codeCache = File(BEnvironment.getDataDir(packageName, userId), "code_cache")
+            val internalCache = safeGetFile { BEnvironment.getDataCacheDir(packageName, userId) }
+            val externalCache = safeGetFile { BEnvironment.getExternalDataCacheDir(packageName, userId) }
+            val codeCache = safeGetFile { File(BEnvironment.getDataDir(packageName, userId), "code_cache") }
 
-            size += getDirectorySize(internalCache)
-            size += getDirectorySize(externalCache)
-            size += getDirectorySize(codeCache)
+            if (internalCache != null) size += getDirectorySize(internalCache)
+            if (externalCache != null) size += getDirectorySize(externalCache)
+            if (codeCache != null) size += getDirectorySize(codeCache)
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating cache size for $packageName", e)
         }
@@ -53,13 +62,13 @@ object AppStorageManager {
         if (packageName.isBlank()) return 0L
         var size = 0L
         try {
-            val dataDir = BEnvironment.getDataDir(packageName, userId)
-            val externalDir = BEnvironment.getExternalDataDir(packageName, userId)
-            val deDir = BEnvironment.getDeDataDir(packageName, userId)
+            val dataDir = safeGetFile { BEnvironment.getDataDir(packageName, userId) }
+            val externalDir = safeGetFile { BEnvironment.getExternalDataDir(packageName, userId) }
+            val deDir = safeGetFile { BEnvironment.getDeDataDir(packageName, userId) }
 
-            size += getDirectorySize(dataDir)
-            size += getDirectorySize(externalDir)
-            size += getDirectorySize(deDir)
+            if (dataDir != null) size += getDirectorySize(dataDir)
+            if (externalDir != null) size += getDirectorySize(externalDir)
+            if (deDir != null) size += getDirectorySize(deDir)
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating data size for $packageName", e)
         }
@@ -68,16 +77,14 @@ object AppStorageManager {
 
     /**
      * Elimina ÚNICAMENTE los archivos y carpetas dentro de la caché de la aplicación virtual.
-     * Preserva SharedPreferences, bases de datos (databases/), archivos (files/) y configuraciones.
-     * Retorna la cantidad de bytes liberados.
      */
     fun clearAppCache(packageName: String, userId: Int = 0): Long {
         if (packageName.isBlank()) return 0L
         val bytesBefore = getAppCacheSize(packageName, userId)
         try {
-            deleteDirContents(BEnvironment.getDataCacheDir(packageName, userId))
-            deleteDirContents(BEnvironment.getExternalDataCacheDir(packageName, userId))
-            deleteDirContents(File(BEnvironment.getDataDir(packageName, userId), "code_cache"))
+            safeGetFile { BEnvironment.getDataCacheDir(packageName, userId) }?.let { deleteDirContents(it) }
+            safeGetFile { BEnvironment.getExternalDataCacheDir(packageName, userId) }?.let { deleteDirContents(it) }
+            safeGetFile { File(BEnvironment.getDataDir(packageName, userId), "code_cache") }?.let { deleteDirContents(it) }
             Log.d(TAG, "Cleared cache for $packageName ($bytesBefore bytes)")
         } catch (e: Exception) {
             Log.e(TAG, "Error clearing cache for $packageName", e)
@@ -87,21 +94,21 @@ object AppStorageManager {
 
     /**
      * Restablece completamente los datos de la aplicación virtual (Reiniciar App).
-     * 1. Detiene la ejecución del proceso de la app virtual si está corriendo.
-     * 2. Limpia los datos de usuario (databases/, shared_prefs/, files/, cache/).
-     * 3. No toca la APK instalada (base.apk) ni las bases de datos SQLite del sistema/host.
      */
     fun clearAppData(packageName: String, userId: Int = 0): Boolean {
         if (packageName.isBlank()) return false
         return try {
             // 1. Detener el proceso de la app virtual
-            BlackBoxCore.get().stopPackage(packageName, userId)
+            try {
+                BlackBoxCore.get().stopPackage(packageName, userId)
+            } catch (t: Throwable) {
+                Log.w(TAG, "Failed to stop package $packageName: ${t.message}")
+            }
 
             // 2. Limpiar directorio interno de datos de la app virtual
-            val dataDir = BEnvironment.getDataDir(packageName, userId)
-            if (dataDir.exists()) {
+            val dataDir = safeGetFile { BEnvironment.getDataDir(packageName, userId) }
+            if (dataDir != null && dataDir.exists()) {
                 dataDir.listFiles()?.forEach { child ->
-                    // Conservar la carpeta de librerías si existe
                     if (child.name != "lib") {
                         deleteRecursive(child)
                     }
@@ -109,14 +116,14 @@ object AppStorageManager {
             }
 
             // 3. Limpiar directorio externo de datos
-            val externalDir = BEnvironment.getExternalDataDir(packageName, userId)
-            if (externalDir.exists()) {
+            val externalDir = safeGetFile { BEnvironment.getExternalDataDir(packageName, userId) }
+            if (externalDir != null && externalDir.exists()) {
                 deleteDirContents(externalDir)
             }
 
             // 4. Limpiar directorio DE (Device Encrypted) si existe
-            val deDir = BEnvironment.getDeDataDir(packageName, userId)
-            if (deDir.exists()) {
+            val deDir = safeGetFile { BEnvironment.getDeDataDir(packageName, userId) }
+            if (deDir != null && deDir.exists()) {
                 deleteDirContents(deDir)
             }
 
@@ -130,7 +137,6 @@ object AppStorageManager {
 
     /**
      * Limpia la memoria caché de todas las aplicaciones virtualizadas especificadas.
-     * Retorna una pareja de (cantidad de apps limpiadas, bytes totales liberados).
      */
     fun clearAllAppsCache(packageNames: List<String>, userId: Int = 0): Pair<Int, Long> {
         var totalFreed = 0L
