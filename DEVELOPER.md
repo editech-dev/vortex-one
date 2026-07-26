@@ -176,4 +176,4 @@ When creating or updating UI screens in Vortex One:
 
 ---
 
-*Developer Guide for Vortex One v1.0.4.*
+*Developer Guide for Vortex One v1.0.5.*

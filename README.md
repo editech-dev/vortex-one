@@ -1,6 +1,6 @@
 # Vortex One 📱📺
 
-[![Release](https://img.shields.io/github/v/release/editech-dev/vortex-one?color=brightgreen&logo=github&style=for-the-badge)](https://github.com/editech-dev/vortex-one/releases/tag/v1.0.4)
+[![Release](https://img.shields.io/github/v/release/editech-dev/vortex-one?color=brightgreen&logo=github&style=for-the-badge)](https://github.com/editech-dev/vortex-one/releases/tag/v1.0.5)
 [![Platform](https://img.shields.io/badge/Platform-Android%20TV%20%7C%20Mobile-blue?style=for-the-badge&logo=android)](https://github.com/editech-dev/vortex-one)
 [![Tor Included](https://img.shields.io/badge/Privacy-Tor%20Network%20Embedded-purple?style=for-the-badge&logo=torbrowser)](https://github.com/editech-dev/vortex-one)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange?style=for-the-badge)](NOTICE)
@@ -11,15 +11,15 @@ Run multiple instances of your favorite apps, route network traffic through the 
 
 ---
 
-## 📥 Downloads (v1.0.4)
+## 📥 Downloads (v1.0.5)
 
 Choose the optimal package for your target device:
 
 | Architecture | Recommended Devices | Direct Download Link |
 | :--- | :--- | :--- |
-| 🌐 **Universal APK** | Smart TVs, TV Boxes, Smartphones (All) | [Download Universal v1.0.4](https://github.com/editech-dev/vortex-one/releases/download/v1.0.4/VortexOne-v1.0.4-universal.apk) |
-| ⚡ **ARM64 64-bit** | Modern Smartphones & High-end TV Boxes | [Download ARM64 v1.0.4](https://github.com/editech-dev/vortex-one/releases/download/v1.0.4/VortexOne-v1.0.4-arm64-v8a.apk) |
-| 📺 **ARMv7 32-bit** | Legacy Smart TVs & Entry-level TV Stick | [Download ARMv7 v1.0.4](https://github.com/editech-dev/vortex-one/releases/download/v1.0.4/VortexOne-v1.0.4-armeabi-v7a.apk) |
+| 🌐 **Universal APK** | Smart TVs, TV Boxes, Smartphones (All) | [Download Universal v1.0.5](https://github.com/editech-dev/vortex-one/releases/download/v1.0.5/VortexOne-v1.0.5-universal.apk) |
+| ⚡ **ARM64 64-bit** | Modern Smartphones & High-end TV Boxes | [Download ARM64 v1.0.5](https://github.com/editech-dev/vortex-one/releases/download/v1.0.5/VortexOne-v1.0.5-arm64-v8a.apk) |
+| 📺 **ARMv7 32-bit** | Legacy Smart TVs & Entry-level TV Stick | [Download ARMv7 v1.0.5](https://github.com/editech-dev/vortex-one/releases/download/v1.0.5/VortexOne-v1.0.5-armeabi-v7a.apk) |
 
 ---
 
@@ -66,10 +66,13 @@ Adaptive layout for smartphones with touch controls.
 
 ---
 
-## 📜 Version 1.0.4 Changelog
+## 📜 Version 1.0.5 Changelog
 
 > [!NOTE]
 > **Summary of recent fixes & enhancements:**
+> - **Zero DNS Leaks & ISP Block Bypass**: Intercepts Libcore `android_getaddrinfo` in `OsStub.java`, mapping domains to Tor Virtual IPs (`127.192.0.0/10`) to eliminate ISP DNS leaks and bypass domain blocking.
+> - **SOCKS5 Domain Routing (`ATYP 0x03`)**: Transparently passes domain names to Tor exit nodes for end-to-end remote resolution inside the Tor circuit.
+> - **Tor Local DNS Listener**: Configures `DNSPort 5453` and `AutomapHostsOnResolve 1` in `TorService`.
 > - **Tor Lifecycle & Auto-Boot**: Automatically launches `TorService` on app startup if any virtualized app has Tor enabled.
 > - **UI Thread Safety**: Asynchronous socket check prevents `NetworkOnMainThreadException` crashes, ensuring status reads **"Tor activo"** (Green).
 > - **Grace Period Hook**: Retries proxy connection up to 3 times before applying the Kill-Switch.
