@@ -207,6 +207,9 @@ class TorService : Service() {
      */
     private fun buildTorrc(dataDir: String): String = """
         SocksPort ${TorManager.SOCKS_PORT}
+        DNSPort ${TorManager.TOR_DNS_PORT}
+        AutomapHostsOnResolve 1
+        VirtualAddrNetworkIPv4 127.192.0.0/10
         ControlPort 9151
         CookieAuthentication 0
         HashedControlPassword ""

@@ -21,6 +21,7 @@ object TorManager {
     private const val TAG = "TorManager"
     const val SOCKS_HOST = "127.0.0.1"
     const val SOCKS_PORT = 9150          // 9150 avoids clash with Orbot (9050)
+    const val TOR_DNS_PORT = 5453        // Local Tor DNS listener port
     private const val PROXY_CHECK_TIMEOUT_MS = 300
 
     enum class TorStatus { STOPPED, STARTING, RUNNING, ERROR }

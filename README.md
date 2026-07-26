@@ -45,7 +45,9 @@ Adaptive layout for smartphones with touch controls.
 
 ### 🛡️ 1. Embedded Tor Network Privacy Suite
 - **Per-App Tor Routing**: Enable or disable Tor routing per virtual app without affecting other apps or system traffic.
-- **Embedded Tor Daemon**: Runs an embedded Tor binary (`127.0.0.1:9150`) with control port management (`9151`).
+- **Embedded Tor Daemon**: Runs an embedded Tor binary (`127.0.0.1:9150`) with control port management (`9151`) and local DNS server (`5453`).
+- **Zero DNS Leaks & ISP Block Bypass**: Libcore socket interception (`OsStub.java`) hooks `android_getaddrinfo`, preventing DNS queries from leaking to the local ISP DNS. Maps domains to Tor Virtual IPs (`127.192.0.0/10`).
+- **SOCKS5 Domain Routing (`ATYP 0x03`)**: Transparently forwards domain names to Tor exit nodes for end-to-end remote resolution inside the encrypted Tor circuit.
 - **Fail-Safe Kill-Switch**: Native socket interception (`OsStub.java`) automatically blocks unencrypted IP leaks if Tor is disconnected (`TOR/BLOCKED`).
 - **Grace Period Protection**: 1.2s (3 retries) bootstrapping window to prevent false connection drops while Tor establishes circuits.
 - **New Identity Action**: On-demand IP identity renewal (`NEWNYM`).

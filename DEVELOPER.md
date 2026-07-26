@@ -109,9 +109,14 @@ if (shouldBlock) {
     throw new SocketException("Connection blocked by firewall");
 }
 
-// 2. Tor Per-App Redirection
-String pkg = BActivityThread.getAppPackageName();
-boolean torEnabled = TorManager.isTorEnabledForPackage(pkg);
+// 2. Tor DNS & Libcore getaddrinfo Interception (Zero ISP Leak)
+if (isTorEnabledForPackage(pkg)) {
+    // Intercepts android_getaddrinfo & getaddrinfo -> Maps to Virtual IP 127.192.x.y
+    String virtualIp = getOrAllocateVirtualIp(domainNode);
+    return new InetAddress[]{ InetAddress.getByAddress(domainNode, InetAddress.getByName(virtualIp).getAddress()) };
+}
+
+// 3. Tor Per-App Redirection (SOCKS5 ATYP 0x03 Domain Routing)
 if (torEnabled) {
     boolean proxyUp = TorManager.isProxyReachable();
     if (!proxyUp) {
@@ -124,7 +129,7 @@ if (torEnabled) {
     if (!proxyUp) {
         throw new SocketException("[Tor] Proxy not ready — connection blocked for safety");
     }
-    // Tunnel socket FileDescriptor transparently through SOCKS5 127.0.0.1:9150
+    // Tunnel socket FileDescriptor transparently through SOCKS5 127.0.0.1:9150 using ATYP 0x03 (Domain Name)
     return connectViaTorSocks5(who, method, args, address, port, pkg);
 }
 ```

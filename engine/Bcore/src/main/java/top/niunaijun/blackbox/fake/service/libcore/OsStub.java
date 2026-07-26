@@ -92,6 +92,120 @@ public class OsStub extends ClassInvocationStub {
         }
     }
 
+    // ── TOR DNS & VIRTUAL IP RESOLUTION (127.192.0.0/10) ─────────────────────
+    private static final java.util.concurrent.ConcurrentHashMap<String, String> sVirtualIpToHostname =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.concurrent.ConcurrentHashMap<String, String> sHostnameToVirtualIp =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.concurrent.atomic.AtomicInteger sVirtualIpCounter =
+            new java.util.concurrent.atomic.AtomicInteger(1);
+
+    private static volatile java.lang.reflect.Method sTorEnabledMethod;
+    private static volatile java.lang.reflect.Method sTorProxyMethod;
+    private static volatile boolean sTorReflectionFailed = false;
+
+    private static void ensureTorReflection() {
+        if (sTorEnabledMethod != null || sTorReflectionFailed) return;
+        try {
+            Class<?> torMgr = Class.forName("com.editech.services.tor.TorManager");
+            sTorEnabledMethod = torMgr.getMethod("isTorEnabledForPackage", String.class);
+            sTorProxyMethod   = torMgr.getMethod("isProxyReachable");
+        } catch (Exception e) {
+            sTorReflectionFailed = true;
+        }
+    }
+
+    private static boolean isTorEnabledForPackage(String pkg) {
+        if (pkg == null || sTorReflectionFailed) return false;
+        try {
+            ensureTorReflection();
+            if (sTorEnabledMethod != null) {
+                return (boolean) sTorEnabledMethod.invoke(null, pkg);
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    private static boolean isIpAddress(String str) {
+        if (str == null || str.isEmpty()) return true;
+        if (str.contains(":")) return true; // IPv6
+        int dotCount = 0;
+        for (int i = 0; i < str.length(); i++) {
+            char ch = str.charAt(i);
+            if (ch == '.') dotCount++;
+            else if (!Character.isDigit(ch)) return false; // Contains letters -> domain name!
+        }
+        return dotCount == 3;
+    }
+
+    private static String getOrAllocateVirtualIp(String hostname) {
+        String existing = sHostnameToVirtualIp.get(hostname);
+        if (existing != null) return existing;
+
+        int count = sVirtualIpCounter.getAndIncrement();
+        int b3 = (count >> 8) & 0xFF;
+        int b4 = count & 0xFF;
+        if (b3 > 254) {
+            sVirtualIpCounter.set(1);
+            b3 = 0;
+            b4 = 1;
+        }
+        String virtualIp = "127.192." + b3 + "." + b4;
+        sVirtualIpToHostname.put(virtualIp, hostname);
+        sHostnameToVirtualIp.put(hostname, virtualIp);
+        return virtualIp;
+    }
+
+    private static void logTorDnsResolution(String hostname, String virtualIp, String pkg) {
+        try {
+            Class<?> ncClass = Class.forName("com.editech.services.firewall.NetworkConnectionMonitor");
+            java.lang.reflect.Method m = ncClass.getMethod("logTorConnection",
+                    String.class, int.class, boolean.class,
+                    String.class, String.class, String.class);
+            m.invoke(null, virtualIp, 53, false, "RESOLVED", hostname, "TOR/DNS");
+        } catch (Exception ignored) {}
+    }
+
+    @ProxyMethod("android_getaddrinfo")
+    public static class android_getaddrinfo extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            if (args != null && args.length >= 1 && args[0] instanceof String) {
+                String node = (String) args[0];
+                if (node != null && !node.isEmpty() && !isIpAddress(node)) {
+                    String pkg = top.niunaijun.blackbox.app.BActivityThread.getAppPackageName();
+                    if (pkg != null && isTorEnabledForPackage(pkg)) {
+                        String virtualIp = getOrAllocateVirtualIp(node);
+                        java.net.InetAddress addr = java.net.InetAddress.getByAddress(node, java.net.InetAddress.getByName(virtualIp).getAddress());
+                        logTorDnsResolution(node, virtualIp, pkg);
+                        return new java.net.InetAddress[]{ addr };
+                    }
+                }
+            }
+            return method.invoke(who, args);
+        }
+    }
+
+    @ProxyMethod("getaddrinfo")
+    public static class getaddrinfo extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            if (args != null && args.length >= 1 && args[0] instanceof String) {
+                String node = (String) args[0];
+                if (node != null && !node.isEmpty() && !isIpAddress(node)) {
+                    String pkg = top.niunaijun.blackbox.app.BActivityThread.getAppPackageName();
+                    if (pkg != null && isTorEnabledForPackage(pkg)) {
+                        String virtualIp = getOrAllocateVirtualIp(node);
+                        java.net.InetAddress addr = java.net.InetAddress.getByAddress(node, java.net.InetAddress.getByName(virtualIp).getAddress());
+                        logTorDnsResolution(node, virtualIp, pkg);
+                        return new java.net.InetAddress[]{ addr };
+                    }
+                }
+            }
+            return method.invoke(who, args);
+        }
+    }
+
     @ProxyMethod("connect")
     public static class connect extends MethodHook {
 
@@ -231,18 +345,6 @@ public class OsStub extends ClassInvocationStub {
             return result;
         }
 
-        // ── Tor helpers ───────────────────────────────────────────────────────────
-
-        private static void ensureTorReflection() {
-            if (sTorEnabledMethod != null || sTorReflectionFailed) return;
-            try {
-                Class<?> torMgr = Class.forName("com.editech.services.tor.TorManager");
-                sTorEnabledMethod = torMgr.getMethod("isTorEnabledForPackage", String.class);
-                sTorProxyMethod   = torMgr.getMethod("isProxyReachable");
-            } catch (Exception e) {
-                sTorReflectionFailed = true;
-            }
-        }
 
         /**
          * Tunnels the connection through the local Tor SOCKS5 proxy (127.0.0.1:9150).
@@ -289,31 +391,52 @@ public class OsStub extends ClassInvocationStub {
                 }
 
                 // Step 4: CONNECT request
-                byte[] ip = targetAddr.getAddress();
+                String hostIp = targetAddr.getHostAddress();
+                String domain = sVirtualIpToHostname.get(hostIp);
+                if (domain == null && targetAddr.getHostName() != null && !isIpAddress(targetAddr.getHostName())) {
+                    domain = targetAddr.getHostName();
+                }
+
                 byte[] req;
-                if (ip.length == 4) {
-                    // IPv4 - ATYP=0x01
-                    req = new byte[]{
-                            0x05, 0x01, 0x00, 0x01,
-                            ip[0], ip[1], ip[2], ip[3],
-                            (byte) (targetPort >> 8), (byte) (targetPort & 0xFF)
-                    };
+                if (domain != null && !domain.isEmpty()) {
+                    // SOCKS5 Domain Routing — ATYP=0x03 (RFC 1928)
+                    byte[] domainBytes = domain.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    req = new byte[5 + domainBytes.length + 2];
+                    req[0] = 0x05;
+                    req[1] = 0x01; // CONNECT
+                    req[2] = 0x00; // Reserved
+                    req[3] = 0x03; // ATYP = DOMAINNAME (0x03)
+                    req[4] = (byte) domainBytes.length;
+                    System.arraycopy(domainBytes, 0, req, 5, domainBytes.length);
+                    req[5 + domainBytes.length] = (byte) (targetPort >> 8);
+                    req[6 + domainBytes.length] = (byte) (targetPort & 0xFF);
                 } else {
-                    // IPv6 - ATYP=0x04
-                    req = new byte[22];
-                    req[0] = 0x05; req[1] = 0x01; req[2] = 0x00; req[3] = 0x04;
-                    System.arraycopy(ip, 0, req, 4, 16);
-                    req[20] = (byte) (targetPort >> 8);
-                    req[21] = (byte) (targetPort & 0xFF);
+                    byte[] ip = targetAddr.getAddress();
+                    if (ip.length == 4) {
+                        // IPv4 - ATYP=0x01
+                        req = new byte[]{
+                                0x05, 0x01, 0x00, 0x01,
+                                ip[0], ip[1], ip[2], ip[3],
+                                (byte) (targetPort >> 8), (byte) (targetPort & 0xFF)
+                        };
+                    } else {
+                        // IPv6 - ATYP=0x04
+                        req = new byte[22];
+                        req[0] = 0x05; req[1] = 0x01; req[2] = 0x00; req[3] = 0x04;
+                        System.arraycopy(ip, 0, req, 4, 16);
+                        req[20] = (byte) (targetPort >> 8);
+                        req[21] = (byte) (targetPort & 0xFF);
+                    }
                 }
                 fos.write(req);
                 fos.flush();
 
                 // Step 5: Read response
                 byte[] rep = readExact(fis, 4);
+                String targetDisplay = (domain != null && !domain.isEmpty()) ? domain : targetAddr.getHostAddress();
                 if (rep[0] != 0x05 || rep[1] != 0x00) {
                     String socks5Error = socks5ErrorMessage(rep[1] & 0xFF);
-                    logTorConnection(targetAddr.getHostAddress(), targetPort,
+                    logTorConnection(targetDisplay, targetPort,
                             false, "FAILED", "SOCKS5: " + socks5Error,
                             "TOR/FAILED", pkg);
                     throw new java.net.SocketException("[Tor] CONNECT rejected: " + socks5Error);
@@ -325,7 +448,7 @@ public class OsStub extends ClassInvocationStub {
                 else if (atyp == 0x04) readExact(fis, 18); // IPv6 (16 bytes) + port (2 bytes)
 
                 // Success
-                logTorConnection(targetAddr.getHostAddress(), targetPort,
+                logTorConnection(targetDisplay, targetPort,
                         false, "ESTABLISHED", null, "TOR/TCP", pkg);
                 return null;
 
