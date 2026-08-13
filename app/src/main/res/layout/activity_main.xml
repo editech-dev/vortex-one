@@ -6,12 +6,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_main"
-    android:padding="24dp"
     android:clipChildren="false"
     android:clipToPadding="false"
+    android:paddingStart="52dp"
+    android:paddingEnd="52dp"
+    android:paddingTop="32dp"
+    android:paddingBottom="20dp"
     tools:context=".MainActivity">
 
-    <!-- Header Container -->
+    <!-- Top Header Bar with Brand and Quick Action Dock -->
     <LinearLayout
         android:id="@+id/headerContainer"
         android:layout_width="match_parent"
@@ -22,173 +25,233 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:id="@+id/tvTitle"
+        <!-- Brand Section -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textColor="@color/white"
-            android:textSize="32sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-condensed" />
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/app_name"
+                    android:textColor="@color/white"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium" />
+
+                <!-- Badge 2.0 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="@string/tv_edition_tag"
+                    android:textColor="#818CF8"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:background="@drawable/bg_state_badge" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tv_edition_subtitle"
+                android:textColor="#94A3B8"
+                android:textSize="12sp"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
 
         <View
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_weight="1" />
 
-        <!-- Language picker button -->
-        <ImageButton
-            android:id="@+id/btnLanguage"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:focusable="true"
-            android:nextFocusDown="@id/btnFirewall"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_language"
-            android:contentDescription="@string/language_title"
-            app:tint="#94A3B8" />
+        <!-- Compact TV Action Dock -->
+        <LinearLayout
+            android:id="@+id/buttonsContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Botón Instalar APK -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnInstallApk"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:text="@string/btn_install_apk_short"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:focusable="true"
+                android:clickable="true"
+                android:stateListAnimator="@animator/scaler"
+                android:background="@drawable/btn_gradient_primary"
+                app:backgroundTint="@null"
+                app:cornerRadius="19dp"
+                app:icon="@drawable/ic_download"
+                app:iconSize="16dp"
+                app:iconGravity="textStart"
+                app:iconPadding="6dp"
+                app:iconTint="@color/white"
+                android:nextFocusDown="@id/etSearch"
+                android:nextFocusRight="@id/btnVirtualizeSystemApp" />
+
+            <!-- Botón Apps del Sistema -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVirtualizeSystemApp"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginStart="8dp"
+                android:text="@string/btn_system_apps_short"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#F1F5F9"
+                android:focusable="true"
+                android:clickable="true"
+                android:stateListAnimator="@animator/scaler"
+                android:background="@drawable/btn_gradient_secondary"
+                app:backgroundTint="@null"
+                app:strokeColor="#334155"
+                app:strokeWidth="1dp"
+                app:cornerRadius="19dp"
+                app:icon="@drawable/ic_apps_grid"
+                app:iconSize="16dp"
+                app:iconGravity="textStart"
+                app:iconPadding="6dp"
+                app:iconTint="#94A3B8"
+                android:nextFocusLeft="@id/btnInstallApk"
+                android:nextFocusRight="@id/btnFirewall"
+                android:nextFocusDown="@id/etSearch" />
+
+            <!-- Botón Firewall -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFirewall"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginStart="8dp"
+                android:text="@string/btn_firewall_short"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#F1F5F9"
+                android:focusable="true"
+                android:clickable="true"
+                android:stateListAnimator="@animator/scaler"
+                android:background="@drawable/btn_gradient_secondary"
+                app:backgroundTint="@null"
+                app:strokeColor="#334155"
+                app:strokeWidth="1dp"
+                app:cornerRadius="19dp"
+                app:icon="@drawable/ic_shield"
+                app:iconSize="16dp"
+                app:iconGravity="textStart"
+                app:iconPadding="6dp"
+                app:iconTint="#38BDF8"
+                android:nextFocusLeft="@id/btnVirtualizeSystemApp"
+                android:nextFocusRight="@id/btnSettings"
+                android:nextFocusDown="@id/etSearch" />
+
+            <!-- Botón Ajustes -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSettings"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginStart="8dp"
+                android:text="@string/btn_settings_short"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#F1F5F9"
+                android:focusable="true"
+                android:clickable="true"
+                android:stateListAnimator="@animator/scaler"
+                android:background="@drawable/btn_gradient_secondary"
+                app:backgroundTint="@null"
+                app:strokeColor="#334155"
+                app:strokeWidth="1dp"
+                app:cornerRadius="19dp"
+                app:icon="@drawable/ic_settings"
+                app:iconSize="16dp"
+                app:iconGravity="textStart"
+                app:iconPadding="6dp"
+                app:iconTint="#94A3B8"
+                android:nextFocusLeft="@id/btnFirewall"
+                android:nextFocusRight="@id/btnLanguage"
+                android:nextFocusDown="@id/etSearch" />
+
+            <!-- Botón Idioma -->
+            <ImageButton
+                android:id="@+id/btnLanguage"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="8dp"
+                android:focusable="true"
+                android:clickable="true"
+                android:stateListAnimator="@animator/scaler"
+                android:background="@drawable/btn_gradient_secondary"
+                android:src="@drawable/ic_language"
+                app:tint="#94A3B8"
+                android:contentDescription="@string/language_title"
+                android:nextFocusLeft="@id/btnSettings"
+                android:nextFocusDown="@id/etSearch" />
+        </LinearLayout>
     </LinearLayout>
 
-    <!-- Buttons Container -->
+    <!-- Search Bar Row -->
     <LinearLayout
-        android:id="@+id/buttonsContainer"
+        android:id="@+id/searchContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/headerContainer">
-
-        <!-- Botón para instalar APK -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnInstallApk"
-            android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/btn_install_apk"
-            app:tooltipText="@string/btn_install_apk"
-            android:focusable="true"
-            android:nextFocusDown="@id/etSearch"
-            android:nextFocusRight="@id/btnVirtualizeSystemApp"
-            android:background="@drawable/btn_gradient_primary"
-            app:backgroundTint="@null"
-            android:stateListAnimator="@animator/scaler"
-            app:cornerRadius="12dp"
-            app:icon="@drawable/ic_download"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="24dp"
-            app:iconTint="@color/white"
-            android:layout_marginEnd="4dp" />
-
-        <!-- Botón: Virtualizar App del Sistema -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnVirtualizeSystemApp"
-            android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/btn_system_apps"
-            app:tooltipText="@string/btn_system_apps"
-            android:focusable="true"
-            android:nextFocusDown="@id/etSearch"
-            android:nextFocusLeft="@id/btnInstallApk"
-            android:nextFocusRight="@id/btnFirewall"
-            android:background="@drawable/btn_gradient_secondary"
-            app:backgroundTint="@null"
-            android:stateListAnimator="@animator/scaler"
-            app:cornerRadius="12dp"
-            app:icon="@drawable/ic_apps_grid"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="24dp"
-            app:iconTint="@color/white"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp" />
-
-        <!-- Botón Firewall -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnFirewall"
-            android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/title_firewall"
-            app:tooltipText="@string/title_firewall"
-            android:focusable="true"
-            android:nextFocusDown="@id/etSearch"
-            android:nextFocusLeft="@id/btnVirtualizeSystemApp"
-            android:nextFocusRight="@id/btnSettings"
-            android:background="@drawable/btn_gradient_secondary"
-            app:backgroundTint="@null"
-            android:stateListAnimator="@animator/scaler"
-            app:cornerRadius="12dp"
-            app:icon="@drawable/ic_shield"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="24dp"
-            app:iconTint="@color/white"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp" />
-
-        <!-- Botón Configuración -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSettings"
-            android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_weight="1"
-            android:contentDescription="@string/btn_settings"
-            app:tooltipText="@string/btn_settings"
-            android:focusable="true"
-            android:nextFocusDown="@id/etSearch"
-            android:nextFocusLeft="@id/btnFirewall"
-            android:background="@drawable/btn_gradient_secondary"
-            app:backgroundTint="@null"
-            android:stateListAnimator="@animator/scaler"
-            app:cornerRadius="12dp"
-            app:icon="@drawable/ic_settings"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="24dp"
-            app:iconTint="@color/white"
-            android:layout_marginStart="4dp" />
-    </LinearLayout>
-
-    <!-- Search Bar -->
-    <EditText
-        android:id="@+id/etSearch"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:background="@drawable/bg_search_input"
-        android:drawableStart="@drawable/ic_search"
-        android:drawablePadding="12dp"
-        android:hint="@string/hint_search_apps"
-        android:textColorHint="#80FFFFFF"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        android:maxLines="1"
-        android:singleLine="true"
-        android:imeOptions="actionDone"
-        android:nextFocusDown="@id/rvVirtualApps"
-        android:nextFocusUp="@id/btnInstallApk"
-        app:layout_constraintTop_toBottomOf="@id/buttonsContainer"
+        android:gravity="center_vertical"
+        android:layout_marginTop="14dp"
+        app:layout_constraintTop_toBottomOf="@id/headerContainer"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintWidth_percent="0.5" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <EditText
+            android:id="@+id/etSearch"
+            android:layout_width="340dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_search_input"
+            android:drawableStart="@drawable/ic_search"
+            android:drawablePadding="10dp"
+            android:hint="@string/hint_search_apps"
+            android:textColorHint="#80FFFFFF"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:imeOptions="actionDone"
+            android:nextFocusUp="@id/btnInstallApk"
+            android:nextFocusDown="@id/rvVirtualApps" />
+    </LinearLayout>
 
     <!-- Grilla de aplicaciones virtuales -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvVirtualApps"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="12dp"
         android:clipToPadding="false"
+        android:clipChildren="false"
         android:nextFocusUp="@id/etSearch"
         app:layout_constraintBottom_toTopOf="@+id/bannerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/etSearch"
+        app:layout_constraintTop_toBottomOf="@id/searchContainer"
         tools:listitem="@layout/item_virtual_app" />
 
     <!-- Banner Ad Container -->
@@ -196,7 +259,7 @@
         android:id="@+id/bannerContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="4dp"
         android:gravity="center"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -213,37 +276,38 @@
         app:layout_constraintBottom_toTopOf="@+id/bannerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/searchContainer">
 
         <ImageView
-            android:layout_width="120dp"
-            android:layout_height="120dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:alpha="0.3"
             android:src="@drawable/ic_apps_grid"
-            android:tint="#94A3B8" />
+            app:tint="#94A3B8" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:text="@string/empty_state_title"
             android:textColor="#94A3B8"
-            android:textSize="18sp" />
+            android:textSize="16sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="6dp"
             android:text="@string/empty_state_desc"
             android:textColor="#64748B"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
     </LinearLayout>
 
     <!-- ProgressBar para operaciones en curso -->
     <ProgressBar
         android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:indeterminateTint="@color/accent_color"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

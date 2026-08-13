@@ -8,32 +8,35 @@
     android:background="@drawable/bg_main"
     android:clipChildren="false"
     android:clipToPadding="false"
-    android:paddingStart="48dp"
-    android:paddingEnd="48dp"
-    android:paddingTop="28dp"
-    android:paddingBottom="20dp">
+    android:paddingStart="52dp"
+    android:paddingEnd="52dp"
+    android:paddingTop="32dp"
+    android:paddingBottom="20dp"
+    tools:context=".activities.FirewallActivity">
 
-    <!-- Header -->
+    <!-- Top Header -->
     <LinearLayout
         android:id="@+id/headerContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingBottom="8dp"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
             android:id="@+id/btnClose"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:focusable="true"
+            android:clickable="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_arrow_back"
             app:tint="@color/white"
             android:contentDescription="@string/action_close"
-            android:focusable="true"
-            android:nextFocusDown="@id/rvFirewallApps" />
+            android:nextFocusDown="@id/rvFirewallApps"
+            android:nextFocusRight="@id/rvFirewallApps" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -42,24 +45,43 @@
             android:layout_marginStart="14dp"
             android:orientation="vertical">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/title_firewall"
-                android:textColor="@color/white"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:fontFamily="sans-serif-medium" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/title_firewall"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium" />
+
+                <!-- Badge 2.0 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="@string/tv_edition_tag"
+                    android:textColor="#38BDF8"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:background="@drawable/bg_state_badge" />
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/firewall_subtitle"
                 android:textColor="#94A3B8"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
-
     </LinearLayout>
 
     <androidx.viewpager2.widget.ViewPager2
@@ -73,61 +95,172 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Apps List -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvFirewallApps"
+    <!-- Two-Panel Master-Detail Layout -->
+    <LinearLayout
+        android:id="@+id/firewallPanelsContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="8dp"
-        android:clipToPadding="false"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
         android:clipChildren="false"
-        android:focusable="true"
-        android:descendantFocusability="afterDescendants"
-        android:nextFocusUp="@id/btnClose"
-        app:layout_constraintTop_toBottomOf="@id/headerContainer"
-        app:layout_constraintBottom_toTopOf="@id/bannerContainer"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Logs List (Initially Gone) -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvLogs"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="8dp"
         android:clipToPadding="false"
-        android:clipChildren="false"
-        android:focusable="true"
-        android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/headerContainer"
         app:layout_constraintBottom_toTopOf="@id/bannerContainer"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <!-- No Logs Message -->
-    <TextView
-        android:id="@+id/tvNoLogs"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/no_logs_found"
-        android:textColor="#64748B"
-        android:textSize="16sp"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/headerContainer"
-        app:layout_constraintBottom_toTopOf="@id/bannerContainer"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <!-- Left Master Panel (32% Width) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="32"
+            android:orientation="vertical"
+            android:layout_marginEnd="16dp">
+
+            <!-- Security Overview Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="#1E293B"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#334155"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/firewall_overview_title"
+                        android:textColor="#F1F5F9"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/firewall_status_active"
+                        android:textColor="#38BDF8"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="El motor intercepta llamadas a nivel de socket y resuelve dominios mediante DNS seguro sobre TLS. Las apps con Tor se enrutan de forma aislada."
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp"
+                        android:layout_marginTop="6dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Tor Status Info Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:cardBackgroundColor="#0F172A"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="1dp"
+                app:strokeColor="#334155"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PRIVACIDAD Y AISLAMIENTO"
+                        android:textColor="#818CF8"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Túnel SOCKS5 127.0.0.1:9050 y protección contra fugas de IP integrada en cada proceso."
+                        android:textColor="#64748B"
+                        android:textSize="11sp"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+        <!-- Right Detail Panel: Apps & Rules List (68% Width) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="68"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/firewall_rules_title"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Apps List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvFirewallApps"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:paddingTop="2dp"
+                android:paddingBottom="12dp"
+                android:clipToPadding="false"
+                android:clipChildren="false"
+                android:focusable="true"
+                android:descendantFocusability="afterDescendants"
+                android:nextFocusLeft="@id/btnClose"
+                tools:listitem="@layout/item_firewall_app" />
+
+            <!-- Logs List (Initially Gone) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvLogs"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:paddingTop="2dp"
+                android:paddingBottom="12dp"
+                android:clipToPadding="false"
+                android:clipChildren="false"
+                android:focusable="true"
+                android:visibility="gone" />
+
+            <!-- No Logs Message -->
+            <TextView
+                android:id="@+id/tvNoLogs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/no_logs_found"
+                android:textColor="#64748B"
+                android:textSize="14sp"
+                android:visibility="gone"
+                android:layout_marginTop="24dp" />
+        </LinearLayout>
+
+    </LinearLayout>
 
     <!-- Banner Ad Container -->
     <RelativeLayout
         android:id="@+id/bannerContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="2dp"
         android:gravity="center"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

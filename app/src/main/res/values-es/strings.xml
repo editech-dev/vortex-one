@@ -113,4 +113,15 @@
     <string name="dialog_delete_apk_message">¿Deseas eliminar permanentemente \"%1$s.apk\" de Descargas para liberar espacio?</string>
     <string name="toast_apk_deleted">✓ \"%1$s.apk\" eliminado correctamente</string>
     <string name="toast_apk_delete_error">No se pudo eliminar \"%1$s.apk\"</string>
+    <string name="tv_edition_tag">v2.0</string>
+    <string name="tv_edition_subtitle">Sandbox Virtual Android TV</string>
+    <string name="btn_install_apk_short">Instalar APK</string>
+    <string name="btn_system_apps_short">Apps Sistema</string>
+    <string name="btn_firewall_short">Firewall</string>
+    <string name="btn_settings_short">Ajustes</string>
+    <string name="settings_overview_title">Resumen de Almacenamiento</string>
+    <string name="settings_apps_list_title">Aplicaciones Virtualizadas</string>
+    <string name="firewall_overview_title">Seguridad y Red</string>
+    <string name="firewall_status_active">Activo • Cloudflare DoT (1.1.1.1)</string>
+    <string name="firewall_rules_title">Reglas por Aplicación</string>
 </resources>

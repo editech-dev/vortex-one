@@ -5,10 +5,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_main"
-    android:paddingStart="48dp"
-    android:paddingEnd="48dp"
-    android:paddingTop="28dp"
-    android:paddingBottom="24dp">
+    android:paddingStart="52dp"
+    android:paddingEnd="52dp"
+    android:paddingTop="32dp"
+    android:paddingBottom="20dp">
 
     <!-- Header Container -->
     <LinearLayout

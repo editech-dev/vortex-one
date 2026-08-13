@@ -8,13 +8,13 @@
     android:background="@drawable/bg_main"
     android:clipChildren="false"
     android:clipToPadding="false"
-    android:paddingStart="48dp"
-    android:paddingEnd="48dp"
-    android:paddingTop="28dp"
+    android:paddingStart="52dp"
+    android:paddingEnd="52dp"
+    android:paddingTop="32dp"
     android:paddingBottom="20dp"
     tools:context=".activities.SettingsActivity">
 
-    <!-- Header -->
+    <!-- Top Header -->
     <LinearLayout
         android:id="@+id/headerContainer"
         android:layout_width="match_parent"
@@ -27,15 +27,16 @@
 
         <ImageButton
             android:id="@+id/btnBack"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:focusable="true"
             android:clickable="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_arrow_back"
             app:tint="@color/white"
             android:contentDescription="@string/action_close"
-            android:nextFocusDown="@id/btnClearAllCache" />
+            android:nextFocusDown="@id/btnClearAllCache"
+            android:nextFocusRight="@id/rvSettingsApps" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -44,106 +45,196 @@
             android:layout_marginStart="14dp"
             android:orientation="vertical">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/settings_title"
-                android:textColor="@color/white"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:fontFamily="sans-serif-medium" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_title"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium" />
+
+                <!-- Badge 2.0 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="@string/tv_edition_tag"
+                    android:textColor="#818CF8"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:background="@drawable/bg_state_badge" />
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/settings_subtitle"
                 android:textColor="#94A3B8"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Card de Acciones Globales -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardGlobalActions"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
-        app:cardBackgroundColor="#1E293B"
-        app:cardCornerRadius="14dp"
-        app:cardElevation="2dp"
-        app:strokeColor="#334155"
-        app:strokeWidth="1dp"
+    <!-- Two-Panel 16:9 Master-Detail Layout -->
+    <LinearLayout
+        android:id="@+id/mainPanelsContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         app:layout_constraintTop_toBottomOf="@id/headerContainer"
+        app:layout_constraintBottom_toTopOf="@id/bannerContainer"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
+        <!-- Left Master Panel (34% Width) -->
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="34"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:layout_marginEnd="16dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnClearAllCache"
+            <!-- Card de Acciones Globales -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardGlobalActions"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:text="@string/btn_clear_all_cache"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="#1E293B"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#334155"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_overview_title"
+                        android:textColor="#F1F5F9"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Optimización y mantenimiento del almacenamiento interno del sandbox."
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp"
+                        android:layout_marginTop="4dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnClearAllCache"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:layout_marginTop="14dp"
+                        android:text="@string/btn_clear_all_cache"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:stateListAnimator="@animator/scaler"
+                        android:background="@drawable/btn_gradient_secondary"
+                        app:backgroundTint="@null"
+                        app:strokeColor="#38BDF8"
+                        app:strokeWidth="1dp"
+                        app:cornerRadius="8dp"
+                        app:icon="@drawable/ic_clean"
+                        app:iconSize="16dp"
+                        app:iconGravity="textStart"
+                        app:iconTint="#38BDF8"
+                        android:textColor="#F8FAFC"
+                        android:nextFocusUp="@id/btnBack"
+                        android:nextFocusRight="@id/rvSettingsApps" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Card de Información del Sistema & Versión -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:cardBackgroundColor="#0F172A"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="1dp"
+                app:strokeColor="#334155"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="VORTEX ONE 2.0"
+                        android:textColor="#818CF8"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvVersionInfo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="#64748B"
+                        android:textSize="11sp"
+                        android:layout_marginTop="4dp"
+                        tools:text="Versión 2.0.0 (Build 200) • Hecho con ❤️ por editech-dev" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+        <!-- Right Detail Panel: Apps List (66% Width) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="66"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_apps_list_title"
+                android:textColor="#94A3B8"
                 android:textSize="13sp"
                 android:textStyle="bold"
-                android:focusable="true"
-                android:clickable="true"
-                android:stateListAnimator="@animator/scaler"
-                android:background="@drawable/btn_gradient_secondary"
-                app:backgroundTint="@null"
-                app:strokeColor="#38BDF8"
-                app:strokeWidth="1dp"
-                app:cornerRadius="8dp"
-                app:icon="@drawable/ic_clean"
-                app:iconSize="18dp"
-                app:iconGravity="textStart"
-                app:iconTint="#38BDF8"
-                android:textColor="#F8FAFC"
-                android:nextFocusUp="@id/btnBack"
-                android:nextFocusDown="@id/rvSettingsApps" />
+                android:layout_marginBottom="8dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvSettingsApps"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:paddingTop="2dp"
+                android:paddingBottom="12dp"
+                android:clipToPadding="false"
+                android:clipChildren="false"
+                android:focusable="false"
+                android:descendantFocusability="afterDescendants"
+                android:nextFocusLeft="@id/btnClearAllCache"
+                tools:listitem="@layout/item_settings_app" />
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
 
-    <!-- Apps List -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvSettingsApps"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="10dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="8dp"
-        android:clipToPadding="false"
-        android:clipChildren="false"
-        android:focusable="false"
-        android:descendantFocusability="afterDescendants"
-        android:nextFocusUp="@id/btnClearAllCache"
-        app:layout_constraintBottom_toTopOf="@+id/tvVersionInfo"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/cardGlobalActions"
-        tools:listitem="@layout/item_settings_app" />
-
-    <!-- Version & Credit Footer -->
-    <TextView
-        android:id="@+id/tvVersionInfo"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp"
-        android:paddingHorizontal="24dp"
-        android:textColor="#94A3B8"
-        android:textSize="11sp"
-        android:fontFamily="sans-serif-medium"
-        android:gravity="center"
-        app:layout_constraintBottom_toTopOf="@id/bannerContainer"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:text="Versión 1.0.4 • Hecho con ❤️ por editech-dev para la comunidad Android" />
+    </LinearLayout>
 
     <!-- Banner Ad Container -->
     <RelativeLayout
@@ -167,7 +258,7 @@
         app:layout_constraintBottom_toTopOf="@+id/bannerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/cardGlobalActions">
+        app:layout_constraintTop_toBottomOf="@id/headerContainer">
 
         <ImageView
             android:layout_width="72dp"

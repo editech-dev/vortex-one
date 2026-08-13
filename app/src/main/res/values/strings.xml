@@ -113,4 +113,15 @@
     <string name="dialog_delete_apk_message">Do you want to permanently delete \"%1$s.apk\" from your Downloads to free up space?</string>
     <string name="toast_apk_deleted">✓ \"%1$s.apk\" deleted successfully</string>
     <string name="toast_apk_delete_error">Could not delete \"%1$s.apk\"</string>
+    <string name="tv_edition_tag">v2.0</string>
+    <string name="tv_edition_subtitle">Android TV Sandbox</string>
+    <string name="btn_install_apk_short">Install APK</string>
+    <string name="btn_system_apps_short">System Apps</string>
+    <string name="btn_firewall_short">Firewall</string>
+    <string name="btn_settings_short">Settings</string>
+    <string name="settings_overview_title">Storage Overview</string>
+    <string name="settings_apps_list_title">Virtual Applications</string>
+    <string name="firewall_overview_title">Security &amp; Network</string>
+    <string name="firewall_status_active">Active • Cloudflare DoT (1.1.1.1)</string>
+    <string name="firewall_rules_title">Application Rules</string>
 </resources>
