@@ -75,6 +75,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
         switchMonitor = findViewById(R.id.switchMonitor)
         tabLayout = findViewById(R.id.tabLayout)
         viewPager = findViewById(R.id.viewPager)
+        findViewById<android.view.View>(R.id.btnBackDetail)?.setOnClickListener { finish() }
     }
 
     private fun setupHeader() {

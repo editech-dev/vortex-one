@@ -8,11 +8,12 @@ import com.editech.services.models.ApkFile
 import kotlin.math.pow
 
 /**
- * Adapter para mostrar la lista de archivos APK encontrados
+ * Adapter para mostrar la lista de archivos APK encontrados con opciones de Instalar y Eliminar
  */
 class ApkFileAdapter(
     private val apkFiles: List<ApkFile>,
-    private val onApkClick: (ApkFile) -> Unit
+    private val onInstallClick: (ApkFile) -> Unit,
+    private val onDeleteClick: (ApkFile) -> Unit
 ) : RecyclerView.Adapter<ApkFileAdapter.ApkFileViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ApkFileViewHolder {
@@ -40,7 +41,15 @@ class ApkFileAdapter(
             binding.tvApkSize.text = formatFileSize(apkFile.size)
 
             binding.root.setOnClickListener {
-                onApkClick(apkFile)
+                onInstallClick(apkFile)
+            }
+
+            binding.btnInstallApk.setOnClickListener {
+                onInstallClick(apkFile)
+            }
+
+            binding.btnDeleteApk.setOnClickListener {
+                onDeleteClick(apkFile)
             }
         }
 

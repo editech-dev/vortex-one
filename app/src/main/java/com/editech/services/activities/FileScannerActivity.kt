@@ -149,15 +149,20 @@ class FileScannerActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = ApkFileAdapter(apkFiles) { apkFile ->
-            // Al seleccionar un APK, devolverlo a MainActivity
-            val resultIntent = Intent().apply {
-                putExtra(EXTRA_APK_PATH, apkFile.path)
-                putExtra(EXTRA_APK_NAME, apkFile.name)
+        adapter = ApkFileAdapter(
+            apkFiles = apkFiles,
+            onInstallClick = { apkFile ->
+                val resultIntent = Intent().apply {
+                    putExtra(EXTRA_APK_PATH, apkFile.path)
+                    putExtra(EXTRA_APK_NAME, apkFile.name)
+                }
+                setResult(Activity.RESULT_OK, resultIntent)
+                finish()
+            },
+            onDeleteClick = { apkFile ->
+                confirmAndDeleteApk(apkFile)
             }
-            setResult(Activity.RESULT_OK, resultIntent)
-            finish()
-        }
+        )
 
         binding.rvApkFiles.apply {
             layoutManager = LinearLayoutManager(this@FileScannerActivity)
@@ -165,7 +170,51 @@ class FileScannerActivity : AppCompatActivity() {
         }
     }
 
+    private fun confirmAndDeleteApk(apkFile: ApkFile) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.dialog_delete_apk_title))
+            .setMessage(getString(R.string.dialog_delete_apk_message, apkFile.name))
+            .setPositiveButton(getString(R.string.action_delete)) { _, _ ->
+                val file = File(apkFile.path)
+                if (file.exists() && file.delete()) {
+                    val index = apkFiles.indexOf(apkFile)
+                    apkFiles.remove(apkFile)
+                    allApkFiles.remove(apkFile)
+                    if (index != -1) {
+                        adapter.notifyItemRemoved(index)
+                    } else {
+                        adapter.notifyDataSetChanged()
+                    }
+                    if (apkFiles.isEmpty()) {
+                        binding.layoutEmptyState.visibility = View.VISIBLE
+                        binding.rvApkFiles.visibility = View.GONE
+                        binding.tvStatus.text = getString(R.string.status_no_apks_found)
+                    } else {
+                        binding.tvStatus.text = getString(R.string.status_apks_found, apkFiles.size)
+                    }
+                    android.widget.Toast.makeText(
+                        this,
+                        getString(R.string.toast_apk_deleted, apkFile.name),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    android.widget.Toast.makeText(
+                        this,
+                        getString(R.string.toast_apk_delete_error, apkFile.name),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton(getString(R.string.action_cancel), null)
+            .show()
+    }
+
     private fun setupButtons() {
+        binding.btnBackHeader.setOnClickListener {
+            setResult(Activity.RESULT_CANCELED)
+            finish()
+        }
+
         binding.btnCancel.setOnClickListener {
             setResult(Activity.RESULT_CANCELED)
             finish()

@@ -2,19 +2,22 @@
 <com.google.android.material.card.MaterialCardView 
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginVertical="6dp"
-    android:layout_marginHorizontal="4dp"
+    android:layout_marginHorizontal="8dp"
     android:clickable="true"
     android:focusable="true"
     android:focusableInTouchMode="true"
     android:foreground="@drawable/selector_item_virtual_app"
     android:stateListAnimator="@animator/scaler"
     android:descendantFocusability="afterDescendants"
-    app:cardBackgroundColor="@color/primary_light"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="4dp">
+    app:cardBackgroundColor="#1E293B"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="3dp"
+    app:strokeColor="#334155"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,12 +26,20 @@
         android:gravity="center_vertical"
         android:padding="16dp">
 
-        <!-- App Icon -->
-        <ImageView
-            android:id="@+id/ivAppIcon"
+        <!-- App Icon with Card Container -->
+        <FrameLayout
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:contentDescription="@string/app_icon" />
+            android:background="@drawable/bg_splash_icon_card"
+            android:padding="6dp">
+
+            <ImageView
+                android:id="@+id/ivAppIcon"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:contentDescription="@string/app_icon" />
+        </FrameLayout>
 
         <!-- App Info -->
         <LinearLayout
@@ -44,11 +55,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
-                android:textColor="@color/white"
+                android:textColor="#F1F5F9"
                 android:textStyle="bold"
-                android:fontFamily="sans-serif-condensed"
+                android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
-                android:ellipsize="end" />
+                android:ellipsize="end"
+                tools:text="App Name" />
 
             <TextView
                 android:id="@+id/tvPackageName"
@@ -58,7 +70,8 @@
                 android:textColor="#94A3B8"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginTop="2dp" />
+                android:layout_marginTop="3dp"
+                tools:text="com.example.app" />
 
             <TextView
                 android:id="@+id/tvConnectionCount"
@@ -70,12 +83,14 @@
                 android:layout_marginTop="2dp" />
         </LinearLayout>
 
-        <!-- State Badge — background color set programmatically per state -->
+        <!-- State Badge -->
         <TextView
             android:id="@+id/tvStateButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:minWidth="110dp"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="8dp"
             android:background="@drawable/bg_state_badge"
             android:gravity="center"
             android:textColor="#94A3B8"
@@ -85,7 +100,8 @@
             android:clickable="false"
             android:importantForAccessibility="no"
             android:maxLines="1"
-            android:ellipsize="end" />
+            android:ellipsize="end"
+            tools:text="PERMITIDO" />
 
     </LinearLayout>
 

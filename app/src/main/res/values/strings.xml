@@ -107,4 +107,10 @@
     <string name="toast_all_cache_cleared">✓ Cleared %s of cache across %d apps</string>
     <string name="toast_clear_error">Error clearing storage: %s</string>
     <string name="app_version_credit">Version %1$s • Made with ❤️ by editech-dev for the Android community</string>
+    <string name="action_install">Install</string>
+    <string name="action_delete">Delete</string>
+    <string name="dialog_delete_apk_title">Delete APK file?</string>
+    <string name="dialog_delete_apk_message">Do you want to permanently delete \"%1$s.apk\" from your Downloads to free up space?</string>
+    <string name="toast_apk_deleted">✓ \"%1$s.apk\" deleted successfully</string>
+    <string name="toast_apk_delete_error">Could not delete \"%1$s.apk\"</string>
 </resources>

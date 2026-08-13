@@ -5,33 +5,48 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    android:clickable="true"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="6dp"
     android:focusable="true"
-    android:focusableInTouchMode="true"
+    android:clickable="true"
+    android:descendantFocusability="afterDescendants"
     android:stateListAnimator="@animator/scaler"
-    app:cardBackgroundColor="@color/primary_light"
-    app:strokeColor="@color/accent_focus"
-    app:strokeWidth="0dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp">
+    android:foreground="@drawable/selector_item_virtual_app"
+    app:cardBackgroundColor="#1E293B"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="3dp"
+    app:strokeColor="#334155"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:descendantFocusability="afterDescendants"
         android:padding="16dp">
 
-        <ImageView
+        <!-- Icon Container -->
+        <FrameLayout
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_save"
-            android:tint="#60A5FA" />
+            android:background="@drawable/bg_splash_icon_card"
+            android:padding="10dp">
 
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_download"
+                app:tint="#818CF8"
+                android:contentDescription="@string/app_icon" />
+        </FrameLayout>
+
+        <!-- APK Info -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -50,11 +65,11 @@
                 android:id="@+id/tvApkPath"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="3dp"
                 android:ellipsize="start"
                 android:maxLines="1"
                 android:singleLine="true"
-                android:textColor="#64748B"
+                android:textColor="#94A3B8"
                 android:textSize="12sp"
                 tools:text="/storage/emulated/0/Download/" />
 
@@ -62,10 +77,59 @@
                 android:id="@+id/tvApkSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textColor="#94A3B8"
+                android:layout_marginTop="3dp"
+                android:textColor="#38BDF8"
                 android:textSize="12sp"
+                android:textStyle="bold"
                 tools:text="12.5 MB" />
+        </LinearLayout>
+
+        <!-- Actions: Install & Delete Buttons -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:descendantFocusability="afterDescendants">
+
+            <!-- Botón Instalar -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnInstallApk"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:text="@string/action_install"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:focusable="true"
+                android:clickable="true"
+                android:stateListAnimator="@animator/scaler"
+                android:background="@drawable/btn_action_install"
+                app:backgroundTint="@null"
+                app:icon="@drawable/ic_download"
+                app:iconGravity="textStart"
+                app:iconTint="#A5B4FC"
+                android:textColor="#FFFFFF"
+                android:nextFocusRight="@id/btnDeleteApk"
+                android:layout_marginEnd="8dp" />
+
+            <!-- Botón Eliminar -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDeleteApk"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:text="@string/action_delete"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:focusable="true"
+                android:clickable="true"
+                android:stateListAnimator="@animator/scaler"
+                android:background="@drawable/btn_action_delete"
+                app:backgroundTint="@null"
+                app:icon="@drawable/ic_delete"
+                app:iconGravity="textStart"
+                app:iconTint="#FCA5A5"
+                android:textColor="#FCA5A5"
+                android:nextFocusLeft="@id/btnInstallApk" />
         </LinearLayout>
 
     </LinearLayout>

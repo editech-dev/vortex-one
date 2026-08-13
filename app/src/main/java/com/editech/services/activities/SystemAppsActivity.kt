@@ -79,6 +79,9 @@ class SystemAppsActivity : AppCompatActivity() {
     }
     
     private fun setupButtons() {
+        binding.btnBackSystemApps.setOnClickListener {
+            finish()
+        }
         binding.btnCancel.setOnClickListener {
             finish()
         }

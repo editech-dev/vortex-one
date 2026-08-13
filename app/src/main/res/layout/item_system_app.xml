@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView 
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/cardSystemApp"
-    android:layout_width="160dp"
-    android:layout_height="200dp"
-    android:layout_margin="12dp"
+    android:layout_width="match_parent"
+    android:layout_height="180dp"
+    android:layout_margin="8dp"
     android:foreground="@drawable/selector_item_virtual_app"
     android:focusable="true"
     android:focusableInTouchMode="true"
+    android:clickable="true"
     android:stateListAnimator="@animator/scaler"
-    app:cardBackgroundColor="@color/primary_light"
-    app:strokeColor="@color/accent_focus"
-    app:strokeWidth="0dp"
+    app:cardBackgroundColor="#1E293B"
+    app:strokeColor="#334155"
+    app:strokeWidth="1dp"
     app:cardCornerRadius="16dp"
-    app:cardElevation="4dp">
+    app:cardElevation="3dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,12 +25,19 @@
         android:padding="16dp">
 
         <!-- Icono de la app -->
-        <ImageView
-            android:id="@+id/ivAppIcon"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:scaleType="fitCenter"
-            android:contentDescription="App icon" />
+        <FrameLayout
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_splash_icon_card"
+            android:padding="8dp">
+
+            <ImageView
+                android:id="@+id/ivAppIcon"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:contentDescription="@string/app_icon" />
+        </FrameLayout>
 
         <!-- Nombre de la app -->
         <TextView
@@ -39,10 +48,11 @@
             android:textColor="#F1F5F9"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
             android:gravity="center"
             android:maxLines="2"
             android:ellipsize="end"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="10dp" />
 
         <!-- Package name -->
         <TextView
@@ -50,12 +60,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="com.example.app"
-            android:textColor="#64748B"
-            android:textSize="10sp"
+            android:textColor="#94A3B8"
+            android:textSize="11sp"
             android:gravity="center"
             android:maxLines="1"
             android:ellipsize="middle"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="3dp" />
 
     </LinearLayout>
 

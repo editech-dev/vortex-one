@@ -107,4 +107,10 @@
     <string name="toast_all_cache_cleared">✓ Se liberaron %s de caché en %d apps</string>
     <string name="toast_clear_error">Error al limpiar almacenamiento: %s</string>
     <string name="app_version_credit">Versión %1$s • Hecho con ❤️ por editech-dev para la comunidad Android</string>
+    <string name="action_install">Instalar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="dialog_delete_apk_title">¿Eliminar archivo APK?</string>
+    <string name="dialog_delete_apk_message">¿Deseas eliminar permanentemente \"%1$s.apk\" de Descargas para liberar espacio?</string>
+    <string name="toast_apk_deleted">✓ \"%1$s.apk\" eliminado correctamente</string>
+    <string name="toast_apk_delete_error">No se pudo eliminar \"%1$s.apk\"</string>
 </resources>

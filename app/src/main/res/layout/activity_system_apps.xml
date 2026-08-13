@@ -1,104 +1,133 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_main"
-    android:padding="24dp">
+    android:paddingStart="48dp"
+    android:paddingEnd="48dp"
+    android:paddingTop="28dp"
+    android:paddingBottom="24dp">
 
     <!-- Header Container -->
     <LinearLayout
         android:id="@+id/headerContainer"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btnCancel"
         app:layout_constraintTop_toTopOf="parent">
 
+        <ImageButton
+            android:id="@+id/btnBackSystemApps"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/white"
+            android:contentDescription="@string/action_close"
+            android:focusable="true"
+            android:nextFocusRight="@id/btnCancel"
+            android:nextFocusDown="@id/etSearch" />
 
-
-        <TextView
-            android:id="@+id/tvTitle"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="System Apps"
-            android:textColor="@color/white"
-            android:textSize="32sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-condensed" />
+            android:layout_marginStart="14dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_system_apps"
+                android:textColor="@color/white"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium" />
+
+            <!-- Status text -->
+            <TextView
+                android:id="@+id/tvStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/status_searching_installed_apps"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
     </LinearLayout>
 
-    <!-- Status text -->
-    <TextView
-        android:id="@+id/tvStatus"
+    <!-- Botón cancelar (Top Right) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnCancel"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Loading system applications..."
+        android:layout_height="44dp"
+        android:text="@string/action_cancel"
         android:textColor="#94A3B8"
-        android:textSize="16sp"
-        android:layout_marginTop="8dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/headerContainer" />
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:focusable="true"
+        android:clickable="true"
+        android:stateListAnimator="@animator/scaler"
+        android:background="?attr/selectableItemBackground"
+        app:backgroundTint="@null"
+        app:cornerRadius="8dp"
+        android:nextFocusLeft="@id/btnBackSystemApps"
+        android:nextFocusDown="@id/etSearch"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Search Input -->
     <EditText
         android:id="@+id/etSearch"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_height="44dp"
+        android:layout_marginTop="16dp"
         android:background="@drawable/bg_search_input"
         android:drawableStart="@drawable/ic_search"
         android:drawablePadding="12dp"
-        android:hint="Search installed apps..."
+        android:hint="@string/hint_search_apps"
         android:textColorHint="#80FFFFFF"
         android:textColor="@color/white"
         android:textSize="14sp"
         android:maxLines="1"
         android:singleLine="true"
         android:imeOptions="actionDone"
+        android:nextFocusUp="@id/btnCancel"
         android:nextFocusDown="@id/rvSystemApps"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvStatus"
-        app:layout_constraintWidth_percent="0.6" />
-
-    <!-- Botón cancelar (Top Right) -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnCancel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Cancel"
-        android:textColor="@color/white"
-        app:backgroundTint="@color/primary_light"
-        app:cornerRadius="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:focusable="true" />
-
-    <!-- Banner Ad Container -->
-    <RelativeLayout
-        android:id="@+id/bannerContainer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:gravity="center"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/headerContainer" />
 
     <!-- RecyclerView para apps del sistema -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvSystemApps"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="14dp"
         android:clipToPadding="false"
+        android:focusable="true"
+        android:descendantFocusability="afterDescendants"
         app:layout_constraintBottom_toTopOf="@id/bannerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/etSearch"
         android:visibility="gone" />
+
+    <!-- Banner Ad Container -->
+    <RelativeLayout
+        android:id="@+id/bannerContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <!-- Empty state -->
     <LinearLayout
@@ -111,37 +140,29 @@
         app:layout_constraintBottom_toTopOf="@id/bannerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/etSearch">
 
         <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="📱"
-            android:textSize="48sp"
-            android:layout_marginBottom="16dp"
-            android:visibility="gone" />
-
-        <ImageView
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:alpha="0.3"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:alpha="0.4"
             android:src="@drawable/ic_apps_grid"
             app:tint="#94A3B8"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="14dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="No applications found"
-            android:textColor="#64748B"
-            android:textSize="18sp" />
+            android:text="@string/empty_state_title"
+            android:textColor="#94A3B8"
+            android:textSize="16sp" />
     </LinearLayout>
 
     <!-- Progress bar -->
     <ProgressBar
         android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:indeterminateTint="@color/accent_color"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
