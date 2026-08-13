@@ -138,6 +138,19 @@ public class OsStub extends ClassInvocationStub {
         return dotCount == 3;
     }
 
+    private static boolean isUpnpOrLocalNetwork(java.net.InetAddress addr, int port) {
+        if (addr == null) return false;
+        String host = addr.getHostAddress();
+        if (host == null) return false;
+        // SSDP Multicast
+        if (addr.isMulticastAddress() || "239.255.255.250".equals(host)) return true;
+        // UPnP & P2P mapping ports
+        if (port == 1900 || port == 5351 || port == 39900 || port == 39901 || port == 49152) return true;
+        // Private LAN ranges (excluding Tor local proxy on 127.0.0.1)
+        if (!addr.isLoopbackAddress() && (addr.isSiteLocalAddress() || addr.isLinkLocalAddress())) return true;
+        return false;
+    }
+
     private static String getOrAllocateVirtualIp(String hostname) {
         String existing = sHostnameToVirtualIp.get(hostname);
         if (existing != null) return existing;
@@ -163,6 +176,20 @@ public class OsStub extends ClassInvocationStub {
                     String.class, int.class, boolean.class,
                     String.class, String.class, String.class);
             m.invoke(null, virtualIp, 53, false, "RESOLVED", hostname, "TOR/DNS");
+        } catch (Exception ignored) {}
+    }
+
+    static void logTorConnection(
+            String ip, int port, boolean blocked,
+            String status, String reason,
+            String protocol, String pkg) {
+        try {
+            Class<?> ncClass = Class.forName(
+                    "com.editech.services.firewall.NetworkConnectionMonitor");
+            java.lang.reflect.Method m = ncClass.getMethod("logTorConnection",
+                    String.class, int.class, boolean.class,
+                    String.class, String.class, String.class);
+            m.invoke(null, ip, port, blocked, status, reason, protocol);
         } catch (Exception ignored) {}
     }
 
@@ -275,7 +302,17 @@ public class OsStub extends ClassInvocationStub {
                                 if (pkg != null) {
                                     boolean torEnabled = (boolean) OsStub.sTorEnabledMethod.invoke(null, pkg);
                                     if (torEnabled) {
-                                        boolean proxyUp = (boolean) OsStub.sTorProxyMethod.invoke(null);
+                                         // ── UPnP / SSDP / LAN LEAK PROTECTION ────────────────────────────
+                                         if (address != null && isUpnpOrLocalNetwork(address, port)) {
+                                             logTorConnection(address.getHostAddress(), port,
+                                                     true, "BLOCKED", "UPnP/LAN port mapping blocked under Tor",
+                                                     "TOR/UPNP_BLOCKED", pkg);
+                                             throw new java.net.SocketException(
+                                                     "[Tor] UPnP/LAN connection blocked for anonymity protection");
+                                         }
+                                         // ──────────────────────────────────────────────────────────────────
+
+                                         boolean proxyUp = (boolean) OsStub.sTorProxyMethod.invoke(null);
                                         if (!proxyUp) {
                                             // Retry up to 3 times with 400ms delay if Tor service is bootstrapping
                                             for (int retry = 0; retry < 3; retry++) {
@@ -494,25 +531,6 @@ public class OsStub extends ClassInvocationStub {
                 default:   return "Unknown (0x" + Integer.toHexString(code) + ")";
             }
         }
-
-        /**
-         * Logs a Tor connection attempt into FirewallManager via reflection.
-         * Uses the protocol tag ("TOR/TCP", "TOR/BLOCKED", "TOR/FAILED") so that
-         * the Logs tab can display the onion badge and purple color.
-         */
-        private static void logTorConnection(
-                String ip, int port, boolean blocked,
-                String status, String reason,
-                String protocol, String pkg) {
-            try {
-                Class<?> ncClass = Class.forName(
-                        "com.editech.services.firewall.NetworkConnectionMonitor");
-                java.lang.reflect.Method m = ncClass.getMethod("logTorConnection",
-                        String.class, int.class, boolean.class,
-                        String.class, String.class, String.class);
-                m.invoke(null, ip, port, blocked, status, reason, protocol);
-            } catch (Exception ignored) {}
-        }
     }
 
     // ============================
@@ -570,6 +588,38 @@ public class OsStub extends ClassInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             // sendto(FileDescriptor fd, byte[] bytes, int byteOffset, int byteCount, int flags, InetAddress inetAddress, int port)
             // or sendto(FileDescriptor fd, ByteBuffer buffer, int flags, InetAddress inetAddress, int port)
+            try {
+                String pkg = getCurrentPackageName();
+                if (pkg != null && !OsStub.sTorReflectionFailed) {
+                    OsStub.ensureTorReflection();
+                    if (OsStub.sTorEnabledMethod != null) {
+                        boolean torEnabled = (boolean) OsStub.sTorEnabledMethod.invoke(null, pkg);
+                        if (torEnabled) {
+                            java.net.InetAddress destAddr = null;
+                            int destPort = 0;
+                            if (args != null) {
+                                if (args.length >= 7 && args[5] instanceof java.net.InetAddress && args[6] instanceof Integer) {
+                                    destAddr = (java.net.InetAddress) args[5];
+                                    destPort = (Integer) args[6];
+                                } else if (args.length >= 5 && args[3] instanceof java.net.InetAddress && args[4] instanceof Integer) {
+                                    destAddr = (java.net.InetAddress) args[3];
+                                    destPort = (Integer) args[4];
+                                }
+                            }
+
+                            if (destAddr != null && isUpnpOrLocalNetwork(destAddr, destPort)) {
+                                OsStub.logTorConnection(destAddr.getHostAddress(), destPort,
+                                        true, "BLOCKED", "UPnP UDP broadcast blocked under Tor",
+                                        "TOR/UPNP_BLOCKED", pkg);
+                                throw new java.net.SocketException("[Tor] UPnP UDP broadcast blocked for anonymity protection");
+                            }
+                        }
+                    }
+                }
+            } catch (java.net.SocketException se) {
+                throw se;
+            } catch (Exception ignored) {}
+
             Object result = method.invoke(who, args);
             
             // Throttle after send succeeds
