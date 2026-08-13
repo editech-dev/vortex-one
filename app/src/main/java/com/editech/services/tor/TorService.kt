@@ -122,8 +122,16 @@ class TorService : Service() {
                     "--DataDirectory", torDataDir.absolutePath,
                     "--CacheDirectory", torCacheDir.absolutePath
                 )
+                pb.environment()["LD_LIBRARY_PATH"] = applicationInfo.nativeLibraryDir
                 pb.redirectErrorStream(true)
                 torProcess = pb.start()
+                val pidStr = try {
+                    val pidMethod = torProcess?.javaClass?.getMethod("pid")
+                    pidMethod?.invoke(torProcess)?.toString() ?: "N/A"
+                } catch (e: Throwable) {
+                    "N/A"
+                }
+                Log.d(TAG, "Tor process started, PID=$pidStr")
 
                 // Consume stdout (prevents deadlock)
                 launch { consumeProcessOutput(torProcess!!) }
@@ -185,9 +193,24 @@ class TorService : Service() {
                     Log.d(TAG, "Tor SOCKS5 proxy ready at 127.0.0.1:${TorManager.SOCKS_PORT}")
                     TorManager.updateStatus(TorManager.TorStatus.RUNNING)
                     updateNotification("Tor activo — tu tráfico está protegido")
+                    
+                    // Asynchronously verify exit node IP
+                    launch(Dispatchers.IO) {
+                        val exitIp = TorManager.verifyTorConnection()
+                        Log.d(TAG, "Tor exit node verification: IP = ${exitIp ?: "Failed to verify"}")
+                        if (exitIp != null) {
+                            updateNotification("Tor activo — IP: $exitIp")
+                        }
+                    }
                     return@launch
                 }
                 delay(POLL_INTERVAL_MS)
+                if (torProcess?.isAlive != true) {
+                    Log.e(TAG, "Tor process died immediately after start")
+                    TorManager.updateStatus(TorManager.TorStatus.ERROR)
+                    updateNotification("Error: Tor process died")
+                    return@launch
+                }
             }
             // Timeout
             Log.e(TAG, "Tor bootstrap timed out after ${BOOTSTRAP_TIMEOUT_MS / 1000}s")
@@ -227,17 +250,12 @@ class TorService : Service() {
      */
     private fun findTorBinary(): java.io.File? {
         val nativeDir = applicationInfo.nativeLibraryDir
-        val candidates = listOf("libtor.so", "tor")
-        for (name in candidates) {
-            val f = java.io.File(nativeDir, name)
-            if (f.exists()) return f
+        val source = java.io.File(nativeDir, "libtor.so")
+        if (source.exists()) {
+            Log.d(TAG, "Using Tor binary directly from native library dir: ${source.absolutePath}")
+            return source
         }
-        // Also check files dir for extracted binary
-        val filesDir = filesDir
-        val extracted = java.io.File(filesDir, "tor")
-        if (extracted.exists()) return extracted
-
-        Log.w(TAG, "Tor binary not found in $nativeDir or $filesDir")
+        Log.e(TAG, "libtor.so NOT found in $nativeDir")
         return null
     }
 

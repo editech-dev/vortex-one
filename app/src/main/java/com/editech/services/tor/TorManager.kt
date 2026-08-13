@@ -106,6 +106,13 @@ object TorManager {
         prefs.edit().putBoolean(packageName, enabled).apply()
         Log.d(TAG, "Tor ${if (enabled) "enabled" else "disabled"} for $packageName")
 
+        // Stop virtual package so it restarts with fresh DNS/socket state
+        try {
+            top.niunaijun.blackbox.BlackBoxCore.get().stopPackage(packageName, 0)
+        } catch (t: Throwable) {
+            Log.w(TAG, "Could not stop package $packageName on Tor state change: ${t.message}")
+        }
+
         val anyEnabled = torEnabledApps.any { it.value }
         val current = _status.value
         when {
@@ -194,6 +201,48 @@ object TorManager {
         }
         appContext.startService(intent)
         Log.d(TAG, "New identity requested")
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Verification
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Verifies connection through the SOCKS5 proxy by querying https://check.torproject.org/api/ip.
+     * Retries up to 5 times to allow Tor circuits to establish after bootstrap.
+     * Returns Exit IP string if using Tor, or null if failed / not Tor.
+     */
+    @JvmStatic
+    fun verifyTorConnection(): String? {
+        for (attempt in 1..5) {
+            try {
+                val proxy = java.net.Proxy(
+                    java.net.Proxy.Type.SOCKS,
+                    java.net.InetSocketAddress(SOCKS_HOST, SOCKS_PORT)
+                )
+                val url = java.net.URL("https://check.torproject.org/api/ip")
+                val conn = url.openConnection(proxy) as java.net.HttpURLConnection
+                conn.connectTimeout = 8_000
+                conn.readTimeout = 8_000
+                conn.requestMethod = "GET"
+                
+                val response = conn.inputStream.bufferedReader().readText()
+                conn.disconnect()
+                
+                if (response.contains("\"IsTor\":true")) {
+                    val match = Regex("\"IP\":\"([^\"]+)\"").find(response)
+                    val ip = match?.groupValues?.get(1)
+                    Log.d(TAG, "Tor exit node verified successfully: Exit IP = $ip")
+                    return ip
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Tor verification attempt $attempt/5: ${e.message}")
+                if (attempt < 5) {
+                    try { Thread.sleep(1500) } catch (ignored: Exception) {}
+                }
+            }
+        }
+        return null
     }
 
     // ─────────────────────────────────────────────────────────────────────────

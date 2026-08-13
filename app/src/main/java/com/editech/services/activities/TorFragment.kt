@@ -14,6 +14,7 @@ import com.google.android.material.switchmaterial.SwitchMaterial
 class TorFragment : Fragment() {
 
     private var packageName: String = ""
+    private var isProgrammaticChange = false
     private lateinit var switchTorEnable: SwitchMaterial
     private lateinit var tvTorStatus: TextView
     private lateinit var torStatusIndicator: View
@@ -54,7 +55,9 @@ class TorFragment : Fragment() {
 
         // Initial switch state
         val isEnabled = TorManager.isTorEnabled(packageName)
+        isProgrammaticChange = true
         switchTorEnable.isChecked = isEnabled
+        isProgrammaticChange = false
 
         val appName = try {
             val pm = requireContext().packageManager
@@ -78,6 +81,7 @@ class TorFragment : Fragment() {
         }
 
         switchTorEnable.setOnCheckedChangeListener { _, checked ->
+            if (isProgrammaticChange) return@setOnCheckedChangeListener
             TorManager.setTorEnabled(packageName, checked)
         }
 
@@ -94,7 +98,9 @@ class TorFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         if (::switchTorEnable.isInitialized && packageName.isNotEmpty()) {
+            isProgrammaticChange = true
             switchTorEnable.isChecked = TorManager.isTorEnabled(packageName)
+            isProgrammaticChange = false
         }
         TorManager.checkCurrentStatus()
     }
