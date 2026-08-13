@@ -234,26 +234,34 @@ class FileScannerActivity : AppCompatActivity() {
             apkFiles.clear()
             allApkFiles.clear()
 
-            // Lista de directorios a escanear
-            val dirsToScan = listOf(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                Environment.getExternalStorageDirectory(),
-                File("/storage/emulated/0/Download"),
-                File("/storage/emulated/0/Downloads"),
-                File("/sdcard/Download"),
-                File("/sdcard/Downloads")
-            )
+            val dirsToScan = mutableListOf<File>()
+            val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (downloadDir != null && downloadDir.exists()) {
+                dirsToScan.add(downloadDir.canonicalFile)
+            }
+            val rootStorage = Environment.getExternalStorageDirectory()
+            if (rootStorage != null && rootStorage.exists()) {
+                dirsToScan.add(rootStorage.canonicalFile)
+            }
 
+            val uniqueDirs = dirsToScan.distinctBy { it.canonicalPath }
             val foundApks = mutableListOf<ApkFile>()
+            val visitedPaths = HashSet<String>()
 
-            dirsToScan.forEach { dir ->
+            uniqueDirs.forEach { dir ->
                 if (dir.exists() && dir.isDirectory) {
-                    scanDirectoryRecursive(dir, foundApks)
+                    scanDirectoryRecursive(dir, foundApks, visitedPaths)
                 }
             }
 
-            // Eliminar duplicados por path
-            val uniqueApks = foundApks.distinctBy { it.path }
+            // Eliminar duplicados absolutos por canonicalPath
+            val uniqueApks = foundApks.distinctBy { 
+                try {
+                    File(it.path).canonicalPath
+                } catch (e: Exception) {
+                    it.path
+                }
+            }
 
             withContext(Dispatchers.Main) {
                 allApkFiles.addAll(uniqueApks)
@@ -265,31 +273,51 @@ class FileScannerActivity : AppCompatActivity() {
     }
 
     /**
-     * Escanea recursivamente un directorio en busca de archivos .apk
+     * Escanea recursivamente un directorio en busca de archivos .apk evitando bucles y duplicados
      */
-    private fun scanDirectoryRecursive(dir: File, results: MutableList<ApkFile>, maxDepth: Int = 3, currentDepth: Int = 0) {
+    private fun scanDirectoryRecursive(
+        dir: File,
+        results: MutableList<ApkFile>,
+        visitedPaths: HashSet<String>,
+        maxDepth: Int = 3,
+        currentDepth: Int = 0
+    ) {
         if (currentDepth > maxDepth) return
 
         try {
-            dir.listFiles()?.forEach { file ->
-                when {
-                    file.isFile && file.extension.equals("apk", ignoreCase = true) -> {
-                        results.add(
-                            ApkFile(
-                                name = file.nameWithoutExtension,
-                                path = file.absolutePath,
-                                size = file.length()
-                            )
-                        )
+            val canonicalDir = dir.canonicalFile
+            val canonicalDirPath = canonicalDir.canonicalPath
+            if (visitedPaths.contains(canonicalDirPath)) {
+                return
+            }
+            visitedPaths.add(canonicalDirPath)
+
+            canonicalDir.listFiles()?.forEach { file ->
+                try {
+                    val canonicalFile = file.canonicalFile
+                    when {
+                        canonicalFile.isFile && canonicalFile.extension.equals("apk", ignoreCase = true) -> {
+                            val canonicalPath = canonicalFile.canonicalPath
+                            if (!visitedPaths.contains(canonicalPath)) {
+                                visitedPaths.add(canonicalPath)
+                                results.add(
+                                    ApkFile(
+                                        name = canonicalFile.nameWithoutExtension,
+                                        path = canonicalFile.absolutePath,
+                                        size = canonicalFile.length()
+                                    )
+                                )
+                            }
+                        }
+                        canonicalFile.isDirectory && !canonicalFile.name.startsWith(".") -> {
+                            scanDirectoryRecursive(canonicalFile, results, visitedPaths, maxDepth, currentDepth + 1)
+                        }
                     }
-                    file.isDirectory && !file.name.startsWith(".") -> {
-                        scanDirectoryRecursive(file, results, maxDepth, currentDepth + 1)
-                    }
-                }
+                } catch (ignored: Exception) {}
             }
         } catch (e: SecurityException) {
             // Ignorar directorios sin permiso
-        }
+        } catch (ignored: Exception) {}
     }
 
     companion object {
