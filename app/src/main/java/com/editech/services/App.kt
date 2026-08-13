@@ -76,5 +76,17 @@ class App : Application() {
                 android.util.Log.e("App", "Failed to init ads", e)
             }
         }
+
+        // Provision storage directories for installed virtual apps (Background Thread)
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                val installed = BlackBoxCore.get().getInstalledApplications(0, 0)
+                for (app in installed) {
+                    com.editech.services.utils.AppStorageManager.ensureAppStorageDirs(app.packageName, 0)
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("App", "Failed to provision virtual storage dirs: ${e.message}")
+            }
+        }
     }
 }

@@ -36,6 +36,25 @@ object AppStorageManager {
     }
 
     /**
+     * Garantiza que todas las rutas de almacenamiento internas y externas de la app virtual
+     * estén creadas con permisos completos antes de su lanzamiento o tras limpiezas.
+     */
+    fun ensureAppStorageDirs(packageName: String, userId: Int = 0) {
+        if (packageName.isBlank()) return
+        try {
+            safeGetFile { BEnvironment.getDataDir(packageName, userId) }?.mkdirs()
+            safeGetFile { BEnvironment.getDataCacheDir(packageName, userId) }?.mkdirs()
+            safeGetFile { BEnvironment.getDataFilesDir(packageName, userId) }?.mkdirs()
+            safeGetFile { BEnvironment.getExternalDataDir(packageName, userId) }?.mkdirs()
+            safeGetFile { BEnvironment.getExternalDataCacheDir(packageName, userId) }?.mkdirs()
+            safeGetFile { BEnvironment.getExternalDataFilesDir(packageName, userId) }?.mkdirs()
+            safeGetFile { File(BEnvironment.getExternalDataFilesDir(packageName, userId), "Documents") }?.mkdirs()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to ensure storage dirs for $packageName: ${e.message}")
+        }
+    }
+
+    /**
      * Calcula el tamaño total de la memoria caché de una aplicación virtual.
      */
     fun getAppCacheSize(packageName: String, userId: Int = 0): Long {
@@ -45,10 +64,14 @@ object AppStorageManager {
             val internalCache = safeGetFile { BEnvironment.getDataCacheDir(packageName, userId) }
             val externalCache = safeGetFile { BEnvironment.getExternalDataCacheDir(packageName, userId) }
             val codeCache = safeGetFile { File(BEnvironment.getDataDir(packageName, userId), "code_cache") }
+            val glideCache = safeGetFile { File(BEnvironment.getDataDir(packageName, userId), "app_glide_cache") }
+            val picassoCache = safeGetFile { File(BEnvironment.getDataDir(packageName, userId), "app_picasso_cache") }
 
             if (internalCache != null) size += getDirectorySize(internalCache)
             if (externalCache != null) size += getDirectorySize(externalCache)
             if (codeCache != null) size += getDirectorySize(codeCache)
+            if (glideCache != null) size += getDirectorySize(glideCache)
+            if (picassoCache != null) size += getDirectorySize(picassoCache)
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating cache size for $packageName", e)
         }
@@ -76,15 +99,38 @@ object AppStorageManager {
     }
 
     /**
-     * Elimina ÚNICAMENTE los archivos y carpetas dentro de la caché de la aplicación virtual.
+     * Elimina ÚNICAMENTE los archivos de memoria caché temporal de la aplicación virtual.
+     * Protege explícitamente bases de datos (*.db), listas de canales y limpia metadatos desactualizados.
      */
     fun clearAppCache(packageName: String, userId: Int = 0): Long {
         if (packageName.isBlank()) return 0L
         val bytesBefore = getAppCacheSize(packageName, userId)
         try {
-            safeGetFile { BEnvironment.getDataCacheDir(packageName, userId) }?.let { deleteDirContents(it) }
-            safeGetFile { BEnvironment.getExternalDataCacheDir(packageName, userId) }?.let { deleteDirContents(it) }
-            safeGetFile { File(BEnvironment.getDataDir(packageName, userId), "code_cache") }?.let { deleteDirContents(it) }
+            // Stop process cleanly before clearing cache
+            try {
+                BlackBoxCore.get().stopPackage(packageName, userId)
+            } catch (ignored: Throwable) {}
+
+            val cacheTargets = listOfNotNull(
+                safeGetFile { BEnvironment.getDataCacheDir(packageName, userId) },
+                safeGetFile { BEnvironment.getExternalDataCacheDir(packageName, userId) },
+                safeGetFile { File(BEnvironment.getDataDir(packageName, userId), "code_cache") },
+                safeGetFile { File(BEnvironment.getDataDir(packageName, userId), "app_glide_cache") },
+                safeGetFile { File(BEnvironment.getDataDir(packageName, userId), "app_picasso_cache") }
+            )
+
+            for (dir in cacheTargets) {
+                deleteDirContents(dir)
+            }
+
+            // Clear stale metadata JSON cache files (masnew_*, column_data_*) while preserving SQLite .db databases
+            val docsDir = safeGetFile { File(BEnvironment.getExternalDataFilesDir(packageName, userId), "Documents") }
+            val dataFilesDir = safeGetFile { BEnvironment.getDataFilesDir(packageName, userId) }
+            deleteNonDatabaseFiles(docsDir)
+            deleteNonDatabaseFiles(dataFilesDir)
+
+            // Provision directories again after cache clearing
+            ensureAppStorageDirs(packageName, userId)
             Log.d(TAG, "Cleared cache for $packageName ($bytesBefore bytes)")
         } catch (e: Exception) {
             Log.e(TAG, "Error clearing cache for $packageName", e)
@@ -105,7 +151,7 @@ object AppStorageManager {
                 Log.w(TAG, "Failed to stop package $packageName: ${t.message}")
             }
 
-            // 2. Limpiar directorio interno de datos de la app virtual
+            // 2. Limpiar directorio interno de datos de la app virtual (preservando librerías nativas)
             val dataDir = safeGetFile { BEnvironment.getDataDir(packageName, userId) }
             if (dataDir != null && dataDir.exists()) {
                 dataDir.listFiles()?.forEach { child ->
@@ -126,6 +172,9 @@ object AppStorageManager {
             if (deDir != null && deDir.exists()) {
                 deleteDirContents(deDir)
             }
+
+            // 5. Re-crear estructura de directorios
+            ensureAppStorageDirs(packageName, userId)
 
             Log.d(TAG, "Cleared all app data for $packageName (Reset app)")
             true
@@ -164,6 +213,17 @@ object AppStorageManager {
     private fun deleteDirContents(dir: File?) {
         if (dir == null || !dir.exists()) return
         dir.listFiles()?.forEach { deleteRecursive(it) }
+    }
+
+    private fun deleteNonDatabaseFiles(dir: File?) {
+        if (dir == null || !dir.exists()) return
+        dir.listFiles()?.forEach { file ->
+            if (file.isDirectory) {
+                deleteNonDatabaseFiles(file)
+            } else if (!file.name.endsWith(".db") && !file.name.endsWith(".db-journal") && !file.name.endsWith(".sqlite")) {
+                file.delete()
+            }
+        }
     }
 
     private fun deleteRecursive(fileOrDirectory: File) {
