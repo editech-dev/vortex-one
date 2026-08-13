@@ -127,10 +127,10 @@ public class IDnsResolverProxy extends BinderInvocationStub {
         
         private Object createFallbackDnsResult() {
             try {
-                // Create a fallback DNS result with Google DNS
+                // Create a fallback DNS result with Cloudflare DNS
                 List<InetAddress> fallbackServers = new ArrayList<>();
-                fallbackServers.add(InetAddress.getByName("8.8.8.8"));
-                fallbackServers.add(InetAddress.getByName("8.8.4.4"));
+                fallbackServers.add(InetAddress.getByName("1.1.1.1"));
+                fallbackServers.add(InetAddress.getByName("1.0.0.1"));
                 return fallbackServers;
             } catch (Exception e) {
                 Slog.e(TAG, "Error creating fallback DNS result: " + e.getMessage());

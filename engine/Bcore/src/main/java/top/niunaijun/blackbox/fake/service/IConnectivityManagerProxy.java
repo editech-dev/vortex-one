@@ -185,11 +185,11 @@ public class IConnectivityManagerProxy extends BinderInvocationStub {
             constructor.setAccessible(true);
             Object linkProperties = constructor.newInstance();
             
-            // Add DNS servers (Google DNS as fallback)
+            // Add DNS servers (Cloudflare DNS as default)
             java.util.List<java.net.InetAddress> dnsServers = new java.util.ArrayList<>();
             try {
-                dnsServers.add(java.net.InetAddress.getByName("8.8.8.8"));
-                dnsServers.add(java.net.InetAddress.getByName("8.8.4.4"));
+                dnsServers.add(java.net.InetAddress.getByName("1.1.1.1"));
+                dnsServers.add(java.net.InetAddress.getByName("1.0.0.1"));
                 
                 // Set DNS servers using reflection to ensure compatibility
                 Method setDnsServersMethod = linkProperties.getClass().getMethod("setDnsServers", java.util.List.class);
@@ -477,42 +477,42 @@ public class IConnectivityManagerProxy extends BinderInvocationStub {
         }
     }
 
-    // Hook for getPrivateDnsServerName to disable private DNS
+    // Hook for getPrivateDnsServerName to enable Cloudflare DoT (DNS-over-TLS)
     @ProxyMethod("getPrivateDnsServerName")
     public static class GetPrivateDnsServerName extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            // Return null to disable private DNS and use system DNS
-            Slog.d(TAG, "Disabling private DNS for sandboxed app");
-            return null;
+            // Return one.one.one.one to set Cloudflare DoT
+            Slog.d(TAG, "Setting Cloudflare DoT (one.one.one.one) for sandboxed app");
+            return "one.one.one.one";
         }
     }
 
-    // Hook for isPrivateDnsActive to ensure private DNS is not active
+    // Hook for isPrivateDnsActive to indicate Cloudflare DoT is active
     @ProxyMethod("isPrivateDnsActive")
     public static class IsPrivateDnsActive extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            // Return false to indicate private DNS is not active
-            Slog.d(TAG, "Private DNS disabled for sandboxed app");
-            return false;
+            // Return true to indicate private DNS is active
+            Slog.d(TAG, "Cloudflare DoT active for sandboxed app");
+            return true;
         }
     }
 
-    // Hook for getDnsServers to ensure proper DNS resolution
+    // Hook for getDnsServers to return Cloudflare DNS servers
     @ProxyMethod("getDnsServers")
     public static class GetDnsServers extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             try {
-                // Return system DNS servers instead of custom ones
+                // Return Cloudflare DNS servers (1.1.1.1, 1.0.0.1)
                 java.util.List<java.net.InetAddress> dnsServers = new java.util.ArrayList<>();
-                dnsServers.add(java.net.InetAddress.getByName("8.8.8.8"));
-                dnsServers.add(java.net.InetAddress.getByName("8.8.4.4"));
-                Slog.d(TAG, "Returning system DNS servers for sandboxed app");
+                dnsServers.add(java.net.InetAddress.getByName("1.1.1.1"));
+                dnsServers.add(java.net.InetAddress.getByName("1.0.0.1"));
+                Slog.d(TAG, "Returning Cloudflare DNS servers (1.1.1.1 / 1.0.0.1) for sandboxed app");
                 return dnsServers;
             } catch (Exception e) {
-                Slog.w(TAG, "Error creating DNS servers list: " + e.getMessage());
+                Slog.w(TAG, "Error creating Cloudflare DNS servers list: " + e.getMessage());
                 return method.invoke(who, args);
             }
         }

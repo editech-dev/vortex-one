@@ -151,9 +151,9 @@ public class ProxyVpnService extends VpnService {
             // Add routes for all traffic - this is critical for internet access
             builder.addRoute("0.0.0.0", 0);  // Route all IPv4 traffic through VPN
             
-            // Add DNS servers (Google DNS as fallback)
-            builder.addDnsServer("8.8.8.8");
-            builder.addDnsServer("8.8.4.4");
+            // Add DNS servers (Cloudflare DNS)
+            builder.addDnsServer("1.1.1.1");
+            builder.addDnsServer("1.0.0.1");
             
             // Allow all applications to use this VPN
             builder.addAllowedApplication(getPackageName());
