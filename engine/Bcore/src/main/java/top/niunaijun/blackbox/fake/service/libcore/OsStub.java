@@ -104,6 +104,9 @@ public class OsStub extends ClassInvocationStub {
     static volatile java.lang.reflect.Method sTorProxyMethod;
     static volatile boolean sTorReflectionFailed = false;
 
+    static volatile java.lang.reflect.Method sDnsResolverMethod;
+    static volatile boolean sDnsResolverReflectionFailed = false;
+
     static void ensureTorReflection() {
         if (sTorEnabledMethod != null || sTorReflectionFailed) return;
         try {
@@ -113,6 +116,27 @@ public class OsStub extends ClassInvocationStub {
         } catch (Exception e) {
             sTorReflectionFailed = true;
         }
+    }
+
+    static void ensureDnsResolverReflection() {
+        if (sDnsResolverMethod != null || sDnsResolverReflectionFailed) return;
+        try {
+            Class<?> dnsClass = Class.forName("com.editech.services.net.CloudflareDnsResolver");
+            sDnsResolverMethod = dnsClass.getMethod("resolve", String.class);
+        } catch (Exception e) {
+            sDnsResolverReflectionFailed = true;
+        }
+    }
+
+    private static java.net.InetAddress[] resolveViaCloudflareDoH(String hostname) {
+        if (hostname == null || sDnsResolverReflectionFailed) return null;
+        try {
+            ensureDnsResolverReflection();
+            if (sDnsResolverMethod != null) {
+                return (java.net.InetAddress[]) sDnsResolverMethod.invoke(null, hostname);
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 
     private static boolean isTorEnabledForPackage(String pkg) {
@@ -206,6 +230,13 @@ public class OsStub extends ClassInvocationStub {
                         java.net.InetAddress addr = java.net.InetAddress.getByAddress(node, java.net.InetAddress.getByName(virtualIp).getAddress());
                         logTorDnsResolution(node, virtualIp, pkg);
                         return new java.net.InetAddress[]{ addr };
+                    } else if (pkg != null) {
+                        try {
+                            java.net.InetAddress[] dohAddrs = resolveViaCloudflareDoH(node);
+                            if (dohAddrs != null && dohAddrs.length > 0) {
+                                return dohAddrs;
+                            }
+                        } catch (Throwable ignored) {}
                     }
                 }
             }
@@ -226,6 +257,13 @@ public class OsStub extends ClassInvocationStub {
                         java.net.InetAddress addr = java.net.InetAddress.getByAddress(node, java.net.InetAddress.getByName(virtualIp).getAddress());
                         logTorDnsResolution(node, virtualIp, pkg);
                         return new java.net.InetAddress[]{ addr };
+                    } else if (pkg != null) {
+                        try {
+                            java.net.InetAddress[] dohAddrs = resolveViaCloudflareDoH(node);
+                            if (dohAddrs != null && dohAddrs.length > 0) {
+                                return dohAddrs;
+                            }
+                        } catch (Throwable ignored) {}
                     }
                 }
             }
@@ -266,6 +304,11 @@ public class OsStub extends ClassInvocationStub {
                 }
 
                 if (address != null) {
+                    // 0. Bypass inmediato para sockets internos del demonio Tor (SOCKS5 9150, Control 9151, DNS 5453)
+                    if (address.isLoopbackAddress() && (port == 9150 || port == 9151 || port == 5453)) {
+                        return method.invoke(who, args);
+                    }
+
                     sIsChecking.set(true);
 
                     // 1. Check if we should block (Reflection)
@@ -312,24 +355,7 @@ public class OsStub extends ClassInvocationStub {
                                          }
                                          // ──────────────────────────────────────────────────────────────────
 
-                                         boolean proxyUp = (boolean) OsStub.sTorProxyMethod.invoke(null);
-                                        if (!proxyUp) {
-                                            // Retry up to 3 times with 400ms delay if Tor service is bootstrapping
-                                            for (int retry = 0; retry < 3; retry++) {
-                                                try { Thread.sleep(400); } catch (InterruptedException ignored) {}
-                                                proxyUp = (boolean) OsStub.sTorProxyMethod.invoke(null);
-                                                if (proxyUp) break;
-                                            }
-                                        }
-                                        if (!proxyUp) {
-                                            // Kill-switch: log as TOR/BLOCKED and refuse connection
-                                            logTorConnection(address.getHostAddress(), port,
-                                                    true, "BLOCKED", "Tor proxy not ready",
-                                                    "TOR/BLOCKED", pkg);
-                                            throw new java.net.SocketException(
-                                                    "[Tor] Proxy not ready — connection blocked for safety");
-                                        }
-                                        // Proxy is up — tunnel through SOCKS5
+                                         // Enrutar tráfico directamente por el túnel Tor SOCKS5
                                         sIsChecking.remove();
                                         return connectViaTorSocks5(who, method, args, address, port, pkg);
                                     }

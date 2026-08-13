@@ -251,8 +251,8 @@ class FirewallManager private constructor(private val context: Context) {
     fun classifyThreat(address: InetAddress, port: Int): ThreatType? {
         val ip = address.hostAddress ?: return null
 
-        // Never classify Tor local proxy as a threat
-        if (address.isLoopbackAddress && (port == 9150 || port == 9151 || port == 5453)) {
+        // Never classify Tor local proxy or Tor virtual IPs (127.192.0.0/10) as a threat
+        if (ip.startsWith("127.192.") || (address.isLoopbackAddress && (port == 9150 || port == 9151 || port == 5453))) {
             return null
         }
 
