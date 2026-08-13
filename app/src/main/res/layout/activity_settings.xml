@@ -98,11 +98,11 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Left Master Panel (34% Width) -->
+        <!-- Left Master Panel (32% Width) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="34"
+            android:layout_weight="32"
             android:orientation="vertical"
             android:layout_marginEnd="16dp">
 
@@ -142,10 +142,10 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnClearAllCache"
                         android:layout_width="match_parent"
-                        android:layout_height="42dp"
+                        android:layout_height="40dp"
                         android:layout_marginTop="14dp"
                         android:text="@string/btn_clear_all_cache"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         android:textStyle="bold"
                         android:focusable="true"
                         android:clickable="true"
@@ -154,9 +154,10 @@
                         app:backgroundTint="@null"
                         app:strokeColor="#38BDF8"
                         app:strokeWidth="1dp"
-                        app:cornerRadius="8dp"
+                        app:cornerRadius="10dp"
                         app:icon="@drawable/ic_clean"
-                        app:iconSize="16dp"
+                        app:iconSize="15dp"
+                        app:iconPadding="6dp"
                         app:iconGravity="textStart"
                         app:iconTint="#38BDF8"
                         android:textColor="#F8FAFC"
@@ -187,7 +188,7 @@
                         android:layout_height="wrap_content"
                         android:text="VORTEX ONE 2.0"
                         android:textColor="#818CF8"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -203,11 +204,11 @@
 
         </LinearLayout>
 
-        <!-- Right Detail Panel: Apps List (66% Width) -->
+        <!-- Right Detail Panel: Apps List (68% Width) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="66"
+            android:layout_weight="68"
             android:orientation="vertical">
 
             <TextView
