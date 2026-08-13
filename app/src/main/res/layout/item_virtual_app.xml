@@ -23,13 +23,38 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Icono de la aplicación -->
-        <ImageView
-            android:id="@+id/ivAppIcon"
+        <!-- Contenedor del Icono con Insignia Tor -->
+        <FrameLayout
             android:layout_width="96dp"
-            android:layout_height="96dp"
-            android:scaleType="fitCenter"
-            android:src="@mipmap/ic_launcher" />
+            android:layout_height="96dp">
+
+            <!-- Icono de la aplicación -->
+            <ImageView
+                android:id="@+id/ivAppIcon"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:src="@mipmap/ic_launcher" />
+
+            <!-- Insignia Tor (Visible si la app tiene Tor habilitado) -->
+            <LinearLayout
+                android:id="@+id/layoutTorBadge"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="top|end"
+                android:background="@drawable/bg_tor_badge"
+                android:gravity="center"
+                android:elevation="6dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/ivTorBadgeIcon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_tor_onion"
+                    android:contentDescription="Tor Routing Active" />
+            </LinearLayout>
+        </FrameLayout>
 
         <!-- Nombre de la aplicación -->
         <TextView

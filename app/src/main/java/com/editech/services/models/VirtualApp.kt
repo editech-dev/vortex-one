@@ -11,5 +11,6 @@ data class VirtualApp(
     val icon: Drawable?,
     val versionName: String = "",
     val versionCode: Int = 0,
-    val userId: Int = 0
+    val userId: Int = 0,
+    val isTorEnabled: Boolean = false
 )

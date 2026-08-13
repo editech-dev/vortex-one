@@ -43,6 +43,9 @@ class VirtualAppsAdapter(
             binding.tvAppName.text = app.name
             binding.ivAppIcon.setImageDrawable(app.icon)
 
+            // Mostrar u ocultar insignia de Tor
+            binding.layoutTorBadge.visibility = if (app.isTorEnabled) android.view.View.VISIBLE else android.view.View.GONE
+
             // Click para lanzar la app
             binding.root.setOnClickListener {
                 onAppClick(app)

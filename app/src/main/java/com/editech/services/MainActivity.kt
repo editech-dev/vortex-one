@@ -79,6 +79,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        // Recargar aplicaciones para sincronizar badges de Tor y estado tras regresar de Ajustes/Firewall
+        loadVirtualApps()
+    }
     
     private fun setupRecyclerView() {
         adapter = VirtualAppsAdapter(
@@ -281,12 +287,14 @@ class MainActivity : AppCompatActivity() {
                         null
                     }
                     
+                    val isTor = com.editech.services.tor.TorManager.isTorEnabled(appInfo.packageName)
                     apps.add(
                         VirtualApp(
                             packageName = appInfo.packageName,
                             name = appInfo.loadLabel(packageManager).toString(),
                             icon = icon,
-                            userId = USER_ID
+                            userId = USER_ID,
+                            isTorEnabled = isTor
                         )
                     )
                 }
