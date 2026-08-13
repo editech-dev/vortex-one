@@ -256,8 +256,13 @@ class FirewallManager private constructor(private val context: Context) {
             return null
         }
 
-        // ADB access detection: common ADB ports
-        if (port == 5555 || port == 5037 || port in 38000..39999) {
+        // SSDP Multicast or UPnP / P2P port mapping ports (1900, 5351, 39900, 39901, 49152) -> LOCAL_NETWORK threat
+        if (address.isMulticastAddress || ip == "239.255.255.250" || port == 1900 || port == 5351 || port == 39900 || port == 39901 || port == 49152) {
+            return ThreatType.LOCAL_NETWORK
+        }
+
+        // ADB access detection: common ADB ports (5555, 5037)
+        if (port == 5555 || port == 5037) {
             return ThreatType.ADB_ACCESS
         }
 
