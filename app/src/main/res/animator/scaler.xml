@@ -1,43 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Subtle focus animator for TV D-pad navigation.
-  Scale 1.03 instead of 1.1 to avoid clipping by parent RecyclerView.
-  A glowing stroke is added programmatically for bandwidth cards.
+  Animador de foco D-pad para Android TV:
+  Elevación sutil translationZ sin distorsión de escala que desborde los márgenes de pantalla.
 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <set>
             <objectAnimator
-                android:duration="150"
-                android:propertyName="scaleX"
-                android:valueTo="1.015"
-                android:valueType="floatType" />
-            <objectAnimator
-                android:duration="150"
-                android:propertyName="scaleY"
-                android:valueTo="1.015"
-                android:valueType="floatType" />
-            <objectAnimator
-                android:duration="150"
+                android:duration="120"
                 android:propertyName="translationZ"
-                android:valueTo="6dp"
+                android:valueTo="4dp"
                 android:valueType="floatType" />
         </set>
     </item>
     <item android:state_focused="false">
         <set>
             <objectAnimator
-                android:duration="150"
-                android:propertyName="scaleX"
-                android:valueTo="1.0"
-                android:valueType="floatType" />
-            <objectAnimator
-                android:duration="150"
-                android:propertyName="scaleY"
-                android:valueTo="1.0"
-                android:valueType="floatType" />
-            <objectAnimator
-                android:duration="150"
+                android:duration="120"
                 android:propertyName="translationZ"
                 android:valueTo="0dp"
                 android:valueType="floatType" />
