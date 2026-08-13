@@ -4,6 +4,10 @@
         <item name="android:windowDisablePreview">true</item>
     </style>
 
-    <style name="LauncherTheme" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="LauncherTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@drawable/bg_launcher_splash</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
     </style>
 </resources>

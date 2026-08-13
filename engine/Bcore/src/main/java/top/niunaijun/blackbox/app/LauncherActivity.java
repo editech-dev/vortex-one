@@ -94,33 +94,62 @@ public class LauncherActivity extends Activity {
             }
             setContentView(R.layout.activity_launcher);
             ImageView iconView = findViewById(R.id.iv_icon);
+            android.view.View iconContainer = findViewById(R.id.card_icon_container);
+            android.view.View torBadge = findViewById(R.id.layout_tor_splash_badge);
             TextView nameView = findViewById(R.id.tv_app_name);
+            TextView statusView = findViewById(R.id.tv_loading_status);
+            android.widget.ProgressBar progressBar = findViewById(R.id.pb_loading);
+
+            boolean isTor = isTorEnabledForPackage(packageName);
+            if (torBadge != null) {
+                torBadge.setVisibility(isTor ? android.view.View.VISIBLE : android.view.View.GONE);
+            }
+
+            if (statusView != null) {
+                statusView.setText(isTor ? "Iniciando con red segura Tor..." : "Iniciando aplicación...");
+                statusView.setAlpha(0f);
+                statusView.animate().alpha(1f).setDuration(400).setStartDelay(200).start();
+            }
+
+            if (progressBar != null) {
+                progressBar.setAlpha(0f);
+                progressBar.animate().alpha(1f).setDuration(400).setStartDelay(150).start();
+            }
+
             if (nameView != null) {
                 nameView.setText(appName);
                 nameView.setAlpha(0f);
                 nameView.animate()
                     .alpha(1f)
-                    .setDuration(500)
-                    .setStartDelay(200)
+                    .setDuration(400)
+                    .setStartDelay(100)
                     .start();
             }
+
             if (iconView != null && drawable != null) {
                 iconView.setImageDrawable(drawable);
-                iconView.setScaleX(0.7f);
-                iconView.setScaleY(0.7f);
-                iconView.setAlpha(0f);
-                iconView.animate()
-                    .scaleX(1.1f)
-                    .scaleY(1.1f)
+            }
+
+            if (iconContainer != null) {
+                iconContainer.setScaleX(0.75f);
+                iconContainer.setScaleY(0.75f);
+                iconContainer.setAlpha(0f);
+                iconContainer.animate()
+                    .scaleX(1.05f)
+                    .scaleY(1.05f)
                     .alpha(1f)
                     .setDuration(350)
-                    .setInterpolator(new OvershootInterpolator())
-                    .withEndAction(() -> iconView.animate()
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(150)
-                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                        .start())
+                    .setInterpolator(new OvershootInterpolator(1.2f))
+                    .withEndAction(() -> {
+                        if (iconContainer != null) {
+                            iconContainer.animate()
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(180)
+                                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                                .start();
+                        }
+                    })
                     .start();
             }
             
@@ -130,6 +159,20 @@ public class LauncherActivity extends Activity {
         } catch (Exception e) {
             Slog.e(TAG, "Critical error in LauncherActivity.onCreate()", e);
             finish();
+        }
+    }
+
+    /**
+     * Checks if Tor routing is enabled for the target virtual app via reflection
+     */
+    private boolean isTorEnabledForPackage(String packageName) {
+        if (packageName == null) return false;
+        try {
+            Class<?> torManagerClass = Class.forName("com.editech.services.tor.TorManager");
+            java.lang.reflect.Method method = torManagerClass.getMethod("isTorEnabledForPackage", String.class);
+            return (boolean) method.invoke(null, packageName);
+        } catch (Throwable ignored) {
+            return false;
         }
     }
 
