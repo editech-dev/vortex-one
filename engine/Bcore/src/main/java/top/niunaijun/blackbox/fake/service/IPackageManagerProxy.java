@@ -538,9 +538,10 @@ public class IPackageManagerProxy extends BinderInvocationStub {
     // Helper: recognize storage/media read permissions across API levels
     private static boolean isStorageOrMediaPermission(String permission) {
         if (permission == null) return false;
-        // Legacy storage
+        // Legacy storage & All Files Access
         if (permission.equals(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-                || permission.equals(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                || permission.equals(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                || permission.equals("android.permission.MANAGE_EXTERNAL_STORAGE")) {
             return true;
         }
         // Android 13+ granular media

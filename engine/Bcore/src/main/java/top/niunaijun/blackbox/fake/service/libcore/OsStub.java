@@ -100,11 +100,11 @@ public class OsStub extends ClassInvocationStub {
     private static final java.util.concurrent.atomic.AtomicInteger sVirtualIpCounter =
             new java.util.concurrent.atomic.AtomicInteger(1);
 
-    private static volatile java.lang.reflect.Method sTorEnabledMethod;
-    private static volatile java.lang.reflect.Method sTorProxyMethod;
-    private static volatile boolean sTorReflectionFailed = false;
+    static volatile java.lang.reflect.Method sTorEnabledMethod;
+    static volatile java.lang.reflect.Method sTorProxyMethod;
+    static volatile boolean sTorReflectionFailed = false;
 
-    private static void ensureTorReflection() {
+    static void ensureTorReflection() {
         if (sTorEnabledMethod != null || sTorReflectionFailed) return;
         try {
             Class<?> torMgr = Class.forName("com.editech.services.tor.TorManager");
@@ -217,11 +217,6 @@ public class OsStub extends ClassInvocationStub {
             }
         };
 
-        // Cached Tor reflection refs — resolved once, reused on every connection
-        private static volatile java.lang.reflect.Method sTorEnabledMethod;
-        private static volatile java.lang.reflect.Method sTorProxyMethod;
-        private static volatile boolean sTorReflectionFailed = false;
-
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             if (sIsChecking.get()) {
@@ -272,20 +267,20 @@ public class OsStub extends ClassInvocationStub {
                     // Check if this virtual app has Tor routing enabled.
                     // If yes, tunnel through 127.0.0.1:9150 (SOCKS5).
                     // If Tor is enabled but proxy is down -> BLOCK (kill-switch).
-                    if (!sTorReflectionFailed) {
+                    if (!OsStub.sTorReflectionFailed) {
                         try {
-                            ensureTorReflection();
-                            if (sTorEnabledMethod != null) {
+                            OsStub.ensureTorReflection();
+                            if (OsStub.sTorEnabledMethod != null) {
                                 String pkg = top.niunaijun.blackbox.app.BActivityThread.getAppPackageName();
                                 if (pkg != null) {
-                                    boolean torEnabled = (boolean) sTorEnabledMethod.invoke(null, pkg);
+                                    boolean torEnabled = (boolean) OsStub.sTorEnabledMethod.invoke(null, pkg);
                                     if (torEnabled) {
-                                        boolean proxyUp = (boolean) sTorProxyMethod.invoke(null);
+                                        boolean proxyUp = (boolean) OsStub.sTorProxyMethod.invoke(null);
                                         if (!proxyUp) {
                                             // Retry up to 3 times with 400ms delay if Tor service is bootstrapping
                                             for (int retry = 0; retry < 3; retry++) {
                                                 try { Thread.sleep(400); } catch (InterruptedException ignored) {}
-                                                proxyUp = (boolean) sTorProxyMethod.invoke(null);
+                                                proxyUp = (boolean) OsStub.sTorProxyMethod.invoke(null);
                                                 if (proxyUp) break;
                                             }
                                         }
@@ -308,6 +303,18 @@ public class OsStub extends ClassInvocationStub {
                         } catch (Exception ignored) {}
                     }
                     // ── END TOR REDIRECT ──────────────────────────────────────────────────────
+
+                    // If Tor is NOT enabled for this package, but the target address is a virtual Tor IP (127.192.x.x),
+                    // resolve the real IP from original hostname so direct connection doesn't fail!
+                    if (address != null && address.getHostAddress() != null && address.getHostAddress().startsWith("127.192.")) {
+                        String origHost = sVirtualIpToHostname.get(address.getHostAddress());
+                        if (origHost != null) {
+                            try {
+                                address = java.net.InetAddress.getByName(origHost);
+                                args[1] = address;
+                            } catch (Exception ignored) {}
+                        }
+                    }
                 }
             } catch (Throwable e) {
                 if (e instanceof java.net.SocketException) {
