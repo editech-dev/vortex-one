@@ -59,7 +59,7 @@
             
         <activity
             android:name=".activities.FirewallAppDetailActivity"
-            android:exported="false"
+            android:exported="true"
             android:theme="@style/Theme.VortexTV" />
         
         <activity
@@ -70,7 +70,7 @@
         
         <activity
             android:name=".activities.FirewallActivity"
-            android:exported="false"
+            android:exported="true"
             tools:ignore="LockedOrientationActivity"
             android:theme="@style/Theme.VortexTV" />
 
@@ -83,7 +83,7 @@
         <!-- Tor embedded service -->
         <service
             android:name=".tor.TorService"
-            android:exported="false"
+            android:exported="true"
             android:foregroundServiceType="dataSync" />
     </application>
 

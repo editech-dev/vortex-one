@@ -344,13 +344,10 @@ class MainActivity : AppCompatActivity() {
      * Lanza una aplicación virtual (Fase 5)
      */
     private fun launchVirtualApp(app: VirtualApp) {
-        // Show ad before launching app, respecting frequency cap
-        com.editech.services.utils.AdManager.showInterstitial(this) {
-             try {
-                BlackBoxCore.get().launchApk(app.packageName, USER_ID)
-            } catch (e: Exception) {
-                Toast.makeText(this, getString(R.string.toast_launch_error, app.name, e.message), Toast.LENGTH_SHORT).show()
-            }
+        try {
+            BlackBoxCore.get().launchApk(app.packageName, USER_ID)
+        } catch (e: Exception) {
+            Toast.makeText(this, getString(R.string.toast_launch_error, app.name, e.message), Toast.LENGTH_SHORT).show()
         }
     }
     

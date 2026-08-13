@@ -251,6 +251,11 @@ class FirewallManager private constructor(private val context: Context) {
     fun classifyThreat(address: InetAddress, port: Int): ThreatType? {
         val ip = address.hostAddress ?: return null
 
+        // Never classify Tor local proxy as a threat
+        if (address.isLoopbackAddress && (port == 9150 || port == 9151 || port == 5453)) {
+            return null
+        }
+
         // ADB access detection: common ADB ports
         if (port == 5555 || port == 5037 || port in 38000..39999) {
             return ThreatType.ADB_ACCESS
@@ -504,7 +509,7 @@ class FirewallManager private constructor(private val context: Context) {
         path: String? = null,
         overrideHostname: String? = null
     ) {
-        val hostname = overrideHostname ?: dnsCache[ip]
+        val hostname = overrideHostname ?: dnsCache["$packageName|$ip"] ?: dnsCache["*|$ip"]
         
         val log = ConnectionLog(
             packageName = packageName,
@@ -542,7 +547,8 @@ class FirewallManager private constructor(private val context: Context) {
      * Register DNS resolution for IP to hostname mapping
      */
     fun registerDnsResolution(packageName: String, hostname: String, ip: String) {
-        dnsCache[ip] = hostname
+        dnsCache["$packageName|$ip"] = hostname
+        dnsCache["*|$ip"] = hostname
         Log.d(TAG, "DNS: $hostname -> $ip (from $packageName)")
     }
     
