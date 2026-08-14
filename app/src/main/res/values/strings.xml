@@ -127,4 +127,13 @@
     <string name="firewall_privacy_title">Privacy &amp; Isolation</string>
     <string name="firewall_privacy_desc">Built-in anonymous browsing. Tor-enabled applications conceal your real location and safeguard your identity end-to-end.</string>
     <string name="firewall_rules_title">Application Rules</string>
+    <string name="gms_settings_title">Google Play Services</string>
+    <string name="gms_settings_desc">Virtualization support for Google Sign-In, Firebase, Cast &amp; Play Store APIs</string>
+    <string name="gms_status_installed">GMS Active</string>
+    <string name="gms_status_not_installed">GMS Inactive</string>
+    <string name="btn_install_gms">Enable Google Services</string>
+    <string name="btn_uninstall_gms">Disable Google Services</string>
+    <string name="toast_gms_installed">✓ Google Play Services enabled</string>
+    <string name="toast_gms_uninstalled">✓ Google Play Services disabled</string>
+    <string name="toast_gms_error">Error configuring GMS: %s</string>
 </resources>

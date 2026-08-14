@@ -127,4 +127,13 @@
     <string name="firewall_privacy_title">Privacidad y Aislamiento</string>
     <string name="firewall_privacy_desc">Navegación anónima integrada. Las aplicaciones con Tor ocultan tu ubicación real y protegen tu identidad de extremo a extremo.</string>
     <string name="firewall_rules_title">Reglas por Aplicación</string>
+    <string name="gms_settings_title">Servicios de Google Play</string>
+    <string name="gms_settings_desc">Soporte de virtualización para inicio de sesión con Google, Firebase, Cast y compras</string>
+    <string name="gms_status_installed">GMS Activo</string>
+    <string name="gms_status_not_installed">GMS Inactivo</string>
+    <string name="btn_install_gms">Habilitar Servicios Google</string>
+    <string name="btn_uninstall_gms">Deshabilitar Servicios Google</string>
+    <string name="toast_gms_installed">✓ Servicios de Google Play habilitados</string>
+    <string name="toast_gms_uninstalled">✓ Servicios de Google Play deshabilitados</string>
+    <string name="toast_gms_error">Error al configurar GMS: %s</string>
 </resources>

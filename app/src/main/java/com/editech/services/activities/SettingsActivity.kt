@@ -44,9 +44,78 @@ class SettingsActivity : AppCompatActivity() {
 
         setupRecyclerView()
         setupButtons()
+        setupGmsControls()
         setupVersionInfo()
         loadBanner()
         loadVirtualApps()
+    }
+
+    private fun setupGmsControls() {
+        refreshGmsStatus()
+        binding.btnToggleGms.setOnClickListener {
+            handleToggleGms()
+        }
+    }
+
+    private fun refreshGmsStatus() {
+        val isInstalled = try {
+            BlackBoxCore.get().isInstallGms(USER_ID)
+        } catch (e: Exception) {
+            false
+        }
+
+        if (isInstalled) {
+            binding.tvGmsStatus.text = getString(R.string.gms_status_installed)
+            binding.tvGmsStatus.setTextColor(android.graphics.Color.parseColor("#4ADE80"))
+            binding.btnToggleGms.text = getString(R.string.btn_uninstall_gms)
+            binding.btnToggleGms.setBackgroundColor(android.graphics.Color.parseColor("#DC2626"))
+        } else {
+            binding.tvGmsStatus.text = getString(R.string.gms_status_not_installed)
+            binding.tvGmsStatus.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
+            binding.btnToggleGms.text = getString(R.string.btn_install_gms)
+            binding.btnToggleGms.setBackgroundColor(android.graphics.Color.parseColor("#0284C7"))
+        }
+    }
+
+    private fun handleToggleGms() {
+        val isInstalled = try {
+            BlackBoxCore.get().isInstallGms(USER_ID)
+        } catch (e: Exception) {
+            false
+        }
+
+        binding.progressBar.visibility = View.VISIBLE
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (isInstalled) {
+                    BlackBoxCore.get().uninstallGms(USER_ID)
+                    withContext(Dispatchers.Main) {
+                        binding.progressBar.visibility = View.GONE
+                        Toast.makeText(this@SettingsActivity, getString(R.string.toast_gms_uninstalled), Toast.LENGTH_SHORT).show()
+                        refreshGmsStatus()
+                        loadVirtualApps()
+                    }
+                } else {
+                    val result = BlackBoxCore.get().installGms(USER_ID)
+                    withContext(Dispatchers.Main) {
+                        binding.progressBar.visibility = View.GONE
+                        if (result.success) {
+                            Toast.makeText(this@SettingsActivity, getString(R.string.toast_gms_installed), Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@SettingsActivity, getString(R.string.toast_gms_error, result.msg), Toast.LENGTH_SHORT).show()
+                        }
+                        refreshGmsStatus()
+                        loadVirtualApps()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    binding.progressBar.visibility = View.GONE
+                    Toast.makeText(this@SettingsActivity, getString(R.string.toast_gms_error, e.message), Toast.LENGTH_SHORT).show()
+                    refreshGmsStatus()
+                }
+            }
+        }
     }
 
     private fun setupVersionInfo() {
