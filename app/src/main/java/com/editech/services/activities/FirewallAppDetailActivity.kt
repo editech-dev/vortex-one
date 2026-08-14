@@ -477,10 +477,11 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
 
     fun isFirstItemFocused(): Boolean {
         if (!::recyclerView.isInitialized) return true
-        val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return true
         val focused = recyclerView.findFocus() ?: return true
-        val pos = lm.getPosition(focused)
-        return pos <= 0 || lm.findFirstCompletelyVisibleItemPosition() == 0
+        val directChild = recyclerView.findContainingItemView(focused) ?: focused
+        val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return true
+        val pos = lm.getPosition(directChild)
+        return pos == 0 || (pos == androidx.recyclerview.widget.RecyclerView.NO_POSITION && lm.findFirstVisibleItemPosition() == 0)
     }
 
     /**
@@ -905,35 +906,46 @@ class BandwidthAdapter(
                 override fun onStopTrackingTouch(sb: android.widget.SeekBar?) {}
             })
 
-            // D-pad ◀▶ navigation for TV — handled on itemView so it works
-            // whether the SeekBar or the card has focus
+            // D-pad ◀▶ navigation for TV — adjust speed steps cleanly
             itemView.setOnKeyListener { _, keyCode, event ->
                 if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
                 when (keyCode) {
                     KeyEvent.KEYCODE_DPAD_LEFT  -> {
-                        if (seekBar.progress > 0) {
-                            val newP = seekBar.progress - 1
-                            seekBar.progress = newP
+                        val currentP = steps.indexOf(item.limitBytes).takeIf { it >= 0 } ?: 0
+                        if (currentP > 0) {
+                            val newP = currentP - 1
                             val limit = steps[newP]
                             item.limitBytes = limit
+                            seekBar.progress = newP
                             updateValueText(limit, itemView.context)
                             onLimitChanged(item.isUpload, limit)
-                            true
-                        } else false
+                        }
+                        true
                     }
                     KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                        if (seekBar.progress < seekBar.max) {
-                            val newP = seekBar.progress + 1
-                            seekBar.progress = newP
+                        val currentP = steps.indexOf(item.limitBytes).takeIf { it >= 0 } ?: 0
+                        if (currentP < steps.size - 1) {
+                            val newP = currentP + 1
                             val limit = steps[newP]
                             item.limitBytes = limit
+                            seekBar.progress = newP
                             updateValueText(limit, itemView.context)
                             onLimitChanged(item.isUpload, limit)
-                            true
-                        } else false
+                        }
+                        true
                     }
                     else -> false
                 }
+            }
+
+            itemView.setOnClickListener {
+                val currentP = steps.indexOf(item.limitBytes).takeIf { it >= 0 } ?: 0
+                val newP = (currentP + 1) % steps.size
+                val limit = steps[newP]
+                item.limitBytes = limit
+                seekBar.progress = newP
+                updateValueText(limit, itemView.context)
+                onLimitChanged(item.isUpload, limit)
             }
         }
 
