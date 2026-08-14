@@ -106,6 +106,10 @@ class TorFragment : Fragment() {
     }
 
     /** TV D-pad focus helpers */
+    fun isFirstItemFocused(): Boolean {
+        return if (::switchTorEnable.isInitialized) switchTorEnable.hasFocus() else true
+    }
+
     fun focusFirstItemSynchronous(): Boolean {
         return if (::switchTorEnable.isInitialized) switchTorEnable.requestFocus() else false
     }

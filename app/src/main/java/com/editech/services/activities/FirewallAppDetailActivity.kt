@@ -182,7 +182,7 @@ class FirewallAppDetailActivity : AppCompatActivity() {
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
 
-        // Auto-select tab when focused via TV D-pad
+        // Auto-select tab when focused via TV D-pad without stealing focus to list
         tabLayout.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 val tabStrip = tabLayout.getChildAt(0) as? ViewGroup ?: return
@@ -201,39 +201,24 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 }
             }
         })
-
-        // Bug #3/#5 fix: use ViewPager2 page callback (more reliable than TabLayout listener)
-        // Always force focus to the first item of the incoming fragment
-        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                viewPager.postDelayed({
-                    val tag = "f$position"
-                    val fragment = supportFragmentManager.findFragmentByTag(tag)
-                    when (fragment) {
-                        is BaseDetailFragment -> fragment.focusFirstItem()
-                        is TorFragment -> fragment.focusFirstItem()
-                    }
-                }, 150)
-            }
-        })
     }
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         if (event.action == android.view.KeyEvent.ACTION_DOWN) {
             val focused = currentFocus
+            val tabStrip = tabLayout.getChildAt(0) as? ViewGroup
 
-            // DOWN from Header (Back button, Switches) -> Jump to the active TabView
+            // 1. DOWN from Header (Back button, Switches) -> Jump to the active TabView
             if (event.keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
                 if (focused === switchMonitor || focused === switchBlockAll || focused?.id == R.id.btnBackDetail) {
-                    val tabStrip = tabLayout.getChildAt(0) as? ViewGroup
                     val activeTabView = tabStrip?.getChildAt(viewPager.currentItem)
                     if (activeTabView?.requestFocus() == true) {
                         return true
                     }
                 }
 
-                // DOWN from Tabs -> Jump into the current Fragment's first item
-                if (focused != null && focused.parent?.parent === tabLayout) {
+                // 2. DOWN from Tabs -> Jump into the current Fragment's first item
+                if (focused != null && (focused.parent === tabStrip || focused.parent?.parent === tabLayout)) {
                     val tag = "f${viewPager.currentItem}"
                     val fragment = supportFragmentManager.findFragmentByTag(tag)
                     val handled = when (fragment) {
@@ -245,11 +230,29 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 }
             }
 
-            // UP from Tabs -> Jump to header switch
+            // 3. UP from Tabs -> Jump to header switch
             if (event.keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP) {
-                if (focused != null && focused.parent?.parent === tabLayout) {
+                if (focused != null && (focused.parent === tabStrip || focused.parent?.parent === tabLayout)) {
                     if (switchMonitor.requestFocus()) {
                         return true
+                    }
+                }
+
+                // 4. UP from Fragment / List items -> Jump back to active Tab
+                val isHeader = focused === switchMonitor || focused === switchBlockAll || focused?.id == R.id.btnBackDetail
+                if (!isHeader) {
+                    val tag = "f${viewPager.currentItem}"
+                    val fragment = supportFragmentManager.findFragmentByTag(tag)
+                    val isFirstItem = when (fragment) {
+                        is BaseDetailFragment -> fragment.isFirstItemFocused()
+                        is TorFragment -> fragment.isFirstItemFocused()
+                        else -> false
+                    }
+                    if (isFirstItem) {
+                        val activeTabView = tabStrip?.getChildAt(viewPager.currentItem)
+                        if (activeTabView?.requestFocus() == true) {
+                            return true
+                        }
                     }
                 }
             }
@@ -363,7 +366,6 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
             } else {
                 adapter.updateData(newItems) // DiffUtil inside
             }
-            focusFirstItem()
         }
     }
 
@@ -390,7 +392,6 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
             } else {
                 adapter.updateData(newItems) // DiffUtil inside
             }
-            focusFirstItem()
         }
     }
 
@@ -422,7 +423,6 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
             } else {
                 adapter.submitList(logItems)
             }
-            focusFirstItem()
         }
     }
 
@@ -453,7 +453,6 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
             recyclerView.adapter = ThreatsAdapter(items) { threatType, blocked ->
                 toggleThreatBlock(threatType, blocked)
             }
-            focusFirstItem()
         }
     }
 
@@ -470,12 +469,19 @@ class BaseDetailFragment : androidx.fragment.app.Fragment() {
                 recyclerView.adapter = BandwidthAdapter(items) { isUpload, limitBytes ->
                     updateBandwidthLimit(isUpload, limitBytes)
                 }
-                focusFirstItem()
             }
         }
     }
 
     // ── Focus helper (Bug #5 fix) ─────────────────────────────────────────────
+
+    fun isFirstItemFocused(): Boolean {
+        if (!::recyclerView.isInitialized) return true
+        val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return true
+        val focused = recyclerView.findFocus() ?: return true
+        val pos = lm.getPosition(focused)
+        return pos <= 0 || lm.findFirstCompletelyVisibleItemPosition() == 0
+    }
 
     /**
      * Executes the TV D-pad focus attempt synchronously.
