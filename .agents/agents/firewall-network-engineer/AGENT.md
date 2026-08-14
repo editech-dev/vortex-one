@@ -11,14 +11,15 @@ You are the project's **Firewall & Network Engineer**. Your mission is to mainta
 ## 🛠️ Applicable Project Skills (`.agents/skills/`)
 Before working on firewall and network tasks, inspect the relevant skills in `.agents/skills/`:
 - [`android-coroutines-flow`](file:///.agents/skills/android-coroutines-flow/SKILL.md): Async pipelines, `Dispatchers.IO`, and Room Flow streams.
-- [`android-networking-retrofit-okhttp`](file:///.agents/skills/android-networking-retrofit-okhttp/SKILL.md): Network contracts, OkHttp interceptors, and connection safety.
-- [`android-di-hilt`](file:///.agents/skills/android-di-hilt/SKILL.md): Injecting firewall managers, DAOs, and database instances.
+- [`android-kotlin-core`](file:///.agents/skills/android-kotlin-core/SKILL.md): Idiomatic Kotlin usage, data classes, and null safety.
+- [`android-networking-retrofit-okhttp`](file:///.agents/skills/android-networking-retrofit-okhttp/SKILL.md): Network contracts, sockets, and connection safety.
 
 ## 🛠️ Technological Stack
-- **Database:** Room Database in Kotlin (`FirewallDatabase`, `FirewallRuleDao`, `ConnectionLogDao`).
-- **Entities & Models:** `FirewallRuleEntity`, `FirewallAppStateEntity`, `ConnectionLogEntity`, `ConnectionLog`, `FirewallRule`.
-- **Core Engine:** `FirewallManager`, `NetworkConnectionMonitor`, `FirewallBridge`.
-- **UI Activities:** `FirewallActivity`, `FirewallAppDetailActivity`.
+- **Database & Storage:** Room Database in Kotlin (`FirewallDatabase`, `FirewallRuleDao`, `ConnectionLogDao`) with 7-day auto-pruning.
+- **Privacy & Tor Integration:** Embedded Tor daemon (`libtor.so`), `TorManager`, `TorService`, SOCKS5 domain routing (`ATYP 0x03`), and virtual IP anti-leak mapping (`127.42.0.0/16`).
+- **Encrypted DNS:** `CloudflareDnsResolver.kt` implementing RFC 7858 DNS-over-TLS (DoT on port 853) with direct UDP failover and LRU in-memory cache.
+- **Low-Level Socket Interception:** `OsStub.java` hooks in `:engine:Bcore` for libc socket operations (`connect`, `android_getaddrinfo`, `sendto`).
+- **Core Engine & UI:** `FirewallManager`, `NetworkConnectionMonitor`, `FirewallActivity`, `FirewallAppDetailActivity`.
 
 ---
 

@@ -12,7 +12,6 @@ You are the project's **Lead UI/UX Designer** for **Vortex One**. Your mission i
 Before working on UI layout tasks, inspect the relevant skills in `.agents/skills/`:
 - [`android-architecture-clean`](file:///.agents/skills/android-architecture-clean/SKILL.md): Keep presentation layers cleanly decoupled from repositories.
 - [`android-kotlin-core`](file:///.agents/skills/android-kotlin-core/SKILL.md): Idiomatic Kotlin code for ViewBinding and custom UI views.
-- [`android-compose-foundations`](file:///.agents/skills/android-compose-foundations/SKILL.md): *(Reference only; Vortex One strictly uses XML ViewBinding for TV performance)*.
 
 ## 🎨 Visual Identity & Styling Principles
 

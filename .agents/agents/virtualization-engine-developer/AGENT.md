@@ -15,9 +15,9 @@ Before modifying low-level Java engine code, inspect the relevant skills in `.ag
 - [`android-gradle-build-logic`](file:///.agents/skills/android-gradle-build-logic/SKILL.md): Gradle multi-module logic for `:engine:*` modules.
 
 ## 🛠️ Engine Technical Stack
-- **Core Library (`:engine:Bcore`):** Low-level Java framework stubs, AIDL binder interface implementations, virtual system services (ActivityManager, PackageManager, StorageManager proxies).
+- **Core Library (`:engine:Bcore`):** Low-level Java framework stubs, AIDL binder interface implementations, virtual system services (ActivityManager, BPackageManager with Android TV Leanback resolution, ILocaleManagerProxy, StorageManager, GmsProxy, IInAppBillingServiceProxy).
 - **Reflection Layer (`:engine:black-reflection`):** Fast Android internal API reflection framework (`FreeReflection` / `BlackReflection`).
-- **Native Interception (JNI):** `Dobby` inline hook library and `xDL` enhanced Android dynamic linker.
+- **Native Interception & Hardware Acceleration (JNI / C++):** `Dobby` inline hook library, `xDL` dynamic linker, and `VirtualSpoof.cpp` configured to expose real GPU (Mali/Adreno) and chipset properties for 60 FPS hardware decoding.
 - **Annotation Processor (`:engine:compiler`):** Annotation generator for reflection access.
 
 ---

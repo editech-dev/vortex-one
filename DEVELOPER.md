@@ -1,179 +1,179 @@
-# Developer Documentation - Vortex One
+# Developer Documentation - Vortex One (v2.0.0)
 
-This document contains detailed technical information about the architecture, virtualization engine, Tor network integration, firewall inspection, and build process of **Vortex One**.
+This document contains authoritative technical details regarding the architecture, virtualization engine hooks, Tor privacy engine, encrypted DNS-over-TLS (DoT) resolver, firewall inspection, and build workflows of **Vortex One**.
 
 ---
 
 ## 🛠️ Technology Stack & Dependencies
 
-- **Language**: Kotlin 1.9 (App & Firewall) + Java 8/17 (Virtualization Engine Core)
+- **Language**: Kotlin 1.9 (App, UI & Firewall) + Java 8/17 (Virtualization Engine Core) + C++20 (NDK Native Hooks)
 - **Min SDK**: 21 (Android 5.0 Lollipop)
 - **Target SDK**: 34 (Android 14)
-- **UI**: XML ViewBinding + Material Components (No Compose for optimum Leanback rendering speed)
+- **UI Framework**: XML ViewBinding + Material Components (Strictly No Compose for optimum Leanback rendering performance on low-end Smart TV chipsets)
 - **Virtualization Engine**: BlackBox Core (`:engine:Bcore`, Apache 2.0)
-- **Embedded Network Engine**: `info.guardianproject.tor:tor-android` (Native Tor binary)
-- **Database**: Room Persistence Library (SQLite) with auto-pruning
-- **Architectures**: ARM64-v8a, ARMeabi-v7a
+- **Embedded Network Engine**: Native Tor Daemon (`libtor.so`, SOCKS5 on `127.0.0.1:9050`)
+- **DNS Resolver**: `CloudflareDnsResolver` (Native RFC 7858 DNS-over-TLS on port 853 with UDP failover and LRU in-memory cache)
+- **Database**: Room Persistence Library (SQLite) with automated 7-day log retention
+- **Target Architectures**: ARM64 (`arm64-v8a`), ARMv7 (`armeabi-v7a`), Universal
 
 ---
 
 ## 🏗️ Architecture & Multi-Process Model
 
-Vortex One runs in a multi-process architecture to isolate virtualized applications from the host UI and guarantee network security:
+Vortex One runs a multi-process architecture to isolate virtualized applications from the host UI, prevent deadlocks, and enforce kernel-level process boundaries:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Main Process (com.editech.services)               │
-│                                                                             │
-│   ┌─────────────────────┐   ┌───────────────────────┐   ┌───────────────┐   │
-│   │ MainActivity (Grid) │   │ FirewallAppDetailAct  │   │  TorService   │   │
-│   └──────────┬──────────┘   └───────────┬───────────┘   │ (SOCKS5 9150) │   │
-│              ▼                          ▼               └───────▲───────┘   │
-│       VirtualApp Mgr               TorFragment                  │           │
-│              │                          │ (LiveData)            │           │
-│              ▼                          └───────────────┬───────┘           │
-└──────────────┼──────────────────────────────────────────┼───────────────────┘
-               │ IPC / BActivityThread                   │ Localhost Socket
-               ▼                                          │
-┌──────────────────────────────────────────────┐          │
-│ Sandbox Process (com.editech.services:p0)    │          │
-│                                              │          │
-│   ┌──────────────────────────────────────┐   │          │
-│   │  Virtual Application (e.g. YouTube)  │   │          │
-│   └──────────────────┬───────────────────┘   │          │
-│                      ▼ Libcore Socket Hook   │          │
-│                 OsStub.java                  │          │
-│           (connect, sendto, recvfrom)        │          │
-│                      │                       │          │
-│                      └───────────────────────┴──────────┘
-```
+```mermaid
+graph TD
+    subgraph "Main Process (com.editech.services)"
+        UI[MainActivity / Settings / Firewall UI]
+        TorSvc[TorService: libtor.so Daemon Manager]
+        CFDNS[CloudflareDnsResolver: DoT 853 / UDP 53]
+        FWMgr[FirewallManager + Room DB]
+    end
 
-### Process Isolation Breakdown
-1. **`com.editech.services` (Main Process)**: Holds the UI (`MainActivity`, `FirewallActivity`, `TorFragment`) and runs `TorService` (Foreground service executing the native Tor daemon listening on `127.0.0.1:9150`).
-2. **`com.editech.services:black` (Server Process)**: Core BlackBox server daemon managing virtual app lifecycle, user IDs, package installation, and IPC bindings.
-3. **`com.editech.services:p0...pN` (Client Processes)**: Isolated sandbox environments where virtualized applications run. Native socket calls (`connect`, `sendto`, `recvfrom`) are intercepted here by `OsStub.java`.
+    subgraph "Server Process (com.editech.services:black)"
+        BServer[BlackBox Core Server Daemon]
+        BPMServer[BPackageManagerService]
+        BAMServer[BActivityManagerService]
+    end
 
----
+    subgraph "Client Sandbox Processes (com.editech.services:p0...:pN)"
+        VApp[Virtual App / Community Streaming APK]
+        HookMgr[HookManager & BinderInvocationStubs]
+        OsStub[OsStub: Libcore connect & getaddrinfo Hooks]
+        GmsHook[GmsProxy: IGmsServiceBroker Bridge]
+        BillHook[IInAppBillingServiceProxy]
+        LocaleHook[ILocaleManagerProxy: Android 14 IPC]
+    end
 
-## 🔧 Project Structure
+    subgraph "Local Network & Daemons"
+        TorDaemon[libtor.so SOCKS5 Proxy 127.0.0.1:9050]
+        DoTServer[Cloudflare 1.1.1.1:853 TLS]
+    end
 
-```
-VortexOne/
-├── app/src/main/
-│   └── java/com/editech/services/
-│       ├── App.kt                        # App init (BlackBox & TorManager init)
-│       ├── MainActivity.kt               # Main TV/Mobile Dashboard
-│       ├── activities/
-│       │   ├── FileScannerActivity.kt     # APK filesystem scanner
-│       │   ├── FirewallActivity.kt        # Global Firewall & Logs Activity
-│       │   ├── FirewallAppDetailActivity.kt # App Detail (Ports, Tor, Logs)
-│       │   ├── SettingsActivity.kt        # Storage, Cache & App Info
-│       │   ├── TorFragment.kt             # Per-App Tor Control Fragment
-│       │   └── SystemAppsActivity.kt      # System app cloner
-│       ├── firewall/
-│       │   ├── BandwidthManager.kt        # Speed throttling (Tx/Rx)
-│       │   ├── ConnectionLog.kt           # Log entry model
-│       │   ├── FirewallManager.kt         # Rule evaluator & DB manager
-│       │   ├── NetworkConnectionMonitor.kt # Socket logger & threat inspector
-│       │   └── database/                  # Room Database
-│       │       ├── ConnectionLogDao.kt    # Includes 7-day auto-pruning
-│       │       ├── FirewallDatabase.kt
-│       │       └── FirewallRuleDao.kt
-│       ├── tor/
-│       │   ├── TorManager.kt              # Singleton tracking per-app Tor state
-│       │   └── TorService.kt              # Foreground Service running tor binary
-│       └── utils/
-│           ├── AdManager.kt              # Unity Ads manager
-│           ├── LocaleHelper.kt           # Dynamic language switcher
-│           └── StorageUtils.kt           # Cache cleaner & storage stats
-├── engine/                                # Virtualization Engine Modules
-│   ├── Bcore/                             # Core engine library (Java/C++)
-│   │   └── src/main/java/top/niunaijun/blackbox/fake/service/libcore/
-│   │       └── OsStub.java                # Libcore socket hooks (Tor & Firewall)
-│   ├── black-reflection/                  # Reflection utilities
-│   └── compiler/                          # Annotation processors
-├── README.md
-└── DEVELOPER.md                           # Technical Developer Documentation
+    UI -->|AIDL IPC| BServer
+    VApp -->|Binder Hooks| HookMgr
+    HookMgr --> GmsHook
+    HookMgr --> BillHook
+    HookMgr --> LocaleHook
+    VApp -->|Socket Calls| OsStub
+    OsStub -->|Tor Enabled App| TorDaemon
+    OsStub -->|Non-Tor App DNS| CFDNS
+    CFDNS -->|DoT Handshake| DoTServer
+    OsStub -->|Log Event| FWMgr
 ```
 
 ---
 
-## 🛡️ Deep-Dive: Tor & Firewall Hook Architecture (`OsStub.java`)
+## 🧩 Engine Subsystem Deep-Dive (`:engine:Bcore`)
 
-Network interception takes place inside `OsStub.java` (in `:engine:Bcore`), which hooks system-level `Os.connect`, `Os.sendto`, and `Os.recvfrom`:
+### 1. Android TV Leanback Launch Resolution (`BPackageManager.java`)
+Standard Android TV applications declare only `android.intent.category.LEANBACK_LAUNCHER` in their manifest. [`BPackageManager.java`](file:///home/edison/AndroidStudioProjects/MediaService/engine/Bcore/src/main/java/top/niunaijun/blackbox/fake/frameworks/BPackageManager.java#L125-L135) implements fallback intent resolution:
 
 ```java
-// 1. Firewall Rule Check
-boolean shouldBlock = (boolean) checkMethod.invoke(null, address, port);
-if (shouldBlock) {
-    throw new SocketException("Connection blocked by firewall");
+// Support Android TV apps declaring only LEANBACK_LAUNCHER
+if (ris == null || ris.size() <= 0) {
+    intentToResolve.removeCategory(Intent.CATEGORY_LAUNCHER);
+    intentToResolve.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+    intentToResolve.setPackage(packageName);
+    ris = queryIntentActivities(intentToResolve, 0,
+            intentToResolve.resolveTypeIfNeeded(BlackBoxCore.getContext().getContentResolver()),
+            userId);
 }
+```
 
-// 2. Tor DNS & Libcore getaddrinfo Interception (Zero ISP Leak)
+### 2. Android 13/14 `LocaleManager` IPC Hook (`ILocaleManagerProxy.java`)
+Android 14 enforces strict calling package UID checks in `LocaleManagerService`. [`ILocaleManagerProxy.java`](file:///home/edison/AndroidStudioProjects/MediaService/engine/Bcore/src/main/java/top/niunaijun/blackbox/fake/service/ILocaleManagerProxy.java) proxies `Context.LOCALE_SERVICE` to prevent `SecurityException`:
+
+```java
+public class ILocaleManagerProxy extends BinderInvocationStub {
+    public ILocaleManagerProxy() {
+        super(BRServiceManager.get().getService("locale"));
+    }
+    // Intercepts setApplicationLocales and getApplicationLocales
+}
+```
+
+### 3. Google Play Services & Billing Virtualization (`GmsProxy.java` & `IInAppBillingServiceProxy.java`)
+- **`GmsProxy.java`**: Hooks `com.google.android.gms.common.internal.IGmsServiceBroker`, inspecting `GetServiceRequest` via reflection to rewrite `mCallingPackage` and `clientPackageName` to `BlackBoxCore.getHostPkg()`. This enables Google Sign-In, Firebase Auth, and Google Cast pass-through.
+- **`IInAppBillingServiceProxy.java`**: Responds to `isBillingSupported`, `getSkuDetails`, and `getPurchases` queries for `com.android.vending.billing.IInAppBillingService` to ensure community apps checking Pro licenses run reliably.
+
+### 4. GPU & Native Hardware Pass-Through (`VirtualSpoof.cpp`)
+Native system properties (`ro.hardware`, `ro.hardware.egl`, `ro.product.board`) are preserved to expose the true host hardware (e.g. ARM Mali GPU on Amlogic chipsets), enabling full 60 FPS hardware video decoding via `MediaCodec` and `Codec2`.
+
+---
+
+## 🛡️ Network & Privacy Subsystem
+
+### 1. Zero DNS Leaks & Tor Per-App Routing (`OsStub.java`)
+Network interception occurs at the libc layer via Libcore hooks in [`OsStub.java`](file:///home/edison/AndroidStudioProjects/MediaService/engine/Bcore/src/main/java/top/niunaijun/blackbox/fake/service/libcore/OsStub.java):
+
+```java
+// 1. DNS Interception (android_getaddrinfo / getaddrinfo)
 if (isTorEnabledForPackage(pkg)) {
-    // Intercepts android_getaddrinfo & getaddrinfo -> Maps to Virtual IP 127.192.x.y
+    // Allocate virtual IP (127.42.x.x) and route DNS remotely through Tor exit nodes
     String virtualIp = getOrAllocateVirtualIp(domainNode);
     return new InetAddress[]{ InetAddress.getByAddress(domainNode, InetAddress.getByName(virtualIp).getAddress()) };
+} else {
+    // Non-Tor: Encrypted resolution via DoT (1.1.1.1:853)
+    InetAddress[] dohAddrs = resolveViaCloudflareDoH(domainNode);
+    if (dohAddrs != null && dohAddrs.length > 0) return dohAddrs;
 }
 
-// 3. Tor Per-App Redirection (SOCKS5 ATYP 0x03 Domain Routing)
-if (torEnabled) {
-    boolean proxyUp = TorManager.isProxyReachable();
-    if (!proxyUp) {
-        // Grace Period: 3 retries x 400ms delay to allow Tor bootstrap
-        for (int retry = 0; retry < 3; retry++) {
-            Thread.sleep(400);
-            if (TorManager.isProxyReachable()) { proxyUp = true; break; }
-        }
-    }
-    if (!proxyUp) {
-        throw new SocketException("[Tor] Proxy not ready — connection blocked for safety");
-    }
-    // Tunnel socket FileDescriptor transparently through SOCKS5 127.0.0.1:9150 using ATYP 0x03 (Domain Name)
+// 2. Socket Connection (Os.connect)
+if (isTorEnabledForPackage(pkg)) {
+    // SOCKS5 ATYP 0x03 Domain Tunneling to 127.0.0.1:9050 with Fail-Safe Kill-Switch
     return connectViaTorSocks5(who, method, args, address, port, pkg);
 }
 ```
 
-### Main Thread Safety
-Calls to `TorManager.isProxyReachable()` from the Main UI Thread automatically dispatch the socket ping onto an isolated `SingleThreadExecutor` with a 400ms timeout to prevent `android.os.NetworkOnMainThreadException`.
+### 2. DNS-over-TLS (DoT) Engine (`CloudflareDnsResolver.kt`)
+- **RFC 7858 Native DoT on Port 853**: Establishes TLS sessions to Cloudflare DNS (`1.1.1.1`).
+- **Concurrent In-Memory Cache**: `ConcurrentHashMap<String, CachedEntry>` with 5-minute TTL.
+- **Fail-Safe Fallback**: Immediate fallback to UDP 53 (`1.1.1.1:53`) and system resolver if DoT exceeds the strict 1000ms timeout.
+
+### 3. Integrated Firewall Engine (`FirewallManager.kt`)
+- **Room Database**: Persists connection logs and per-app blocking rules.
+- **Automated Pruning**: Background worker purges connection records older than 7 days.
+- **Bandwidth Throttling**: Limits Tx/Rx throughput per package.
 
 ---
 
-## 🚀 Build & Compilation Guide
+## 🚀 Build & Release Workflows
 
 ### Prerequisites
 - JDK 17
 - Android SDK 34 (Build Tools 34.0.0)
-- NDK 25.x (Required for native BlackBox C++ hooks)
+- Android NDK 25.x (Required for native C++ hooks in `:engine:Bcore`)
 
-### Gradle Build Commands
+### Gradle Commands
 
 ```bash
-# Build Debug APKs (with full logcat output)
+# Compile Debug APKs (with full logcat output)
 ./gradlew assembleDebug
 
-# Build Production Release APKs (Obfuscated with ProGuard/R8)
+# Compile Production Release APKs (Obfuscated with ProGuard/R8)
 ./gradlew clean assembleRelease
 
-# Clean output directories
-./gradlew clean
+# Run Unit & Framework Tests
+./gradlew test
 ```
 
-### Release Outputs
-Compiled release binaries are placed in `app/build/outputs/apk/release/`:
-- `app-universal-release.apk`
-- `app-arm64-v8a-release.apk`
-- `app-armeabi-v7a-release.apk`
+### Build Artifacts
+Binaries are generated under `app/build/outputs/apk/release/`:
+- `VortexOne-v2.0.0-universal.apk`
+- `VortexOne-v2.0.0-arm64-v8a.apk`
+- `VortexOne-v2.0.0-armeabi-v7a.apk`
 
 ---
 
-## 📺 Android TV D-Pad Guidelines
+## 📺 Android TV UI Design Guidelines
 
-When creating or updating UI screens in Vortex One:
-1. **Focus Highlight**: Ensure cards use `setOnFocusChangeListener` to toggle border stroke (`#38BDF8`).
-2. **Key Interception**: Override `dispatchKeyEvent(event)` in `Activity` for custom tab-to-list navigation when D-Pad `KEYCODE_DPAD_DOWN` is pressed.
-3. **RecyclerView Focus**: Set `recyclerView.isFocusable = false` and `descendantFocusability = FOCUS_AFTER_DESCENDANTS`.
+When creating or modifying layouts:
+1. **XML ViewBinding Only**: Never use Jetpack Compose.
+2. **Focus Selectors**: All interactive elements must have `android:focusable="true"` and `android:foreground="@drawable/selector_tv_focus"` with glowing cyan highlight (`#38BDF8`).
+3. **D-Pad Key Dispatch**: Override `dispatchKeyEvent` in Activities to handle focus transitions seamlessly across vertical and horizontal lists.
 
 ---
 
-*Developer Guide for Vortex One v1.0.5.*
+*Developer Guide for Vortex One v2.0.0.*
