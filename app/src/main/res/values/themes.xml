@@ -17,6 +17,64 @@
 
         <!-- Button style defaults (No forced uppercase, natural letter spacing) -->
         <item name="materialButtonStyle">@style/Widget.Vortex.Button</item>
+
+        <!-- Dialog Theme Overrides -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Vortex.MaterialAlertDialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.Vortex.MaterialAlertDialog</item>
+    </style>
+
+    <!-- Vortex TV Modern Dialog Theme -->
+    <style name="ThemeOverlay.Vortex.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearance">@style/ShapeAppearance.Vortex.Dialog</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Vortex.Dialog</item>
+        <item name="colorSurface">#1E293B</item>
+        <item name="colorOnSurface">#F8FAFC</item>
+        <item name="colorPrimary">#38BDF8</item>
+        <item name="colorOnPrimary">#0F172A</item>
+        <item name="colorAccent">#38BDF8</item>
+        <item name="colorControlActivated">#38BDF8</item>
+        <item name="colorControlNormal">#94A3B8</item>
+        <item name="android:textColorPrimary">#F8FAFC</item>
+        <item name="android:textColorSecondary">#94A3B8</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/TextAppearance.Vortex.Dialog.Title</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/TextAppearance.Vortex.Dialog.Body</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Vortex.Dialog.Button.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.Vortex.Dialog.Button.Negative</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.Vortex.Dialog.Button.Negative</item>
+    </style>
+
+    <style name="ShapeAppearance.Vortex.Dialog" parent="ShapeAppearance.MaterialComponents.LargeComponent">
+        <item name="cornerSize">18dp</item>
+        <item name="cornerFamily">rounded</item>
+    </style>
+
+    <style name="TextAppearance.Vortex.Dialog.Title" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="TextAppearance.Vortex.Dialog.Body" parent="MaterialAlertDialog.MaterialComponents.Body.Text">
+        <item name="android:textColor">#94A3B8</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+    </style>
+
+    <style name="Widget.Vortex.Dialog.Button.Positive" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">#38BDF8</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="Widget.Vortex.Dialog.Button.Negative" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">#94A3B8</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="Widget.Vortex.Button" parent="Widget.MaterialComponents.Button">

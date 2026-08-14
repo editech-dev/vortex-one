@@ -6,7 +6,7 @@ import android.content.pm.ApplicationInfo
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import com.editech.services.activities.FileScannerActivity
@@ -137,7 +137,7 @@ class MainActivity : AppCompatActivity() {
         val current = LocaleHelper.getSavedLocale(this)
         val checked = codes.indexOf(current).coerceAtLeast(0)
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.language_title))
             .setSingleChoiceItems(options, checked) { dialog, which ->
                 val chosen = codes[which]
@@ -200,7 +200,7 @@ class MainActivity : AppCompatActivity() {
      * Muestra una advertencia antes de instalar el APK sobre posibles incompatibilidades
      */
     private fun showInstallWarningDialog(apkPath: String, apkName: String) {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.dialog_install_warning_title))
             .setMessage(getString(R.string.dialog_install_warning_message))
             .setPositiveButton(getString(R.string.action_continue)) { _, _ ->
@@ -248,7 +248,7 @@ class MainActivity : AppCompatActivity() {
                         Toast.makeText(this@MainActivity, getString(R.string.toast_install_success, apkName), Toast.LENGTH_SHORT).show()
                         loadVirtualApps()
                     } else {
-                        AlertDialog.Builder(this@MainActivity)
+                        MaterialAlertDialogBuilder(this@MainActivity)
                             .setTitle(getString(R.string.dialog_install_error_title))
                             .setMessage(getString(R.string.dialog_install_error_message, result.msg))
                             .setPositiveButton(getString(R.string.action_ok), null)
@@ -363,7 +363,7 @@ class MainActivity : AppCompatActivity() {
      * Muestra diálogo de confirmación para desinstalar (Fase 5)
      */
     private fun showUninstallDialog(app: VirtualApp): Boolean {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.dialog_uninstall_title))
             .setMessage(getString(R.string.dialog_uninstall_message, app.name))
             .setPositiveButton(getString(R.string.action_uninstall)) { _, _ ->
@@ -431,7 +431,7 @@ class MainActivity : AppCompatActivity() {
                         ).show()
                         loadVirtualApps() // Recargar lista
                     } else {
-                        AlertDialog.Builder(this@MainActivity)
+                        MaterialAlertDialogBuilder(this@MainActivity)
                             .setTitle(getString(R.string.dialog_virtualize_error_title))
                             .setMessage(getString(R.string.dialog_virtualize_error_message, appName, result.msg))
                             .setPositiveButton(getString(R.string.action_ok), null)

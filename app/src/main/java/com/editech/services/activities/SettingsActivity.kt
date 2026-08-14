@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.RelativeLayout
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.editech.services.R
@@ -163,7 +163,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showClearDataConfirmation(app: VirtualApp) {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.dialog_clear_data_title, app.name))
             .setMessage(getString(R.string.dialog_clear_data_msg, app.name))
             .setPositiveButton(getString(R.string.action_clear_data)) { _, _ ->
