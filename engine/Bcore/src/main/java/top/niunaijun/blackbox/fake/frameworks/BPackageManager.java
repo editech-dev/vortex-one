@@ -123,6 +123,18 @@ public class BPackageManager extends BlackManager<IBPackageManagerService> {
                     intentToResolve.resolveTypeIfNeeded(BlackBoxCore.getContext().getContentResolver()),
                     userId);
         }
+
+        // Support Android TV apps declaring only LEANBACK_LAUNCHER
+        if (ris == null || ris.size() <= 0) {
+            intentToResolve.removeCategory(Intent.CATEGORY_LAUNCHER);
+            intentToResolve.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+            intentToResolve.setPackage(packageName);
+            ris = queryIntentActivities(intentToResolve,
+                    0,
+                    intentToResolve.resolveTypeIfNeeded(BlackBoxCore.getContext().getContentResolver()),
+                    userId);
+        }
+
         if (ris == null || ris.size() <= 0) {
             return null;
         }
@@ -138,8 +150,11 @@ public class BPackageManager extends BlackManager<IBPackageManagerService> {
      */
     private Intent createFallbackLaunchIntent(String packageName) {
         try {
-            // Try to get the launch intent from the system PackageManager as fallback
+            // Try to get the launch intent from the system PackageManager as fallback (standard and leanback)
             Intent intent = BlackBoxCore.getContext().getPackageManager().getLaunchIntentForPackage(packageName);
+            if (intent == null) {
+                intent = BlackBoxCore.getContext().getPackageManager().getLeanbackLaunchIntentForPackage(packageName);
+            }
             if (intent != null) {
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 return intent;
@@ -150,7 +165,7 @@ public class BPackageManager extends BlackManager<IBPackageManagerService> {
         
         // Last resort: create a generic intent
         Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         intent.setPackage(packageName);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         return intent;
