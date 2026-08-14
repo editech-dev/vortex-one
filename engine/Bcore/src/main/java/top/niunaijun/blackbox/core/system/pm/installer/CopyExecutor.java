@@ -36,6 +36,10 @@ public class CopyExecutor implements Executor {
             File origFile = new File(ps.pkg.baseCodePath);
             File newFile = BEnvironment.getBaseApkDir(ps.pkg.packageName);
             try {
+                if (newFile.exists()) {
+                    newFile.setWritable(true);
+                    newFile.delete();
+                }
                 if (option.isFlag(InstallOption.FLAG_URI_FILE)) {
                     boolean b = FileUtils.renameTo(origFile, newFile);
                     if (!b) {

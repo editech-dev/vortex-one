@@ -30,8 +30,57 @@ class App : Application() {
             }
 
             override fun requestInstallPackage(file: File, userId: Int): Boolean {
-                // Permitir instalación de paquetes
-                return false
+                if (!file.exists()) {
+                    android.util.Log.w("App", "requestInstallPackage: file does not exist: ${file.absolutePath}")
+                    return false
+                }
+
+                try {
+                    val packageInfo = BlackBoxCore.getPackageManager().getPackageArchiveInfo(file.absolutePath, 0)
+                    if (packageInfo == null) {
+                        android.util.Log.e("App", "requestInstallPackage: failed to parse package info for ${file.name}")
+                        return false
+                    }
+
+                    val targetPkg = packageInfo.packageName
+                    val hostPkg = packageName
+
+                    // Prevent modifying or replacing host package
+                    if (targetPkg == hostPkg) {
+                        android.util.Log.w("App", "requestInstallPackage: blocked attempt to install host package $targetPkg")
+                        return false
+                    }
+
+                    // Versioning check: if package already exists in virtual space, ensure new version >= installed version
+                    val existingPkgInfo = try {
+                        BlackBoxCore.getBPackageManager().getPackageInfo(targetPkg, 0, userId)
+                    } catch (e: Exception) {
+                        null
+                    }
+                    if (existingPkgInfo != null) {
+                        val currentVersionCode: Int = existingPkgInfo.versionCode
+                        val newVersionCode: Int = packageInfo.versionCode
+                        android.util.Log.d("App", "requestInstallPackage: current versionCode=$currentVersionCode, new versionCode=$newVersionCode for $targetPkg")
+                        if (newVersionCode < currentVersionCode) {
+                            android.util.Log.w("App", "requestInstallPackage: rejected downgrade from $currentVersionCode to $newVersionCode for $targetPkg")
+                            return false
+                        }
+                    }
+
+                    // Check ABI compatibility
+                    if (!top.niunaijun.blackbox.utils.AbiUtils.isSupport(file)) {
+                        android.util.Log.e("App", "requestInstallPackage: unsupported ABI for ${file.name}")
+                        return false
+                    }
+
+                    // Perform installation into BlackBox virtual container
+                    val result = BlackBoxCore.get().installPackageAsUser(file, userId)
+                    android.util.Log.i("App", "requestInstallPackage: installed ${targetPkg} v${packageInfo.versionName} (${packageInfo.versionCode}) result: success=${result.success}, msg=${result.msg}")
+                    return result.success
+                } catch (e: Exception) {
+                    android.util.Log.e("App", "requestInstallPackage exception", e)
+                    return false
+                }
             }
         })
     }
