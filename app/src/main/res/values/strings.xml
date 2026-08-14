@@ -122,6 +122,9 @@
     <string name="settings_overview_title">Storage Overview</string>
     <string name="settings_apps_list_title">Virtual Applications</string>
     <string name="firewall_overview_title">Security &amp; Network</string>
-    <string name="firewall_status_active">Active • Cloudflare DoT (1.1.1.1)</string>
+    <string name="firewall_status_active">Active Protection • Secure DNS</string>
+    <string name="firewall_overview_desc">Your connections are shielded from trackers and threats. App traffic is encrypted and monitored in real time.</string>
+    <string name="firewall_privacy_title">Privacy &amp; Isolation</string>
+    <string name="firewall_privacy_desc">Built-in anonymous browsing. Tor-enabled applications conceal your real location and safeguard your identity end-to-end.</string>
     <string name="firewall_rules_title">Application Rules</string>
 </resources>

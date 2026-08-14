@@ -122,6 +122,9 @@
     <string name="settings_overview_title">Resumen de Almacenamiento</string>
     <string name="settings_apps_list_title">Aplicaciones Virtualizadas</string>
     <string name="firewall_overview_title">Seguridad y Red</string>
-    <string name="firewall_status_active">Activo • Cloudflare DoT (1.1.1.1)</string>
+    <string name="firewall_status_active">Protección Activa • DNS Seguro</string>
+    <string name="firewall_overview_desc">Tus conexiones están protegidas contra rastreo y amenazas. El tráfico de tus aplicaciones viaja cifrado y supervisado en tiempo real.</string>
+    <string name="firewall_privacy_title">Privacidad y Aislamiento</string>
+    <string name="firewall_privacy_desc">Navegación anónima integrada. Las aplicaciones con Tor ocultan tu ubicación real y protegen tu identidad de extremo a extremo.</string>
     <string name="firewall_rules_title">Reglas por Aplicación</string>
 </resources>

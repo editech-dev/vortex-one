@@ -153,9 +153,10 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="El motor intercepta llamadas a nivel de socket y resuelve dominios mediante DNS seguro sobre TLS. Las apps con Tor se enrutan de forma aislada."
+                        android:text="@string/firewall_overview_desc"
                         android:textColor="#94A3B8"
-                        android:textSize="11sp"
+                        android:textSize="11.5sp"
+                        android:lineSpacingMultiplier="1.2"
                         android:layout_marginTop="6dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -180,7 +181,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="PRIVACIDAD Y AISLAMIENTO"
+                        android:text="@string/firewall_privacy_title"
                         android:textColor="#818CF8"
                         android:textSize="12sp"
                         android:textStyle="bold" />
@@ -188,9 +189,10 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Túnel SOCKS5 127.0.0.1:9050 y protección contra fugas de IP integrada en cada proceso."
-                        android:textColor="#64748B"
-                        android:textSize="11sp"
+                        android:text="@string/firewall_privacy_desc"
+                        android:textColor="#94A3B8"
+                        android:textSize="11.5sp"
+                        android:lineSpacingMultiplier="1.2"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
