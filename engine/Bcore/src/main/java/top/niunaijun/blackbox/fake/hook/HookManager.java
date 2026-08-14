@@ -19,6 +19,7 @@ import top.niunaijun.blackbox.fake.service.IAppOpsManagerProxy;
 import top.niunaijun.blackbox.fake.service.IAppWidgetManagerProxy;
 import top.niunaijun.blackbox.fake.service.IAttributionSourceProxy;
 import top.niunaijun.blackbox.fake.service.IAutofillManagerProxy;
+import top.niunaijun.blackbox.fake.service.IInAppBillingServiceProxy;
 import top.niunaijun.blackbox.fake.service.ILocaleManagerProxy;
 import top.niunaijun.blackbox.fake.service.ISensitiveContentProtectionManagerProxy;
 import top.niunaijun.blackbox.fake.service.ISettingsSystemProxy;
@@ -149,6 +150,7 @@ public class HookManager {
             addInjector(new ClassLoaderProxy());
             addInjector(new FileSystemProxy());
             addInjector(new GmsProxy());
+            addInjector(new IInAppBillingServiceProxy());
             addInjector(new LevelDbProxy());
             addInjector(new DeviceIdProxy());
             addInjector(new GoogleAccountManagerProxy());

@@ -56,25 +56,45 @@ public class GmsProxy extends BinderInvocationStub {
         return false;
     }
 
-    // Hook getService to handle package name validation
+    // Hook getService to handle package name validation and GetServiceRequest objects
     @ProxyMethod("getService")
     public static class GetService extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             try {
-                // Check if this is a package name validation issue
                 if (args != null && args.length > 0) {
-                    String callingPackage = (String) args[0];
-                    if ("com.google.android.gms".equals(callingPackage)) {
-                        // Replace with the correct package name
-                        args[0] = BlackBoxCore.getHostPkg();
-                        Slog.d(TAG, "GmsProxy: Fixed calling package from com.google.android.gms to " + BlackBoxCore.getHostPkg());
+                    for (int i = 0; i < args.length; i++) {
+                        Object arg = args[i];
+                        if (arg instanceof String) {
+                            String str = (String) arg;
+                            if (str != null && !str.equals(BlackBoxCore.getHostPkg()) && (str.contains(".") || "com.google.android.gms".equals(str))) {
+                                args[i] = BlackBoxCore.getHostPkg();
+                                Slog.d(TAG, "GmsProxy: Fixed calling package string argument to " + BlackBoxCore.getHostPkg());
+                            }
+                        } else if (arg != null) {
+                            // Check for GetServiceRequest object and rewrite callingPackage fields
+                            try {
+                                java.lang.reflect.Field[] fields = arg.getClass().getDeclaredFields();
+                                for (java.lang.reflect.Field f : fields) {
+                                    if (f.getType() == String.class) {
+                                        String name = f.getName().toLowerCase();
+                                        if (name.contains("package") || name.contains("calling") || name.contains("client")) {
+                                            f.setAccessible(true);
+                                            Object val = f.get(arg);
+                                            if (val instanceof String && !BlackBoxCore.getHostPkg().equals(val)) {
+                                                f.set(arg, BlackBoxCore.getHostPkg());
+                                                Slog.d(TAG, "GmsProxy: Rewrote GetServiceRequest field " + f.getName() + " to " + BlackBoxCore.getHostPkg());
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (Throwable ignored) {}
+                        }
                     }
                 }
                 return method.invoke(who, args);
             } catch (Exception e) {
-                Slog.e(TAG, "GmsProxy: Error in getService", e);
-                // Return a mock service or null to prevent crashes
+                Slog.w(TAG, "GmsProxy: Handled exception in getService: " + e.getMessage());
                 return null;
             }
         }
