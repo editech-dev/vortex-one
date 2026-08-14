@@ -279,7 +279,11 @@ class MainActivity : AppCompatActivity() {
                 val apps = mutableListOf<VirtualApp>()
                 
                 installedApps?.forEach { appInfo ->
-                    // Mostrar TODAS las apps virtualizadas (incluyendo apps del sistema clonadas)
+                    // Ocultar servicios y paquetes de infraestructura de Google del launcher principal
+                    if (top.niunaijun.blackbox.core.GmsCore.isGoogleAppOrService(appInfo.packageName)) {
+                        return@forEach
+                    }
+
                     val packageManager = packageManager
                     val icon = try {
                         appInfo.loadIcon(packageManager)

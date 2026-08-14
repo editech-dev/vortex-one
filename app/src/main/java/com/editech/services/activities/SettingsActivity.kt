@@ -169,6 +169,11 @@ class SettingsActivity : AppCompatActivity() {
                 val apps = mutableListOf<VirtualApp>()
 
                 installedApps?.forEach { appInfo ->
+                    // Ocultar paquetes de infraestructura de Google (gestionados en su tarjeta dedicada)
+                    if (top.niunaijun.blackbox.core.GmsCore.isGoogleAppOrService(appInfo.packageName)) {
+                        return@forEach
+                    }
+
                     val pm = packageManager
                     val icon = try {
                         appInfo.loadIcon(pm)
