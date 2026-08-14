@@ -106,7 +106,7 @@
             android:orientation="vertical"
             android:layout_marginEnd="16dp">
 
-            <!-- Card de Acciones Globales -->
+            <!-- Card de Resumen y Acciones Globales -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardGlobalActions"
                 android:layout_width="match_parent"
@@ -128,8 +128,9 @@
                         android:layout_height="wrap_content"
                         android:text="@string/settings_overview_title"
                         android:textColor="#F1F5F9"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -139,6 +140,7 @@
                         android:textSize="11sp"
                         android:layout_marginTop="4dp" />
 
+                    <!-- Botón Limpiar Caché Global Elegante (Dark Slate + Cyan Stroke) -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnClearAllCache"
                         android:layout_width="match_parent"
@@ -147,20 +149,19 @@
                         android:text="@string/btn_clear_all_cache"
                         android:textSize="11sp"
                         android:textStyle="bold"
+                        android:textColor="#F8FAFC"
                         android:focusable="true"
                         android:clickable="true"
                         android:stateListAnimator="@animator/scaler"
-                        android:background="@drawable/btn_gradient_secondary"
-                        app:backgroundTint="@null"
-                        app:strokeColor="#38BDF8"
-                        app:strokeWidth="1dp"
+                        app:backgroundTint="@color/btn_bg_cache"
+                        app:strokeColor="@color/btn_stroke_cache"
+                        app:strokeWidth="1.5dp"
                         app:cornerRadius="10dp"
                         app:icon="@drawable/ic_clean"
                         app:iconSize="15dp"
                         app:iconPadding="6dp"
                         app:iconGravity="textStart"
                         app:iconTint="#38BDF8"
-                        android:textColor="#F8FAFC"
                         android:nextFocusUp="@id/btnBack"
                         android:nextFocusRight="@id/rvSettingsApps" />
                 </LinearLayout>
