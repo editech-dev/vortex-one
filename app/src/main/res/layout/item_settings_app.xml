@@ -16,7 +16,6 @@
     app:strokeColor="#334155"
     app:strokeWidth="1dp">
 
-    <!-- Single Cohesive Horizontal Row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -24,12 +23,12 @@
         android:gravity="center_vertical"
         android:descendantFocusability="afterDescendants"
         android:paddingHorizontal="16dp"
-        android:paddingVertical="12dp">
+        android:paddingVertical="14dp">
 
-        <!-- App Icon Frame (46dp) -->
+        <!-- App Icon Frame (48dp) -->
         <FrameLayout
-            android:layout_width="46dp"
-            android:layout_height="46dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@drawable/bg_splash_icon_card"
             android:padding="6dp">
 
@@ -42,13 +41,13 @@
                 tools:ignore="ContentDescription" />
         </FrameLayout>
 
-        <!-- App Info & Storage Badge -->
+        <!-- App Info (Vertical Stack: Name -> Package -> Storage Chip) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="14dp"
-            android:layout_marginEnd="16dp"
+            android:layout_marginEnd="14dp"
             android:orientation="vertical">
 
             <TextView
@@ -56,49 +55,40 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="#F8FAFC"
-                android:textSize="15sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
                 android:ellipsize="end"
                 tools:text="WhatsApp" />
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/tvPackageName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginTop="3dp">
+                android:textColor="#64748B"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:layout_marginTop="2dp"
+                tools:text="com.whatsapp" />
 
-                <TextView
-                    android:id="@+id/tvPackageName"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#64748B"
-                    android:textSize="11sp"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    tools:text="com.whatsapp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="  •  "
-                    android:textColor="#475569"
-                    android:textSize="10sp" />
-
-                <TextView
-                    android:id="@+id/tvStorageInfo"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#38BDF8"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    tools:text="Caché: 1.2 MB | Datos: 15.4 MB" />
-            </LinearLayout>
+            <!-- Storage Info Pill -->
+            <TextView
+                android:id="@+id/tvStorageInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#38BDF8"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:background="@drawable/bg_state_badge"
+                android:layout_marginTop="4dp"
+                tools:text="Caché: 1.2 MB  ·  Datos: 15.4 MB" />
         </LinearLayout>
 
-        <!-- Compact Action Buttons on the Right -->
+        <!-- Action Buttons on the Right -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
