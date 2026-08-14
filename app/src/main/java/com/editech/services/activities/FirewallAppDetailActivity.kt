@@ -153,6 +153,10 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     private fun setupViewPager() {
         val adapter = DetailPagerAdapter(this)
         viewPager.adapter = adapter
+        (viewPager.getChildAt(0) as? RecyclerView)?.apply {
+            clipChildren = true
+            clipToPadding = true
+        }
 
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
@@ -165,6 +169,38 @@ class FirewallAppDetailActivity : AppCompatActivity() {
                 else -> ""
             }
         }.attach()
+
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                tab?.position?.let {
+                    if (viewPager.currentItem != it) {
+                        viewPager.setCurrentItem(it, false)
+                    }
+                }
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+
+        // Auto-select tab when focused via TV D-pad
+        tabLayout.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                val tabStrip = tabLayout.getChildAt(0) as? ViewGroup ?: return
+                if (tabStrip.childCount >= 6) {
+                    tabLayout.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    for (i in 0 until tabStrip.childCount) {
+                        val tabView = tabStrip.getChildAt(i)
+                        tabView.isFocusable = true
+                        tabView.isFocusableInTouchMode = true
+                        tabView.setOnFocusChangeListener { _, hasFocus ->
+                            if (hasFocus) {
+                                tabLayout.getTabAt(i)?.select()
+                            }
+                        }
+                    }
+                }
+            }
+        })
 
         // Bug #3/#5 fix: use ViewPager2 page callback (more reliable than TabLayout listener)
         // Always force focus to the first item of the incoming fragment
@@ -183,21 +219,38 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     }
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
-        // Intercept TV D-pad DOWN key exactly when it originates from the Tabs.
-        // Direct View.setOnKeyListener fails because the inner TabViews hold the focus.
-        if (event.action == android.view.KeyEvent.ACTION_DOWN && event.keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+        if (event.action == android.view.KeyEvent.ACTION_DOWN) {
             val focused = currentFocus
-            // Check if focus is inside the TabLayout (focused.parent = SlidingTabIndicator, parent.parent = TabLayout)
-            if (focused != null && focused.parent?.parent === tabLayout) {
-                val tag = "f${viewPager.currentItem}"
-                val fragment = supportFragmentManager.findFragmentByTag(tag)
-                val handled = when (fragment) {
-                    is BaseDetailFragment -> fragment.focusFirstItemSynchronous()
-                    is TorFragment -> fragment.focusFirstItemSynchronous()
-                    else -> false
+
+            // DOWN from Header (Back button, Switches) -> Jump to the active TabView
+            if (event.keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (focused === switchMonitor || focused === switchBlockAll || focused?.id == R.id.btnBackDetail) {
+                    val tabStrip = tabLayout.getChildAt(0) as? ViewGroup
+                    val activeTabView = tabStrip?.getChildAt(viewPager.currentItem)
+                    if (activeTabView?.requestFocus() == true) {
+                        return true
+                    }
                 }
-                if (handled) {
-                    return true // Event successfully consumed! Focus jumped into the fragment!
+
+                // DOWN from Tabs -> Jump into the current Fragment's first item
+                if (focused != null && focused.parent?.parent === tabLayout) {
+                    val tag = "f${viewPager.currentItem}"
+                    val fragment = supportFragmentManager.findFragmentByTag(tag)
+                    val handled = when (fragment) {
+                        is BaseDetailFragment -> fragment.focusFirstItemSynchronous()
+                        is TorFragment -> fragment.focusFirstItemSynchronous()
+                        else -> false
+                    }
+                    if (handled) return true
+                }
+            }
+
+            // UP from Tabs -> Jump to header switch
+            if (event.keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP) {
+                if (focused != null && focused.parent?.parent === tabLayout) {
+                    if (switchMonitor.requestFocus()) {
+                        return true
+                    }
                 }
             }
         }
@@ -702,21 +755,29 @@ class ThreatsAdapter(
         val tvProtocol: TextView = view.findViewById(R.id.tvProtocol)
         val tvStatus: TextView   = view.findViewById(R.id.tvStatus)
         val switchBlock: SwitchMaterial = view.findViewById(R.id.switchBlock)
+        val ivRuleIcon: ImageView? = view.findViewById(R.id.ivRuleIcon)
 
         fun bind(item: ThreatItemModel) {
             if (item.isHeader) bindHeader(item) else bindEntry(item)
-
-            val card = itemView as? com.google.android.material.card.MaterialCardView
-            itemView.setOnFocusChangeListener { _, hasFocus ->
-                card?.strokeWidth = if (hasFocus) 3 else 0
-                card?.strokeColor = if (hasFocus) 0xFF38BDF8.toInt() else android.graphics.Color.TRANSPARENT
-            }
         }
 
         private fun bindHeader(item: ThreatItemModel) {
-            tvPort.text      = "${item.threatType.icon}  ${item.threatType.label}"
-            tvPort.textSize  = 16f
-            tvProtocol.text  = "${item.count} detección${if (item.count != 1) "es" else ""}"
+            ivRuleIcon?.apply {
+                setImageResource(R.drawable.ic_shield)
+                imageTintList = when (item.threatType) {
+                    ThreatType.ADB_ACCESS -> android.content.res.ColorStateList.valueOf(0xFFEF4444.toInt())
+                    ThreatType.LOCAL_NETWORK -> android.content.res.ColorStateList.valueOf(0xFFF59E0B.toInt())
+                    ThreatType.LOCALHOST_PROBE -> android.content.res.ColorStateList.valueOf(0xFFFB923C.toInt())
+                }
+            }
+
+            tvPort.text = when (item.threatType) {
+                ThreatType.ADB_ACCESS -> "Acceso ADB"
+                ThreatType.LOCAL_NETWORK -> "Acceso a Red Local"
+                ThreatType.LOCALHOST_PROBE -> "Sondeo Localhost"
+            }
+            tvPort.textSize = 15f
+            tvProtocol.text = "${item.count} ${if (item.count == 1) "detección" else "detecciones"}"
             tvProtocol.visibility = View.VISIBLE
 
             switchBlock.visibility = View.VISIBLE
@@ -727,7 +788,7 @@ class ThreatsAdapter(
 
             tvStatus.text = if (item.isBlocked) "Bloqueando" else "Monitoreando"
             tvStatus.setTextColor(
-                if (item.isBlocked) 0xFFE57373.toInt() else 0xFFFFB74D.toInt()
+                if (item.isBlocked) 0xFFEF4444.toInt() else 0xFFF59E0B.toInt()
             )
 
             itemView.isFocusable = true
@@ -738,18 +799,18 @@ class ThreatsAdapter(
                 switchBlock.isChecked = newBlocked
                 tvStatus.text = if (newBlocked) "Bloqueando" else "Monitoreando"
                 tvStatus.setTextColor(
-                    if (newBlocked) 0xFFE57373.toInt() else 0xFFFFB74D.toInt()
+                    if (newBlocked) 0xFFEF4444.toInt() else 0xFFF59E0B.toInt()
                 )
                 onToggle(item.threatType, newBlocked)
             }
         }
 
         private fun bindEntry(item: ThreatItemModel) {
-            val dest     = item.hostname?.let { "$it (${item.ip})" } ?: item.ip ?: "desconocido"
-            tvPort.text  = "    ${item.threatType.icon}  $dest:${item.port}"
+            val dest = item.hostname?.let { "$it (${item.ip})" } ?: item.ip ?: "desconocido"
+            tvPort.text = "$dest:${item.port}"
             tvPort.textSize = 13f
 
-            val elapsed  = System.currentTimeMillis() - item.timestamp
+            val elapsed = System.currentTimeMillis() - item.timestamp
             tvProtocol.text = when {
                 elapsed < 60_000     -> "ahora"
                 elapsed < 3_600_000  -> "${elapsed / 60_000}m atrás"
@@ -761,7 +822,7 @@ class ThreatsAdapter(
 
             tvStatus.text = if (item.wasBlocked) "Bloqueado" else "Detectado"
             tvStatus.setTextColor(
-                if (item.wasBlocked) 0xFFE57373.toInt() else 0xFFFFB74D.toInt()
+                if (item.wasBlocked) 0xFFEF4444.toInt() else 0xFFF59E0B.toInt()
             )
 
             itemView.isFocusable = true
