@@ -2,78 +2,114 @@
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="8dp"
+    android:layout_marginHorizontal="4dp"
     android:layout_marginVertical="5dp"
     android:focusable="true"
     android:focusableInTouchMode="true"
     android:clickable="true"
     android:stateListAnimator="@animator/scaler"
-    android:descendantFocusability="afterDescendants"
     android:foreground="@drawable/selector_item_virtual_app"
     app:cardBackgroundColor="#1E293B"
     app:cardCornerRadius="14dp"
     app:strokeColor="#334155"
     app:strokeWidth="1dp"
-    app:cardElevation="3dp">
+    app:cardElevation="2dp">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:minHeight="56dp">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
 
-        <TextView
-            android:id="@+id/tvPort"
+        <!-- Icon Frame (42dp) -->
+        <FrameLayout
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:background="@drawable/bg_splash_icon_card"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_shield"
+                app:tint="#818CF8"
+                tools:ignore="ContentDescription" />
+        </FrameLayout>
+
+        <!-- Rule Details: Title + Subtitle & Status Badge -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="16dp"
-            app:layout_constrainedWidth="true"
-            android:text="8080"
-            android:textColor="@color/white"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:maxLines="3"
-            android:ellipsize="end"
-            android:breakStrategy="simple"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/switchBlock"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="12dp">
 
-        <TextView
-            android:id="@+id/tvStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Allowed"
-            android:textColor="#81C784"
-            android:textSize="13sp"
-            android:layout_marginTop="4dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvPort" />
+            <TextView
+                android:id="@+id/tvPort"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#F8FAFC"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="firebaseinstallations.googleapis.com" />
 
-        <TextView
-            android:id="@+id/tvProtocol"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="TCP"
-            android:textColor="#94A3B8"
-            android:textSize="13sp"
-            android:layout_marginStart="8dp"
-            app:layout_constraintStart_toEndOf="@id/tvStatus"
-            app:layout_constraintBaseline_toBaselineOf="@id/tvStatus" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="3dp">
 
+                <TextView
+                    android:id="@+id/tvProtocol"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    tools:text="/v1/projects/installations" />
+
+                <TextView
+                    android:id="@+id/tvDotSeparator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="  •  "
+                    android:textColor="#475569"
+                    android:textSize="10sp" />
+
+                <!-- Status Pill Badge -->
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#10B981"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:background="@drawable/bg_state_badge"
+                    tools:text="Permitido" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Toggle Switch -->
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/switchBlock"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:focusable="false"
             android:clickable="false"
-            android:importantForAccessibility="no"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            android:importantForAccessibility="no" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
+    </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

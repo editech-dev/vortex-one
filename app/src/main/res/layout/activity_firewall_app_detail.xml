@@ -1,43 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/bg_main"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:paddingStart="52dp"
     android:paddingEnd="52dp"
     android:paddingTop="32dp"
     android:paddingBottom="20dp"
     tools:context=".activities.FirewallAppDetailActivity">
 
-    <!-- Header -->
+    <!-- Top Header Bar -->
     <LinearLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingBottom="16dp">
+        android:paddingBottom="12dp">
 
         <ImageButton
             android:id="@+id/btnBackDetail"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginEnd="12dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="14dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_arrow_back"
             app:tint="@color/white"
             android:contentDescription="@string/action_close"
             android:focusable="true"
+            android:nextFocusRight="@id/switchMonitor"
             android:nextFocusDown="@id/tabLayout" />
 
+        <!-- App Icon in Modern Card Frame -->
         <FrameLayout
-            android:layout_width="56dp"
-            android:layout_height="56dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@drawable/bg_splash_icon_card"
-            android:padding="8dp">
+            android:padding="6dp">
 
             <ImageView
                 android:id="@+id/ivAppIcon"
@@ -47,87 +52,151 @@
                 android:contentDescription="@string/app_icon" />
         </FrameLayout>
 
+        <!-- App Title & Package -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="16dp">
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="16dp">
 
             <TextView
                 android:id="@+id/tvAppName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="@color/white"
                 android:textStyle="bold"
                 android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
-                android:ellipsize="end" />
+                android:ellipsize="end"
+                tools:text="WhatsApp" />
 
             <TextView
                 android:id="@+id/tvPackageName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textColor="#94A3B8"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginTop="2dp" />
+                android:layout_marginTop="2dp"
+                tools:text="com.whatsapp" />
         </LinearLayout>
 
-        <!-- Toggles -->
+        <!-- Header Action Switches in Pill Containers -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/switchMonitor"
+            <!-- Monitor Switch Pill -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Monitor"
-                android:textColor="@color/white"
-                android:focusable="true"
-                android:layout_marginEnd="16dp"
-                android:nextFocusRight="@id/switchBlockAll"
-                android:nextFocusDown="@id/tabLayout" />
+                android:layout_height="38dp"
+                android:layout_marginEnd="10dp"
+                app:cardBackgroundColor="#1E293B"
+                app:cardCornerRadius="10dp"
+                app:cardElevation="1dp"
+                app:strokeColor="#334155"
+                app:strokeWidth="1dp">
 
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/switchBlockAll"
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="10dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Monitorear"
+                        android:textColor="#F1F5F9"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:layout_marginEnd="6dp" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchMonitor"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:nextFocusLeft="@id/btnBackDetail"
+                        android:nextFocusRight="@id/switchBlockAll"
+                        android:nextFocusDown="@id/tabLayout" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Block All Switch Pill -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Bloquear"
-                android:textColor="@color/white"
-                android:focusable="true"
-                android:nextFocusLeft="@id/switchMonitor"
-                android:nextFocusDown="@id/tabLayout" />
+                android:layout_height="38dp"
+                app:cardBackgroundColor="#1E293B"
+                app:cardCornerRadius="10dp"
+                app:cardElevation="1dp"
+                app:strokeColor="#334155"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="10dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Bloquear Todo"
+                        android:textColor="#FCA5A5"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:layout_marginEnd="6dp" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchBlockAll"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:nextFocusLeft="@id/switchMonitor"
+                        android:nextFocusDown="@id/tabLayout" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
         </LinearLayout>
-
     </LinearLayout>
 
-    <!-- Tab bar -->
+    <!-- Modern Android TV Tab Bar -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayout"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="42dp"
+        android:layout_marginTop="4dp"
         android:background="@android:color/transparent"
         android:nextFocusUp="@id/switchMonitor"
         app:tabMode="scrollable"
         app:tabTextColor="#94A3B8"
-        app:tabSelectedTextColor="@color/white"
-        app:tabIndicatorColor="@color/accent_color"
+        app:tabSelectedTextColor="#FFFFFF"
+        app:tabIndicatorColor="#818CF8"
         app:tabIndicatorHeight="3dp"
-        app:tabTextAppearance="@android:style/TextAppearance.Small" />
+        app:tabIndicatorFullWidth="false"
+        app:tabRippleColor="#33818CF8"
+        app:tabTextAppearance="@style/Widget.Vortex.TabItem" />
 
-    <!-- ViewPager -->
+    <!-- ViewPager2 for Tab Contents -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:layout_marginTop="8dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:focusable="false"
         android:descendantFocusability="afterDescendants" />
 

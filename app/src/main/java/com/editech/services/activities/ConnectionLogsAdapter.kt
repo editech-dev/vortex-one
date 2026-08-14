@@ -104,7 +104,7 @@ class ConnectionLogsAdapter : RecyclerView.Adapter<ConnectionLogsAdapter.ViewHol
             tvProtocol.text = statusText.toString()
             tvProtocol.setTextColor(statusColor)
 
-            statusIndicator.setBackgroundColor(statusColor)
+            statusIndicator.backgroundTintList = android.content.res.ColorStateList.valueOf(statusColor)
 
             val card = itemView as? com.google.android.material.card.MaterialCardView
             itemView.setOnFocusChangeListener { _, hasFocus ->

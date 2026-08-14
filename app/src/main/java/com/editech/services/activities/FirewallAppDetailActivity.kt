@@ -568,16 +568,21 @@ class EndpointsAdapter(
         }
 
         fun bind(item: EndpointItemModel) {
-            tvPort.text = item.endpoint
+            val uri = try {
+                android.net.Uri.parse(if (item.endpoint.startsWith("http://") || item.endpoint.startsWith("https://")) item.endpoint else "https://${item.endpoint}")
+            } catch (e: Exception) { null }
+
+            val host = uri?.host ?: item.endpoint.substringBefore("?").substringBefore("/")
+            val path = uri?.path?.takeIf { it.isNotEmpty() && it != "/" } ?: ""
+            val queryPreview = if (path.isEmpty() && !uri?.query.isNullOrEmpty()) "?${uri?.query?.take(25)}..." else ""
+
+            tvPort.text = host
+            tvProtocol.text = if (path.isNotEmpty() || queryPreview.isNotEmpty()) "$path$queryPreview" else "Raíz"
+            tvProtocol.visibility = View.VISIBLE
+
             switchBlock.setOnCheckedChangeListener(null)
             switchBlock.isChecked = item.isBlocked
             updateStatus(item.isBlocked)
-
-            val card = itemView as? com.google.android.material.card.MaterialCardView
-            itemView.setOnFocusChangeListener { _, hasFocus ->
-                card?.strokeWidth = if (hasFocus) 3 else 0
-                card?.strokeColor = if (hasFocus) 0xFF38BDF8.toInt() else android.graphics.Color.TRANSPARENT
-            }
 
             itemView.setOnClickListener {
                 val newBlocked = !item.isBlocked
@@ -591,10 +596,10 @@ class EndpointsAdapter(
         private fun updateStatus(blocked: Boolean) {
             if (blocked) {
                 tvStatus.text = "Bloqueado"
-                tvStatus.setTextColor(0xFFE57373.toInt())
+                tvStatus.setTextColor(0xFFEF4444.toInt())
             } else {
                 tvStatus.text = "Permitido"
-                tvStatus.setTextColor(0xFF81C784.toInt())
+                tvStatus.setTextColor(0xFF10B981.toInt())
             }
         }
     }
@@ -646,17 +651,12 @@ class PortsAdapter(
         }
 
         fun bind(item: PortItemModel) {
-            tvPort.text     = item.port.toString()
+            tvPort.text     = "Puerto ${item.port}"
             tvProtocol.text = item.protocol
+            tvProtocol.visibility = View.VISIBLE
             switchBlock.setOnCheckedChangeListener(null)
             switchBlock.isChecked = item.isBlocked
             updateStatus(item.isBlocked)
-
-            val card = itemView as? com.google.android.material.card.MaterialCardView
-            itemView.setOnFocusChangeListener { _, hasFocus ->
-                card?.strokeWidth = if (hasFocus) 3 else 0
-                card?.strokeColor = if (hasFocus) 0xFF38BDF8.toInt() else android.graphics.Color.TRANSPARENT
-            }
 
             itemView.setOnClickListener {
                 val newBlocked = !item.isBlocked
@@ -670,10 +670,10 @@ class PortsAdapter(
         private fun updateStatus(blocked: Boolean) {
             if (blocked) {
                 tvStatus.text = "Bloqueado"
-                tvStatus.setTextColor(0xFFE57373.toInt())
+                tvStatus.setTextColor(0xFFEF4444.toInt())
             } else {
                 tvStatus.text = "Permitido"
-                tvStatus.setTextColor(0xFF81C784.toInt())
+                tvStatus.setTextColor(0xFF10B981.toInt())
             }
         }
     }
