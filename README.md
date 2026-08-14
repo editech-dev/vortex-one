@@ -1,6 +1,6 @@
 # Vortex One 📱📺
 
-[![Release](https://img.shields.io/badge/Release-v2.0.0-brightgreen?style=for-the-badge&logo=github)](https://github.com/editech-dev/vortex-one/releases/tag/v2.0.0)
+[![Release](https://img.shields.io/badge/Release-v2.0.1-brightgreen?style=for-the-badge&logo=github)](https://github.com/editech-dev/vortex-one/releases/tag/v2.0.1)
 [![Platform](https://img.shields.io/badge/Platform-Android%20TV%20%7C%20Mobile-blue?style=for-the-badge&logo=android)](https://github.com/editech-dev/vortex-one)
 [![Privacy](https://img.shields.io/badge/Privacy-Tor%20Embedded%20%2B%20DoT%20853-purple?style=for-the-badge&logo=torbrowser)](https://github.com/editech-dev/vortex-one)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange?style=for-the-badge)](NOTICE)
@@ -11,15 +11,15 @@ Run community streaming apps, IPTV players, emulators, and cloned APKs with comp
 
 ---
 
-## 📥 Downloads (v2.0.0)
+## 📥 Downloads (v2.0.1)
 
 Choose the optimal package for your target device:
 
 | Architecture | Recommended Devices | Direct Download Link |
 | :--- | :--- | :--- |
-| 🌐 **Universal APK** | Smart TVs, TV Boxes, Smartphones (All) | [Download Universal v2.0.0](https://github.com/editech-dev/vortex-one/releases/download/v2.0.0/VortexOne-v2.0.0-universal.apk) |
-| ⚡ **ARM64 64-bit** | Modern Smartphones & High-end TV Boxes | [Download ARM64 v2.0.0](https://github.com/editech-dev/vortex-one/releases/download/v2.0.0/VortexOne-v2.0.0-arm64-v8a.apk) |
-| 📺 **ARMv7 32-bit** | Smart TVs, TV Sticks & Onn 4K Streaming Boxes | [Download ARMv7 v2.0.0](https://github.com/editech-dev/vortex-one/releases/download/v2.0.0/VortexOne-v2.0.0-armeabi-v7a.apk) |
+| 🌐 **Universal APK** | Smart TVs, TV Boxes, Smartphones (All) | [Download Universal v2.0.1](https://github.com/editech-dev/vortex-one/releases/download/v2.0.1/VortexOne-v2.0.1-universal.apk) |
+| ⚡ **ARM64 64-bit** | Modern Smartphones & High-end TV Boxes | [Download ARM64 v2.0.1](https://github.com/editech-dev/vortex-one/releases/download/v2.0.1/VortexOne-v2.0.1-arm64-v8a.apk) |
+| 📺 **ARMv7 32-bit** | Smart TVs, TV Sticks & Onn 4K Streaming Boxes | [Download ARMv7 v2.0.1](https://github.com/editech-dev/vortex-one/releases/download/v2.0.1/VortexOne-v2.0.1-armeabi-v7a.apk) |
 
 ---
 
@@ -64,6 +64,17 @@ Capturas de pantalla reales capturadas directamente desde **Onn 4K Streaming Box
 - **Custom Rule Engine**: Block specific ports, endpoints, and telemetry servers.
 - **Bandwidth Throttling**: Configure custom Upload/Download speed limits per app.
 - **Room Database with Auto-Pruning**: Automated 7-day log retention keeping memory usage under 3.5%.
+
+---
+
+## 📜 Version 2.0.1 Changelog
+ 
+> [!NOTE]
+> **Key Enhancements in v2.0.1:**
+> - **In-App Sandbox Updates**: Added automated internal processing of `Intent.ACTION_VIEW` (`application/vnd.android.package-archive`) within `ClientConfiguration.requestInstallPackage`.
+> - **Read-Only Overwrite Fix (EACCES)**: Fixed `CopyExecutor` and `NativeUtils` to safely clear read-only permissions (`chmod 600` / `delete`) on target `base.apk` and `.so` libraries before performing updates.
+> - **Version Enforcement & Protection**: Integrated strict package verification preventing downgrade attacks (`newVersionCode >= currentVersionCode`), host package spoofing, and unsupported ABI installations.
+> - **StreamBridge & Streaming App Support**: Fully verified smooth execution and seamless in-app updates for live TV streaming apps (StreamBridge, etc.) with hardware-accelerated video decoding.
 
 ---
 

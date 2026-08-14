@@ -1,4 +1,4 @@
-# Developer Documentation - Vortex One (v2.0.0)
+# Developer Documentation - Vortex One (v2.0.1)
 
 This document contains authoritative technical details regarding the architecture, virtualization engine hooks, Tor privacy engine, encrypted DNS-over-TLS (DoT) resolver, firewall inspection, and build workflows of **Vortex One**.
 
@@ -161,9 +161,9 @@ if (isTorEnabledForPackage(pkg)) {
 
 ### Build Artifacts
 Binaries are generated under `app/build/outputs/apk/release/`:
-- `VortexOne-v2.0.0-universal.apk`
-- `VortexOne-v2.0.0-arm64-v8a.apk`
-- `VortexOne-v2.0.0-armeabi-v7a.apk`
+- `VortexOne-v2.0.1-universal.apk`
+- `VortexOne-v2.0.1-arm64-v8a.apk`
+- `VortexOne-v2.0.1-armeabi-v7a.apk`
 
 ---
 
@@ -176,4 +176,4 @@ When creating or modifying layouts:
 
 ---
 
-*Developer Guide for Vortex One v2.0.0.*
+*Developer Guide for Vortex One v2.0.1.*
