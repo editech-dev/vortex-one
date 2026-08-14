@@ -95,7 +95,7 @@
     <string name="btn_settings">Configuración</string>
     <string name="settings_title">Configuración y Mantenimiento</string>
     <string name="settings_subtitle">Gestión de datos y caché de aplicaciones</string>
-    <string name="btn_clear_all_cache">Limpiar Caché de Todas las Apps</string>
+    <string name="btn_clear_all_cache">Limpiar Caché Global</string>
     <string name="label_cache_size">Caché: %s</string>
     <string name="label_data_size">Datos: %s</string>
     <string name="action_clear_cache">Borrar Caché</string>

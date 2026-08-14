@@ -14,5 +14,14 @@
         <!-- Windows and Status -->
         <item name="android:statusBarColor">@color/primary_dark</item>
         <item name="android:windowBackground">@drawable/bg_main</item>
+
+        <!-- Button style defaults (No forced uppercase, natural letter spacing) -->
+        <item name="materialButtonStyle">@style/Widget.Vortex.Button</item>
+    </style>
+
+    <style name="Widget.Vortex.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="fontFamily">sans-serif-medium</item>
     </style>
 </resources>
