@@ -103,6 +103,12 @@ class FirewallActivity : AppCompatActivity() {
                 installedPackages?.forEach { packageInfo ->
                     try {
                         val pkg  = packageInfo.packageName ?: return@forEach
+
+                        // Ocultar paquetes de infraestructura de Google del Firewall
+                        if (top.niunaijun.blackbox.core.GmsCore.isGoogleAppOrService(pkg)) {
+                            return@forEach
+                        }
+
                         val pm   = packageManager
                         val icon = try { packageInfo.applicationInfo?.loadIcon(pm) } catch (e: Exception) { null }
                         val name = try { packageInfo.applicationInfo?.loadLabel(pm)?.toString() ?: pkg } catch (e: Exception) { pkg }
