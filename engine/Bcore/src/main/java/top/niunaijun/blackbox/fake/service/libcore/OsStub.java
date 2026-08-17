@@ -102,51 +102,98 @@ public class OsStub extends ClassInvocationStub {
 
     static volatile java.lang.reflect.Method sTorEnabledMethod;
     static volatile java.lang.reflect.Method sTorProxyMethod;
-    static volatile boolean sTorReflectionFailed = false;
 
     static volatile java.lang.reflect.Method sDnsResolverMethod;
-    static volatile boolean sDnsResolverReflectionFailed = false;
+
+    private static ClassLoader getSafeClassLoader() {
+        try {
+            if (BlackBoxCore.getContext() != null && BlackBoxCore.getContext().getClassLoader() != null) {
+                return BlackBoxCore.getContext().getClassLoader();
+            }
+        } catch (Throwable ignored) {}
+        return OsStub.class.getClassLoader();
+    }
 
     static void ensureTorReflection() {
-        if (sTorEnabledMethod != null || sTorReflectionFailed) return;
+        if (sTorEnabledMethod != null) return;
         try {
-            Class<?> torMgr = Class.forName("com.editech.services.tor.TorManager");
+            ClassLoader cl = getSafeClassLoader();
+            Class<?> torMgr = Class.forName("com.editech.services.tor.TorManager", true, cl);
             sTorEnabledMethod = torMgr.getMethod("isTorEnabledForPackage", String.class);
             sTorProxyMethod   = torMgr.getMethod("isProxyReachable");
-        } catch (Exception e) {
-            sTorReflectionFailed = true;
+        } catch (Throwable e) {
+            try {
+                Class<?> torMgr = Class.forName("com.editech.services.tor.TorManager");
+                sTorEnabledMethod = torMgr.getMethod("isTorEnabledForPackage", String.class);
+                sTorProxyMethod   = torMgr.getMethod("isProxyReachable");
+            } catch (Throwable ignored) {}
         }
     }
 
     static void ensureDnsResolverReflection() {
-        if (sDnsResolverMethod != null || sDnsResolverReflectionFailed) return;
+        if (sDnsResolverMethod != null) return;
         try {
-            Class<?> dnsClass = Class.forName("com.editech.services.net.CloudflareDnsResolver");
+            ClassLoader cl = getSafeClassLoader();
+            Class<?> dnsClass = Class.forName("com.editech.services.net.CloudflareDnsResolver", true, cl);
             sDnsResolverMethod = dnsClass.getMethod("resolve", String.class);
-        } catch (Exception e) {
-            sDnsResolverReflectionFailed = true;
+        } catch (Throwable e) {
+            try {
+                Class<?> dnsClass = Class.forName("com.editech.services.net.CloudflareDnsResolver");
+                sDnsResolverMethod = dnsClass.getMethod("resolve", String.class);
+            } catch (Throwable ignored) {}
         }
     }
 
     private static java.net.InetAddress[] resolveViaCloudflareDoH(String hostname) {
-        if (hostname == null || sDnsResolverReflectionFailed) return null;
+        if (hostname == null) return null;
         try {
             ensureDnsResolverReflection();
             if (sDnsResolverMethod != null) {
                 return (java.net.InetAddress[]) sDnsResolverMethod.invoke(null, hostname);
             }
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
         return null;
     }
 
+    private static volatile String sProcessVirtualPackageName = null;
+
+    private static String resolveCurrentPackage() {
+        if (sProcessVirtualPackageName != null) {
+            return sProcessVirtualPackageName;
+        }
+        String pkg = null;
+        try {
+            if (BActivityThread.isThreadInit() && BActivityThread.currentActivityThread().isInit()) {
+                pkg = BActivityThread.getAppPackageName();
+            }
+        } catch (Throwable ignored) {}
+        if (pkg == null) {
+            try {
+                if (BActivityThread.getAppConfig() != null) {
+                    pkg = BActivityThread.getAppConfig().packageName;
+                }
+            } catch (Throwable ignored) {}
+        }
+        if (pkg != null && !pkg.equals(BlackBoxCore.getHostPkg())) {
+            sProcessVirtualPackageName = pkg;
+            return pkg;
+        }
+        String cachedThreadPkg = sThreadPkgCache.get();
+        if (cachedThreadPkg != null && !cachedThreadPkg.equals(BlackBoxCore.getHostPkg())) {
+            sProcessVirtualPackageName = cachedThreadPkg;
+            return cachedThreadPkg;
+        }
+        return pkg;
+    }
+
     private static boolean isTorEnabledForPackage(String pkg) {
-        if (pkg == null || sTorReflectionFailed) return false;
+        if (pkg == null) return false;
         try {
             ensureTorReflection();
             if (sTorEnabledMethod != null) {
                 return (boolean) sTorEnabledMethod.invoke(null, pkg);
             }
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
         return false;
     }
 
@@ -195,12 +242,20 @@ public class OsStub extends ClassInvocationStub {
 
     private static void logTorDnsResolution(String hostname, String virtualIp, String pkg) {
         try {
-            Class<?> ncClass = Class.forName("com.editech.services.firewall.NetworkConnectionMonitor");
+            Class<?> ncClass = Class.forName("com.editech.services.firewall.NetworkConnectionMonitor", true, getSafeClassLoader());
             java.lang.reflect.Method m = ncClass.getMethod("logTorConnection",
                     String.class, int.class, boolean.class,
                     String.class, String.class, String.class);
             m.invoke(null, virtualIp, 53, false, "RESOLVED", hostname, "TOR/DNS");
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {
+            try {
+                Class<?> ncClass = Class.forName("com.editech.services.firewall.NetworkConnectionMonitor");
+                java.lang.reflect.Method m = ncClass.getMethod("logTorConnection",
+                        String.class, int.class, boolean.class,
+                        String.class, String.class, String.class);
+                m.invoke(null, virtualIp, 53, false, "RESOLVED", hostname, "TOR/DNS");
+            } catch (Throwable ignored2) {}
+        }
     }
 
     static void logTorConnection(
@@ -209,12 +264,21 @@ public class OsStub extends ClassInvocationStub {
             String protocol, String pkg) {
         try {
             Class<?> ncClass = Class.forName(
-                    "com.editech.services.firewall.NetworkConnectionMonitor");
+                    "com.editech.services.firewall.NetworkConnectionMonitor", true, getSafeClassLoader());
             java.lang.reflect.Method m = ncClass.getMethod("logTorConnection",
                     String.class, int.class, boolean.class,
                     String.class, String.class, String.class);
             m.invoke(null, ip, port, blocked, status, reason, protocol);
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {
+            try {
+                Class<?> ncClass = Class.forName(
+                        "com.editech.services.firewall.NetworkConnectionMonitor");
+                java.lang.reflect.Method m = ncClass.getMethod("logTorConnection",
+                        String.class, int.class, boolean.class,
+                        String.class, String.class, String.class);
+                m.invoke(null, ip, port, blocked, status, reason, protocol);
+            } catch (Throwable ignored2) {}
+        }
     }
 
     @ProxyMethod("android_getaddrinfo")
@@ -224,13 +288,13 @@ public class OsStub extends ClassInvocationStub {
             if (args != null && args.length >= 1 && args[0] instanceof String) {
                 String node = (String) args[0];
                 if (node != null && !node.isEmpty() && !isIpAddress(node)) {
-                    String pkg = top.niunaijun.blackbox.app.BActivityThread.getAppPackageName();
+                    String pkg = resolveCurrentPackage();
                     if (pkg != null && isTorEnabledForPackage(pkg)) {
                         String virtualIp = getOrAllocateVirtualIp(node);
                         java.net.InetAddress addr = java.net.InetAddress.getByAddress(node, java.net.InetAddress.getByName(virtualIp).getAddress());
                         logTorDnsResolution(node, virtualIp, pkg);
                         return new java.net.InetAddress[]{ addr };
-                    } else if (pkg != null) {
+                    } else {
                         try {
                             java.net.InetAddress[] dohAddrs = resolveViaCloudflareDoH(node);
                             if (dohAddrs != null && dohAddrs.length > 0) {
@@ -240,7 +304,11 @@ public class OsStub extends ClassInvocationStub {
                     }
                 }
             }
-            return method.invoke(who, args);
+            try {
+                return method.invoke(who, args);
+            } catch (java.lang.reflect.InvocationTargetException ite) {
+                throw ite.getTargetException();
+            }
         }
     }
 
@@ -251,13 +319,13 @@ public class OsStub extends ClassInvocationStub {
             if (args != null && args.length >= 1 && args[0] instanceof String) {
                 String node = (String) args[0];
                 if (node != null && !node.isEmpty() && !isIpAddress(node)) {
-                    String pkg = top.niunaijun.blackbox.app.BActivityThread.getAppPackageName();
+                    String pkg = resolveCurrentPackage();
                     if (pkg != null && isTorEnabledForPackage(pkg)) {
                         String virtualIp = getOrAllocateVirtualIp(node);
                         java.net.InetAddress addr = java.net.InetAddress.getByAddress(node, java.net.InetAddress.getByName(virtualIp).getAddress());
                         logTorDnsResolution(node, virtualIp, pkg);
                         return new java.net.InetAddress[]{ addr };
-                    } else if (pkg != null) {
+                    } else {
                         try {
                             java.net.InetAddress[] dohAddrs = resolveViaCloudflareDoH(node);
                             if (dohAddrs != null && dohAddrs.length > 0) {
@@ -267,7 +335,11 @@ public class OsStub extends ClassInvocationStub {
                     }
                 }
             }
-            return method.invoke(who, args);
+            try {
+                return method.invoke(who, args);
+            } catch (java.lang.reflect.InvocationTargetException ite) {
+                throw ite.getTargetException();
+            }
         }
     }
 
@@ -337,33 +409,21 @@ public class OsStub extends ClassInvocationStub {
                     // Check if this virtual app has Tor routing enabled.
                     // If yes, tunnel through 127.0.0.1:9150 (SOCKS5).
                     // If Tor is enabled but proxy is down -> BLOCK (kill-switch).
-                    if (!OsStub.sTorReflectionFailed) {
-                        try {
-                            OsStub.ensureTorReflection();
-                            if (OsStub.sTorEnabledMethod != null) {
-                                String pkg = top.niunaijun.blackbox.app.BActivityThread.getAppPackageName();
-                                if (pkg != null) {
-                                    boolean torEnabled = (boolean) OsStub.sTorEnabledMethod.invoke(null, pkg);
-                                    if (torEnabled) {
-                                         // ── UPnP / SSDP / LAN LEAK PROTECTION ────────────────────────────
-                                         if (address != null && isUpnpOrLocalNetwork(address, port)) {
-                                             logTorConnection(address.getHostAddress(), port,
-                                                     true, "BLOCKED", "UPnP/LAN port mapping blocked under Tor",
-                                                     "TOR/UPNP_BLOCKED", pkg);
-                                             throw new java.net.SocketException(
-                                                     "[Tor] UPnP/LAN connection blocked for anonymity protection");
-                                         }
-                                         // ──────────────────────────────────────────────────────────────────
+                    String pkg = resolveCurrentPackage();
+                    if (pkg != null && isTorEnabledForPackage(pkg)) {
+                        // ── UPnP / SSDP / LAN LEAK PROTECTION ────────────────────────────
+                        if (address != null && isUpnpOrLocalNetwork(address, port)) {
+                            logTorConnection(address.getHostAddress(), port,
+                                    true, "BLOCKED", "UPnP/LAN port mapping blocked under Tor",
+                                    "TOR/UPNP_BLOCKED", pkg);
+                            throw new java.net.SocketException(
+                                    "[Tor] UPnP/LAN connection blocked for anonymity protection");
+                        }
+                        // ──────────────────────────────────────────────────────────────────
 
-                                         // Enrutar tráfico directamente por el túnel Tor SOCKS5
-                                        sIsChecking.remove();
-                                        return connectViaTorSocks5(who, method, args, address, port, pkg);
-                                    }
-                                }
-                            }
-                        } catch (java.net.SocketException se) {
-                            throw se; // Re-throw kill-switch blocks
-                        } catch (Exception ignored) {}
+                        // Enrutar tráfico directamente por el túnel Tor SOCKS5 (Kill-Switch si falla)
+                        sIsChecking.remove();
+                        return connectViaTorSocks5(who, method, args, address, port, pkg);
                     }
                     // ── END TOR REDIRECT ──────────────────────────────────────────────────────
 
@@ -373,8 +433,14 @@ public class OsStub extends ClassInvocationStub {
                         String origHost = sVirtualIpToHostname.get(address.getHostAddress());
                         if (origHost != null) {
                             try {
-                                address = java.net.InetAddress.getByName(origHost);
-                                args[1] = address;
+                                java.net.InetAddress[] dohAddrs = resolveViaCloudflareDoH(origHost);
+                                if (dohAddrs != null && dohAddrs.length > 0) {
+                                    address = dohAddrs[0];
+                                    args[1] = address;
+                                } else {
+                                    address = java.net.InetAddress.getByName(origHost);
+                                    args[1] = address;
+                                }
                             } catch (Exception ignored) {}
                         }
                     }
@@ -615,31 +681,25 @@ public class OsStub extends ClassInvocationStub {
             // sendto(FileDescriptor fd, byte[] bytes, int byteOffset, int byteCount, int flags, InetAddress inetAddress, int port)
             // or sendto(FileDescriptor fd, ByteBuffer buffer, int flags, InetAddress inetAddress, int port)
             try {
-                String pkg = getCurrentPackageName();
-                if (pkg != null && !OsStub.sTorReflectionFailed) {
-                    OsStub.ensureTorReflection();
-                    if (OsStub.sTorEnabledMethod != null) {
-                        boolean torEnabled = (boolean) OsStub.sTorEnabledMethod.invoke(null, pkg);
-                        if (torEnabled) {
-                            java.net.InetAddress destAddr = null;
-                            int destPort = 0;
-                            if (args != null) {
-                                if (args.length >= 7 && args[5] instanceof java.net.InetAddress && args[6] instanceof Integer) {
-                                    destAddr = (java.net.InetAddress) args[5];
-                                    destPort = (Integer) args[6];
-                                } else if (args.length >= 5 && args[3] instanceof java.net.InetAddress && args[4] instanceof Integer) {
-                                    destAddr = (java.net.InetAddress) args[3];
-                                    destPort = (Integer) args[4];
-                                }
-                            }
-
-                            if (destAddr != null && isUpnpOrLocalNetwork(destAddr, destPort)) {
-                                OsStub.logTorConnection(destAddr.getHostAddress(), destPort,
-                                        true, "BLOCKED", "UPnP UDP broadcast blocked under Tor",
-                                        "TOR/UPNP_BLOCKED", pkg);
-                                throw new java.net.SocketException("[Tor] UPnP UDP broadcast blocked for anonymity protection");
-                            }
+                String pkg = resolveCurrentPackage();
+                if (pkg != null && isTorEnabledForPackage(pkg)) {
+                    java.net.InetAddress destAddr = null;
+                    int destPort = 0;
+                    if (args != null) {
+                        if (args.length >= 7 && args[5] instanceof java.net.InetAddress && args[6] instanceof Integer) {
+                            destAddr = (java.net.InetAddress) args[5];
+                            destPort = (Integer) args[6];
+                        } else if (args.length >= 5 && args[3] instanceof java.net.InetAddress && args[4] instanceof Integer) {
+                            destAddr = (java.net.InetAddress) args[3];
+                            destPort = (Integer) args[4];
                         }
+                    }
+
+                    if (destAddr != null && isUpnpOrLocalNetwork(destAddr, destPort)) {
+                        OsStub.logTorConnection(destAddr.getHostAddress(), destPort,
+                                true, "BLOCKED", "UPnP UDP broadcast blocked under Tor",
+                                "TOR/UPNP_BLOCKED", pkg);
+                        throw new java.net.SocketException("[Tor] UPnP UDP broadcast blocked for anonymity protection");
                     }
                 }
             } catch (java.net.SocketException se) {
