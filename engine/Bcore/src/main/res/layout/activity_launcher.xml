@@ -91,6 +91,39 @@
             android:textColor="@color/splash_text_secondary"
             android:textSize="14sp" />
 
+        <!-- Contenedor del Nodo de Salida Tor (Visible si Tor está activo) -->
+        <LinearLayout
+            android:id="@+id/layout_tor_exit_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_tor_exit_pill"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_tor_flag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:text="🧅" />
+
+            <TextView
+                android:id="@+id/tv_tor_exit_details"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="Estableciendo circuito seguro..."
+                android:textColor="#C7D2FE"
+                android:textSize="13sp" />
+        </LinearLayout>
+
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

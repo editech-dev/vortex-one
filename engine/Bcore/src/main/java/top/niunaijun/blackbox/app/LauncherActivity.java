@@ -105,6 +105,27 @@ public class LauncherActivity extends Activity {
                 torBadge.setVisibility(isTor ? android.view.View.VISIBLE : android.view.View.GONE);
             }
 
+            android.view.View torExitLayout = findViewById(R.id.layout_tor_exit_info);
+            TextView torFlagView = findViewById(R.id.tv_tor_flag);
+            TextView torExitDetails = findViewById(R.id.tv_tor_exit_details);
+
+            if (isTor && torExitLayout != null) {
+                torExitLayout.setVisibility(android.view.View.VISIBLE);
+                torExitLayout.setAlpha(0f);
+                torExitLayout.animate().alpha(1f).setDuration(400).setStartDelay(250).start();
+
+                // Check if exit info is already cached
+                updateTorExitUi(torFlagView, torExitDetails);
+
+                // Fetch or refresh exit info asynchronously
+                new Thread(() -> {
+                    fetchTorExitInfoReflection();
+                    runOnUiThread(() -> updateTorExitUi(torFlagView, torExitDetails));
+                }, "TorExitInfoSplashThread").start();
+            } else if (torExitLayout != null) {
+                torExitLayout.setVisibility(android.view.View.GONE);
+            }
+
             if (statusView != null) {
                 statusView.setText(isTor ? "Iniciando con red segura Tor..." : "Iniciando aplicación...");
                 statusView.setAlpha(0f);
@@ -160,6 +181,35 @@ public class LauncherActivity extends Activity {
             Slog.e(TAG, "Critical error in LauncherActivity.onCreate()", e);
             finish();
         }
+    }
+
+    private void updateTorExitUi(TextView flagView, TextView detailsView) {
+        if (flagView == null || detailsView == null) return;
+        try {
+            Class<?> torMgrClass = Class.forName("com.editech.services.tor.TorManager");
+            String flag = (String) torMgrClass.getMethod("getTorExitFlag").invoke(null);
+            String country = (String) torMgrClass.getMethod("getTorExitCountry").invoke(null);
+            String ip = (String) torMgrClass.getMethod("getTorExitIp").invoke(null);
+
+            if (ip != null && !ip.isEmpty()) {
+                flagView.setText(flag != null && !flag.isEmpty() ? flag : "🧅");
+                String countryStr = (country != null && !country.isEmpty()) ? country : "Tor Exit";
+                detailsView.setText(countryStr + " · " + ip);
+            } else {
+                flagView.setText("🧅");
+                detailsView.setText("Estableciendo circuito seguro...");
+            }
+        } catch (Throwable ignored) {
+            flagView.setText("🧅");
+            detailsView.setText("Tor Activo");
+        }
+    }
+
+    private void fetchTorExitInfoReflection() {
+        try {
+            Class<?> torMgrClass = Class.forName("com.editech.services.tor.TorManager");
+            torMgrClass.getMethod("fetchTorExitInfoSync").invoke(null);
+        } catch (Throwable ignored) {}
     }
 
     /**

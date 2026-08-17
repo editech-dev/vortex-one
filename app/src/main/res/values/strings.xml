@@ -88,6 +88,12 @@
     <string name="tor_circuit_title">Network Circuit</string>
     <string name="tor_circuit_subtitle">Change exit nodes to obtain a new IP address</string>
     <string name="tor_new_identity">New identity</string>
+    <string name="tor_change_link">Change link</string>
+    <string name="tor_changing_link">Changing link…</string>
+    <string name="tor_exit_node_title">Tor Exit Node</string>
+    <string name="tor_exit_ip_label">Exit IP: %s</string>
+    <string name="tor_circuit_established">Tor circuit active · 0 leaks</string>
+    <string name="tor_fetching_node">Querying exit node…</string>
     <string name="tor_logs_title">Recent Tor Activity</string>
     <string name="tor_stats_format">✅ %1$d successful  ·  ❌ %2$d failed</string>
     <string name="tor_no_logs">No Tor connections recorded yet</string>

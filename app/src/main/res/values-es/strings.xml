@@ -88,6 +88,12 @@
     <string name="tor_circuit_title">Circuito de Red</string>
     <string name="tor_circuit_subtitle">Cambia los nodos de salida para obtener una nueva IP</string>
     <string name="tor_new_identity">Nueva identidad</string>
+    <string name="tor_change_link">Cambiar de enlace</string>
+    <string name="tor_changing_link">Cambiando enlace…</string>
+    <string name="tor_exit_node_title">Nodo de Salida Tor</string>
+    <string name="tor_exit_ip_label">IP de Salida: %s</string>
+    <string name="tor_circuit_established">Circuito Tor activo · 0 filtraciones</string>
+    <string name="tor_fetching_node">Consultando nodo de salida…</string>
     <string name="tor_logs_title">Actividad Tor Reciente</string>
     <string name="tor_stats_format">✅ %1$d exitosas  ·  ❌ %2$d fallidas</string>
     <string name="tor_no_logs">No hay conexiones Tor registradas aún</string>

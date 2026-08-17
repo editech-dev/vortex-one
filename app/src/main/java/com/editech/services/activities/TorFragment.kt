@@ -4,9 +4,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.editech.services.R
+import com.editech.services.tor.TorExitInfo
 import com.editech.services.tor.TorManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -19,6 +21,11 @@ class TorFragment : Fragment() {
     private lateinit var tvTorStatus: TextView
     private lateinit var torStatusIndicator: View
     private lateinit var btnNewIdentity: MaterialButton
+    private lateinit var pbChangingIdentity: ProgressBar
+    private lateinit var tvExitFlag: TextView
+    private lateinit var tvExitCountry: TextView
+    private lateinit var tvExitIp: TextView
+    private lateinit var tvExitStatus: TextView
 
     companion object {
         private const val ARG_PKG = "pkg_name"
@@ -52,6 +59,11 @@ class TorFragment : Fragment() {
         tvTorStatus = view.findViewById(R.id.tvTorStatus)
         torStatusIndicator = view.findViewById(R.id.torStatusIndicator)
         btnNewIdentity = view.findViewById(R.id.btnNewIdentity)
+        pbChangingIdentity = view.findViewById(R.id.pbChangingIdentity)
+        tvExitFlag = view.findViewById(R.id.tvExitFlag)
+        tvExitCountry = view.findViewById(R.id.tvExitCountry)
+        tvExitIp = view.findViewById(R.id.tvExitIp)
+        tvExitStatus = view.findViewById(R.id.tvExitStatus)
 
         // Initial switch state
         val isEnabled = TorManager.isTorEnabled(packageName)
@@ -86,13 +98,33 @@ class TorFragment : Fragment() {
         }
 
         btnNewIdentity.setOnClickListener {
-            TorManager.requestNewIdentity()
+            pbChangingIdentity.visibility = View.VISIBLE
+            btnNewIdentity.isEnabled = false
+            btnNewIdentity.text = getString(R.string.tor_changing_link)
+            tvExitStatus.text = getString(R.string.tor_changing_link)
+            tvExitStatus.setTextColor(0xFFFFB74D.toInt()) // Orange
+
+            TorManager.requestNewIdentity { newInfo ->
+                if (!isAdded) return@requestNewIdentity
+                pbChangingIdentity.visibility = View.GONE
+                btnNewIdentity.isEnabled = (TorManager.status.value == TorManager.TorStatus.RUNNING)
+                btnNewIdentity.text = getString(R.string.tor_change_link)
+                updateExitInfoUi(newInfo)
+            }
         }
 
         // Observe Tor status LiveData
         TorManager.status.observe(viewLifecycleOwner) { status ->
             updateStatusUi(status)
         }
+
+        // Observe Tor Exit Node Info LiveData
+        TorManager.exitInfo.observe(viewLifecycleOwner) { exitInfo ->
+            updateExitInfoUi(exitInfo)
+        }
+
+        // Initial exit info display
+        updateExitInfoUi(TorManager.currentExitInfo)
     }
 
     override fun onResume() {
@@ -103,6 +135,7 @@ class TorFragment : Fragment() {
             isProgrammaticChange = false
         }
         TorManager.checkCurrentStatus()
+        updateExitInfoUi(TorManager.currentExitInfo)
     }
 
     /** TV D-pad focus helpers */
@@ -118,6 +151,31 @@ class TorFragment : Fragment() {
         if (::switchTorEnable.isInitialized) {
             switchTorEnable.post {
                 switchTorEnable.requestFocus()
+            }
+        }
+    }
+
+    private fun updateExitInfoUi(info: TorExitInfo?) {
+        if (!::tvExitFlag.isInitialized) return
+        if (info != null) {
+            tvExitFlag.text = info.flagEmoji ?: "🧅"
+            tvExitCountry.text = info.countryName ?: getString(R.string.tor_exit_node_title)
+            tvExitIp.text = getString(R.string.tor_exit_ip_label, info.ip)
+            tvExitStatus.text = getString(R.string.tor_circuit_established)
+            tvExitStatus.setTextColor(0xFF81C784.toInt()) // Green
+        } else {
+            val status = TorManager.status.value
+            tvExitFlag.text = "🧅"
+            if (status == TorManager.TorStatus.RUNNING) {
+                tvExitCountry.text = getString(R.string.tor_fetching_node)
+                tvExitIp.text = "IP: ..."
+                tvExitStatus.text = getString(R.string.tor_status_running)
+                tvExitStatus.setTextColor(0xFF81C784.toInt())
+            } else {
+                tvExitCountry.text = getString(R.string.tor_exit_node_title)
+                tvExitIp.text = "IP: Inactivo"
+                tvExitStatus.text = getString(R.string.tor_status_stopped)
+                tvExitStatus.setTextColor(0xFF90A4AE.toInt())
             }
         }
     }
@@ -149,6 +207,9 @@ class TorFragment : Fragment() {
         tvTorStatus.setText(textRes)
         tvTorStatus.setTextColor(textColor)
         torStatusIndicator.setBackgroundColor(indicatorColor)
-        btnNewIdentity.isEnabled = (status == TorManager.TorStatus.RUNNING)
+        btnNewIdentity.isEnabled = (status == TorManager.TorStatus.RUNNING && pbChangingIdentity.visibility != View.VISIBLE)
+        if (status != TorManager.TorStatus.RUNNING) {
+            updateExitInfoUi(null)
+        }
     }
 }
