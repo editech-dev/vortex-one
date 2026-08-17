@@ -175,6 +175,15 @@ class TorService : Service() {
                 reader.readLine() // 250 OK
                 ctrl.close()
                 Log.d(TAG, "New identity signaled")
+                updateNotification("Cambiando circuito Tor…")
+
+                delay(1200)
+                val info = TorManager.fetchTorExitInfoInternal(forceRefresh = true)
+                if (info != null) {
+                    updateNotification("${info.flagEmoji ?: "🧅"} Tor activo — ${info.countryName} (${info.ip})")
+                } else {
+                    updateNotification("Tor activo — tu tráfico está protegido")
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to signal NEWNYM", e)
             }
@@ -194,12 +203,12 @@ class TorService : Service() {
                     TorManager.updateStatus(TorManager.TorStatus.RUNNING)
                     updateNotification("Tor activo — tu tráfico está protegido")
                     
-                    // Asynchronously verify exit node IP
+                    // Asynchronously verify exit node IP and country
                     launch(Dispatchers.IO) {
-                        val exitIp = TorManager.verifyTorConnection()
-                        Log.d(TAG, "Tor exit node verification: IP = ${exitIp ?: "Failed to verify"}")
-                        if (exitIp != null) {
-                            updateNotification("Tor activo — IP: $exitIp")
+                        val info = TorManager.fetchTorExitInfoInternal(forceRefresh = true)
+                        Log.d(TAG, "Tor exit node verification: IP = ${info?.ip ?: "Failed to verify"}")
+                        if (info != null) {
+                            updateNotification("${info.flagEmoji ?: "🧅"} Tor activo — ${info.countryName} (${info.ip})")
                         }
                     }
                     return@launch
