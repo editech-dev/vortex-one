@@ -85,6 +85,17 @@
             android:name=".tor.TorService"
             android:exported="true"
             android:foregroundServiceType="dataSync" />
+
+        <!-- FileProvider for In-App Updates -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/updater_file_paths" />
+        </provider>
     </application>
 
 </manifest>
