@@ -12,6 +12,10 @@ import com.editech.services.R
 import com.editech.services.adapters.SettingsAppsAdapter
 import com.editech.services.databinding.ActivitySettingsBinding
 import com.editech.services.models.VirtualApp
+import com.editech.services.updater.ReleaseInfo
+import com.editech.services.updater.UpdateDialog
+import com.editech.services.updater.UpdateManager
+import com.editech.services.updater.UpdateResult
 import com.editech.services.utils.AppStorageManager
 import com.editech.services.utils.LocaleHelper
 import kotlinx.coroutines.CoroutineScope
@@ -157,6 +161,43 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.btnClearAllCache.setOnClickListener {
             handleClearAllCache()
+        }
+
+        binding.btnCheckUpdates.setOnClickListener {
+            handleCheckUpdates()
+        }
+    }
+
+    private fun handleCheckUpdates() {
+        val originalText = binding.btnCheckUpdates.text
+        binding.btnCheckUpdates.isEnabled = false
+        binding.btnCheckUpdates.text = getString(R.string.update_checking)
+
+        CoroutineScope(Dispatchers.Main).launch {
+            val result = UpdateManager.checkForUpdates(this@SettingsActivity)
+            binding.btnCheckUpdates.isEnabled = true
+            binding.btnCheckUpdates.text = originalText
+
+            when (result) {
+                is UpdateResult.UpdateAvailable -> {
+                    val updateDialog = UpdateDialog(this@SettingsActivity, result.release)
+                    updateDialog.show()
+                }
+                is UpdateResult.UpToDate -> {
+                    Toast.makeText(
+                        this@SettingsActivity,
+                        getString(R.string.toast_update_latest, result.currentVersion),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                is UpdateResult.Error -> {
+                    Toast.makeText(
+                        this@SettingsActivity,
+                        getString(R.string.toast_update_error, result.message),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
         }
     }
 

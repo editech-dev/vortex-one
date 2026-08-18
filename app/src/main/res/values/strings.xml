@@ -142,4 +142,17 @@
     <string name="toast_gms_installed">✓ Google Play Services enabled</string>
     <string name="toast_gms_uninstalled">✓ Google Play Services disabled</string>
     <string name="toast_gms_error">Error configuring GMS: %s</string>
+    <string name="btn_check_updates">Check for Updates</string>
+    <string name="update_checking">Checking for updates…</string>
+    <string name="update_dialog_title">New Version Available</string>
+    <string name="update_meta_format">Size: %1$s • Architecture: %2$s</string>
+    <string name="update_changelog_header">What\'s New:</string>
+    <string name="update_changelog_default">Performance improvements and stability enhancements.</string>
+    <string name="update_btn_later">Later</string>
+    <string name="update_btn_download">Update Now</string>
+    <string name="update_downloading_apk">Downloading update…</string>
+    <string name="update_download_failed">Download failed: %s</string>
+    <string name="update_error_file_missing">Downloaded update file could not be found.</string>
+    <string name="toast_update_latest">✓ Vortex One is up to date (%s)</string>
+    <string name="toast_update_error">Could not check for updates: %s</string>
 </resources>

@@ -142,4 +142,17 @@
     <string name="toast_gms_installed">✓ Servicios de Google Play habilitados</string>
     <string name="toast_gms_uninstalled">✓ Servicios de Google Play deshabilitados</string>
     <string name="toast_gms_error">Error al configurar GMS: %s</string>
+    <string name="btn_check_updates">Buscar actualizaciones</string>
+    <string name="update_checking">Buscando actualizaciones…</string>
+    <string name="update_dialog_title">Nueva versión disponible</string>
+    <string name="update_meta_format">Tamaño: %1$s • Arquitectura: %2$s</string>
+    <string name="update_changelog_header">Novedades y mejoras:</string>
+    <string name="update_changelog_default">Mejoras de rendimiento, estabilidad y optimizaciones generales.</string>
+    <string name="update_btn_later">Más tarde</string>
+    <string name="update_btn_download">Actualizar ahora</string>
+    <string name="update_downloading_apk">Descargando actualización…</string>
+    <string name="update_download_failed">Error en la descarga: %s</string>
+    <string name="update_error_file_missing">No se pudo encontrar el archivo de actualización descargado.</string>
+    <string name="toast_update_latest">✓ Vortex One está actualizado a la versión más reciente (%s)</string>
+    <string name="toast_update_error">No se pudo comprobar actualizaciones: %s</string>
 </resources>
