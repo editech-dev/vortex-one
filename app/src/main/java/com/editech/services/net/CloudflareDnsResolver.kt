@@ -1,22 +1,21 @@
 package com.editech.services.net
 
+import android.os.Build
 import android.util.Log
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.InetAddress
+import java.net.Socket
 import java.net.URL
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.Executors
-import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
-import javax.net.ssl.SSLContext
+import javax.net.ssl.SNIHostName
+import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 /**
  * CloudflareDnsResolver — High-performance, 100% leak-free DNS-over-HTTPS (DoH RFC 8484)
@@ -31,9 +30,14 @@ import javax.net.ssl.X509TrustManager
 object CloudflareDnsResolver {
 
     private const val TAG = "CloudflareDnsResolver"
-    private const val RESOLVE_TIMEOUT_MS = 2500L
+
+    // Presupuesto total de la carrera: cubre UN intento lento (HTTP_TIMEOUT_MS)
+    // más margen, no la suma de todos los servidores — al lanzarlos en paralelo,
+    // que uno tarde ya no le come el tiempo a los demás.
+    private const val RACE_TIMEOUT_MS = 4000L
     private const val HTTP_TIMEOUT_MS = 1500
-    private const val CACHE_TTL_MS = 300_000L // 5 minutes
+    private const val CACHE_TTL_MS = 300_000L // 5 minutos: resolución correcta
+    private const val NEGATIVE_CACHE_TTL_MS = 5_000L // fallo: no repetir la carrera de inmediato
 
     private data class DohServer(
         val ip: String,
@@ -49,25 +53,76 @@ object CloudflareDnsResolver {
         DohServer("9.9.9.9", "dns.quad9.net", "/dns-query")
     )
 
-    private val permissiveHostnameVerifier = HostnameVerifier { _, _ -> true }
+    /**
+     * TLS contra el proveedor de DoH, validado de verdad.
+     *
+     * Nos conectamos a la IP literal (1.1.1.1, 8.8.8.8…) para no depender de una
+     * resolución previa, pero eso hace que la verificación por defecto compare el
+     * certificado contra la IP y falle. La respuesta anterior a ese problema era
+     * aceptar cualquier certificado y cualquier hostname, lo que dejaba el canal
+     * DoH abierto a un MITM en la ruta: quien lo interceptara podía devolver la IP
+     * que quisiera para cualquier dominio. La respuesta correcta es fijar el SNI y
+     * verificar contra el nombre real del proveedor, conservando la validación de
+     * cadena contra las CAs del sistema.
+     */
+    private class SniSocketFactory(
+        private val delegate: SSLSocketFactory,
+        private val sniHost: String
+    ) : SSLSocketFactory() {
 
-    private val customSslSocketFactory: SSLSocketFactory by lazy {
-        try {
-            val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
-                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String) {}
-                override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String) {}
-            })
-            val sslContext = SSLContext.getInstance("TLS")
-            sslContext.init(null, trustAllCerts, SecureRandom())
-            sslContext.socketFactory
-        } catch (e: Throwable) {
-            HttpsURLConnection.getDefaultSSLSocketFactory()
+        override fun getDefaultCipherSuites(): Array<String> = delegate.defaultCipherSuites
+        override fun getSupportedCipherSuites(): Array<String> = delegate.supportedCipherSuites
+
+        private fun applySni(socket: Socket): Socket {
+            if (socket is SSLSocket) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    try {
+                        val params = socket.sslParameters
+                        params.serverNames = listOf(SNIHostName(sniHost))
+                        socket.sslParameters = params
+                    } catch (ignored: Throwable) {}
+                } else {
+                    // Android < 7 no expone SNIHostName; el SNI se fija con el
+                    // setHostname() de OpenSSLSocketImpl.
+                    try {
+                        socket.javaClass.getMethod("setHostname", String::class.java)
+                            .invoke(socket, sniHost)
+                    } catch (ignored: Throwable) {}
+                }
+            }
+            return socket
         }
+
+        override fun createSocket(s: Socket?, host: String?, port: Int, autoClose: Boolean): Socket =
+            applySni(delegate.createSocket(s, sniHost, port, autoClose))
+
+        override fun createSocket(host: String?, port: Int): Socket =
+            applySni(delegate.createSocket(host, port))
+
+        override fun createSocket(host: String?, port: Int, localHost: InetAddress?, localPort: Int): Socket =
+            applySni(delegate.createSocket(host, port, localHost, localPort))
+
+        override fun createSocket(host: InetAddress?, port: Int): Socket =
+            applySni(delegate.createSocket(host, port))
+
+        override fun createSocket(address: InetAddress?, port: Int, localAddress: InetAddress?, localPort: Int): Socket =
+            applySni(delegate.createSocket(address, port, localAddress, localPort))
+    }
+
+    private val sslFactories = ConcurrentHashMap<String, SSLSocketFactory>()
+
+    private fun sslFactoryFor(host: String): SSLSocketFactory =
+        sslFactories.getOrPut(host) {
+            SniSocketFactory(HttpsURLConnection.getDefaultSSLSocketFactory(), host)
+        }
+
+    /** Verifica el certificado contra el nombre del proveedor, no contra la IP. */
+    private fun verifierFor(host: String) = HostnameVerifier { _, session ->
+        HttpsURLConnection.getDefaultHostnameVerifier().verify(host, session)
     }
 
     private data class CachedEntry(
-        val addresses: Array<InetAddress>,
+        val addresses: Array<InetAddress>?,   // null = fallo reciente, cacheado en negativo
         val expiresAt: Long
     )
 
@@ -87,75 +142,103 @@ object CloudflareDnsResolver {
             }
         }
 
-        // 1. Check in-memory cache
+        // 1. Check in-memory cache (positivo o negativo, según expiresAt/addresses)
         val now = System.currentTimeMillis()
         val cached = cache[cleanHost]
-        if (cached != null && cached.expiresAt > now && cached.addresses.isNotEmpty()) {
+        if (cached != null && cached.expiresAt > now) {
             return cached.addresses
         }
 
-        // 2. Perform direct IP DoH resolution
-        return try {
-            val future: Future<Array<InetAddress>?> = executor.submit<Array<InetAddress>?> {
-                resolveViaDoH(cleanHost)
-            }
-            val result = future.get(RESOLVE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            if (result != null && result.isNotEmpty()) {
-                cache[cleanHost] = CachedEntry(result, now + CACHE_TTL_MS)
-                logToFirewall(cleanHost, result)
-            }
-            result
-        } catch (e: Throwable) {
-            Log.w(TAG, "DoH direct-IP resolution failed for $cleanHost: ${e.message}")
-            null
+        // 2. Carrera en paralelo contra todos los servidores DoH: un solo hop
+        // lento ya no consume el presupuesto de tiempo de los demás.
+        val result = resolveRacing(cleanHost)
+        val ttl = if (result != null && result.isNotEmpty()) CACHE_TTL_MS else NEGATIVE_CACHE_TTL_MS
+        cache[cleanHost] = CachedEntry(result, now + ttl)
+        if (result != null && result.isNotEmpty()) {
+            logToFirewall(cleanHost, result)
+        } else {
+            Log.w(TAG, "DoH direct-IP resolution failed for $cleanHost (todos los servidores)")
         }
+        return result
     }
 
     /**
-     * DNS-over-HTTPS (RFC 8484) connecting directly to DoH IP addresses over HTTPS port 443.
+     * Lanza los servidores DoH en paralelo y devuelve la primera respuesta
+     * válida. Antes se probaban en serie dentro de un único timeout de 2.5 s
+     * total: si el primero tardaba, ni se llegaba a intentar el resto. En
+     * paralelo, que uno vaya lento no le resta tiempo a los otros cuatro.
      */
-    private fun resolveViaDoH(hostname: String): Array<InetAddress>? {
+    private fun resolveRacing(hostname: String): Array<InetAddress>? {
         val queryBytes = buildDnsQueryPacket(hostname)
-
-        for (server in DOH_SERVERS) {
-            var conn: HttpsURLConnection? = null
-            try {
-                val url = URL("https://${server.ip}${server.path}")
-                conn = url.openConnection() as HttpsURLConnection
-                conn.sslSocketFactory = customSslSocketFactory
-                conn.hostnameVerifier = permissiveHostnameVerifier
-                conn.connectTimeout = HTTP_TIMEOUT_MS
-                conn.readTimeout = HTTP_TIMEOUT_MS
-                conn.requestMethod = "POST"
-                conn.doOutput = true
-                conn.doInput = true
-                conn.useCaches = false
-                conn.setRequestProperty("Host", server.hostHeader)
-                conn.setRequestProperty("Content-Type", "application/dns-message")
-                conn.setRequestProperty("Accept", "application/dns-message")
-                conn.setRequestProperty("User-Agent", "VortexOne-DoH/2.0")
-
-                // Send wire-format DNS query
-                conn.outputStream.use { it.write(queryBytes) }
-
-                val responseCode = conn.responseCode
-                if (responseCode == 200) {
-                    val responseBytes = conn.inputStream.use { it.readBytes() }
-                    val ips = parseDnsResponsePacket(responseBytes, hostname)
-                    if (ips != null && ips.isNotEmpty()) {
-                        Log.d(TAG, "Direct DoH (${server.ip}) resolved $hostname -> ${ips.map { it.hostAddress }}")
-                        return ips
-                    }
-                }
-            } catch (e: Throwable) {
-                // Try next direct IP endpoint
-            } finally {
-                try { conn?.disconnect() } catch (ignored: Throwable) {}
-            }
+        val completion = ExecutorCompletionService<Array<InetAddress>?>(executor)
+        val futures = DOH_SERVERS.map { server ->
+            completion.submit(java.util.concurrent.Callable { queryServer(server, hostname, queryBytes) })
         }
 
-        // Fallback: Google DoH JSON API directly on 8.8.8.8:443
+        val deadline = System.currentTimeMillis() + RACE_TIMEOUT_MS
+        var result: Array<InetAddress>? = null
+        try {
+            for (i in futures.indices) {
+                val remaining = deadline - System.currentTimeMillis()
+                if (remaining <= 0) break
+                val finished = try {
+                    completion.poll(remaining, TimeUnit.MILLISECONDS)
+                } catch (e: InterruptedException) {
+                    null
+                } ?: break
+                val r = try { finished.get() } catch (e: Throwable) { null }
+                if (r != null && r.isNotEmpty()) {
+                    result = r
+                    break
+                }
+            }
+        } finally {
+            futures.forEach { it.cancel(true) }
+        }
+
+        if (result != null) return result
+
+        // Último recurso: la API JSON de Google, con su propio timeout corto.
         return resolveViaGoogleJsonDirect(hostname)
+    }
+
+    /** Una consulta DNS-over-HTTPS (RFC 8484) contra un único servidor DoH. */
+    private fun queryServer(server: DohServer, hostname: String, queryBytes: ByteArray): Array<InetAddress>? {
+        var conn: HttpsURLConnection? = null
+        return try {
+            val url = URL("https://${server.ip}${server.path}")
+            conn = url.openConnection() as HttpsURLConnection
+            conn.sslSocketFactory = sslFactoryFor(server.hostHeader)
+            conn.hostnameVerifier = verifierFor(server.hostHeader)
+            conn.connectTimeout = HTTP_TIMEOUT_MS
+            conn.readTimeout = HTTP_TIMEOUT_MS
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.doInput = true
+            conn.useCaches = false
+            conn.setRequestProperty("Host", server.hostHeader)
+            conn.setRequestProperty("Content-Type", "application/dns-message")
+            conn.setRequestProperty("Accept", "application/dns-message")
+            conn.setRequestProperty("User-Agent", "VortexOne-DoH/2.0")
+
+            // Send wire-format DNS query
+            conn.outputStream.use { it.write(queryBytes) }
+
+            val responseCode = conn.responseCode
+            if (responseCode == 200) {
+                val responseBytes = conn.inputStream.use { it.readBytes() }
+                val ips = parseDnsResponsePacket(responseBytes, hostname)
+                if (ips != null && ips.isNotEmpty()) {
+                    Log.d(TAG, "Direct DoH (${server.ip}) resolved $hostname -> ${ips.map { it.hostAddress }}")
+                    ips
+                } else null
+            } else null
+        } catch (e: Throwable) {
+            Log.w(TAG, "DoH ${server.ip} (${server.hostHeader}) falló para $hostname: ${e.javaClass.simpleName}: ${e.message}")
+            null
+        } finally {
+            try { conn?.disconnect() } catch (ignored: Throwable) {}
+        }
     }
 
     /**
@@ -166,8 +249,8 @@ object CloudflareDnsResolver {
         try {
             val url = URL("https://8.8.8.8/resolve?name=$hostname&type=A")
             conn = url.openConnection() as HttpsURLConnection
-            conn.sslSocketFactory = customSslSocketFactory
-            conn.hostnameVerifier = permissiveHostnameVerifier
+            conn.sslSocketFactory = sslFactoryFor("dns.google")
+            conn.hostnameVerifier = verifierFor("dns.google")
             conn.connectTimeout = HTTP_TIMEOUT_MS
             conn.readTimeout = HTTP_TIMEOUT_MS
             conn.requestMethod = "GET"
