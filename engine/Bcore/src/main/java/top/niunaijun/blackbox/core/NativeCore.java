@@ -37,6 +37,46 @@ public class NativeCore {
 
     public static native void enableIO();
 
+    /**
+     * Fija la política de red del proceso actual en la capa nativa.
+     * Los valores son los de OsStub.POLICY_*.
+     */
+    public static native void setNetworkPolicy(int policy);
+
+    /**
+     * Instala los hooks nativos de red y fija la política, en un solo paso.
+     *
+     * En los procesos de apps virtuales los hooks ya vienen instalados por
+     * enableIO(); esto existe para el proceso anfitrión, que no pasa por ahí y
+     * cuyo tráfico —updater, SDK de anuncios, cualquier librería— resolvía por
+     * el DNS del sistema. Es idempotente.
+     */
+    public static native void enableNetworkGuard(int policy);
+
+    /**
+     * Invocado desde NetworkHook.cpp cuando un proceso sin Tor necesita resolver
+     * un nombre. Se delega en el resolver DoH del host, que valida TLS, para no
+     * duplicar en C la lógica de resolución.
+     *
+     * @return la primera IP en texto, o null si no se pudo resolver. Devolver
+     *         null hace que el hook deniegue: nunca se cae al DNS del sistema.
+     */
+    public static String resolveViaDoH(String host) {
+        try {
+            Class<?> cls = Class.forName("com.editech.services.net.CloudflareDnsResolver");
+            java.lang.reflect.Method m = cls.getMethod("resolve", String.class);
+            Object result = m.invoke(null, host);
+            if (result instanceof java.net.InetAddress[]) {
+                java.net.InetAddress[] addrs = (java.net.InetAddress[]) result;
+                if (addrs.length > 0) {
+                    return addrs[0].getHostAddress();
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
     public static native void addIORule(String targetPath, String relocatePath);
 
     public static native void hideXposed();

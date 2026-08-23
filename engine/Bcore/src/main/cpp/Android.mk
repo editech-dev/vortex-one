@@ -35,6 +35,7 @@ IO.cpp \
 Utils/elf_util.cpp \
 Hook/DexFileHook.cpp \
 Hook/FileSystemHook.cpp \
+Hook/NetworkHook.cpp \
 Utils/VirtualSpoof.cpp \
 Utils/HexDump.cpp \
 Utils/AntiDetection.cpp \

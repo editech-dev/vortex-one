@@ -12,6 +12,7 @@
 #include <Hook/FileSystemHook.h>
 #include <Hook/BinderHook.h>
 #include <Hook/DexFileHook.h>
+#include <Hook/NetworkHook.h>
 #include <Hook/RuntimeHook.h>
 #include "Utils/HexDump.h"
 #include "hidden_api.h"
@@ -85,6 +86,16 @@ void nativeHook(JNIEnv *env) {
 //    RuntimeHook::init(env);
     BinderHook::init(env);
     DexFileHook::init(env);
+    NetworkHook::init(env);
+}
+
+void setNetworkPolicy(JNIEnv *env, jclass clazz, jint policy) {
+    NetworkHook::setPolicy(policy);
+}
+
+void enableNetworkGuard(JNIEnv *env, jclass clazz, jint policy) {
+    NetworkHook::init(env);
+    NetworkHook::setPolicy(policy);
 }
 
 void hideXposed(JNIEnv *env, jclass clazz) {
@@ -145,6 +156,8 @@ static JNINativeMethod gMethods[] = {
         {"addIORule",  "(Ljava/lang/String;Ljava/lang/String;)V", (void *) addIORule},
         {"enableIO",   "()V",                                     (void *) enableIO},
         {"init",       "(I)V",                                    (void *) init},
+        {"setNetworkPolicy", "(I)V",                            (void *) setNetworkPolicy},
+        {"enableNetworkGuard", "(I)V",                          (void *) enableNetworkGuard},
 };
 
 int registerNativeMethods(JNIEnv *env, const char *className,

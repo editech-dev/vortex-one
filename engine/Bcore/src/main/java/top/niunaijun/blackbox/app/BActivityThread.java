@@ -412,6 +412,25 @@ public class BActivityThread extends IBActivityThread.Stub {
         assert packageContext != null;
         IOCore.get().enableRedirect(packageContext);
 
+        // enableRedirect() acaba instalando los hooks nativos de red. Se les fija
+        // aquí la política de este paquete, antes de que se cree la Application:
+        // a partir de este punto ninguna resolución ni socket de la app —tampoco
+        // los que abra su código nativo— puede escapar del contenedor.
+        try {
+            int policy = top.niunaijun.blackbox.fake.service.libcore.OsStub
+                    .resolveNetworkPolicy(packageName);
+            NativeCore.setNetworkPolicy(policy);
+            Slog.d(TAG, "Network policy for " + packageName + " = " + policy);
+        } catch (Throwable e) {
+            // Sin política no se puede garantizar la contención: se deniega todo.
+            try {
+                NativeCore.setNetworkPolicy(
+                        top.niunaijun.blackbox.fake.service.libcore.OsStub.POLICY_BLOCK);
+            } catch (Throwable ignored) {
+            }
+            Slog.e(TAG, "Could not apply network policy for " + packageName, e);
+        }
+
         AppBindData bindData = new AppBindData();
         bindData.appInfo = applicationInfo;
         bindData.processName = processName;
