@@ -187,14 +187,84 @@ public class OsStub extends ClassInvocationStub {
     }
 
     private static boolean isTorEnabledForPackage(String pkg) {
-        if (pkg == null) return false;
+        return resolveNetworkPolicy(pkg) == POLICY_TOR;
+    }
+
+    // ── POLÍTICA DE RED POR PAQUETE (fail-closed) ────────────────────────────
+    // El booleano anterior no distinguía "esta app no usa Tor" de "no he podido
+    // averiguarlo", y ante un fallo de reflexión devolvía false: el tráfico salía
+    // directo y en silencio. Con tres estados, la incertidumbre se deniega.
+    public static final int POLICY_BLOCK = 0;  // indeterminable -> denegar
+    public static final int POLICY_TOR   = 1;  // Tor activo para el paquete
+    public static final int POLICY_DOH   = 2;  // sin Tor -> resolver por DoH
+
+    /**
+     * Indica si estamos dentro del proceso de una app virtualizada (:pN).
+     * Si no lo estamos, se trata del proceso servidor de BlackBox, que es
+     * infraestructura propia y no debe quedar bloqueado.
+     */
+    private static boolean isVirtualAppProcess() {
         try {
-            ensureTorReflection();
-            if (sTorEnabledMethod != null) {
-                return (boolean) sTorEnabledMethod.invoke(null, pkg);
-            }
+            return BActivityThread.getAppConfig() != null;
         } catch (Throwable ignored) {}
         return false;
+    }
+
+    public static int resolveNetworkPolicy(String pkg) {
+        if (pkg == null) {
+            // Dentro de una app virtual sin poder identificar el paquete no se
+            // puede aplicar su política: denegar antes que arriesgar una fuga.
+            return isVirtualAppProcess() ? POLICY_BLOCK : POLICY_DOH;
+        }
+        try {
+            ensureTorReflection();
+            if (sTorEnabledMethod == null) return POLICY_BLOCK; // reflexión rota: no adivinar
+            return ((boolean) sTorEnabledMethod.invoke(null, pkg)) ? POLICY_TOR : POLICY_DOH;
+        } catch (Throwable ignored) {}
+        return POLICY_BLOCK;
+    }
+
+    /** Convierte un IPv4 en notación decimal a bytes sin pasar por InetAddress. */
+    private static byte[] parseIpv4(String ip) {
+        String[] parts = ip.split("\\.");
+        byte[] out = new byte[4];
+        for (int i = 0; i < 4; i++) out[i] = (byte) Integer.parseInt(parts[i]);
+        return out;
+    }
+
+    /**
+     * Resuelve un nombre sin tocar jamás el resolver del sistema.
+     *
+     *  - Paquete con Tor -> IP virtual 127.192.x.y. El nombre real viaja después
+     *    dentro del CONNECT SOCKS5 (ATYP=0x03) y se resuelve en el nodo de salida.
+     *  - Paquete sin Tor -> DoH a Cloudflare.
+     *  - Política indeterminable, o DoH caído -> se deniega.
+     *
+     * Delegar aquí en getaddrinfo() del sistema sería exactamente la fuga que
+     * este sandbox existe para impedir, así que no hay ninguna rama que lo haga.
+     */
+    private static java.net.InetAddress[] resolveHostnameContained(String node)
+            throws java.net.UnknownHostException {
+        String pkg = resolveCurrentPackage();
+        int policy = resolveNetworkPolicy(pkg);
+
+        if (policy == POLICY_TOR) {
+            String virtualIp = getOrAllocateVirtualIp(node);
+            java.net.InetAddress addr =
+                    java.net.InetAddress.getByAddress(node, parseIpv4(virtualIp));
+            logTorDnsResolution(node, virtualIp, pkg);
+            return new java.net.InetAddress[]{ addr };
+        }
+
+        if (policy == POLICY_DOH) {
+            java.net.InetAddress[] dohAddrs = resolveViaCloudflareDoH(node);
+            if (dohAddrs != null && dohAddrs.length > 0) {
+                return dohAddrs;
+            }
+        }
+
+        throw new java.net.UnknownHostException(
+                "[Vortex] DNS contenido: '" + node + "' no se pudo resolver sin filtrar al resolver del sistema");
     }
 
     private static boolean isIpAddress(String str) {
@@ -288,20 +358,9 @@ public class OsStub extends ClassInvocationStub {
             if (args != null && args.length >= 1 && args[0] instanceof String) {
                 String node = (String) args[0];
                 if (node != null && !node.isEmpty() && !isIpAddress(node)) {
-                    String pkg = resolveCurrentPackage();
-                    if (pkg != null && isTorEnabledForPackage(pkg)) {
-                        String virtualIp = getOrAllocateVirtualIp(node);
-                        java.net.InetAddress addr = java.net.InetAddress.getByAddress(node, java.net.InetAddress.getByName(virtualIp).getAddress());
-                        logTorDnsResolution(node, virtualIp, pkg);
-                        return new java.net.InetAddress[]{ addr };
-                    } else {
-                        try {
-                            java.net.InetAddress[] dohAddrs = resolveViaCloudflareDoH(node);
-                            if (dohAddrs != null && dohAddrs.length > 0) {
-                                return dohAddrs;
-                            }
-                        } catch (Throwable ignored) {}
-                    }
+                    // Nombre de dominio: se resuelve de forma contenida o se
+                    // deniega. Nunca cae al resolver del sistema.
+                    return resolveHostnameContained(node);
                 }
             }
             try {
@@ -319,20 +378,9 @@ public class OsStub extends ClassInvocationStub {
             if (args != null && args.length >= 1 && args[0] instanceof String) {
                 String node = (String) args[0];
                 if (node != null && !node.isEmpty() && !isIpAddress(node)) {
-                    String pkg = resolveCurrentPackage();
-                    if (pkg != null && isTorEnabledForPackage(pkg)) {
-                        String virtualIp = getOrAllocateVirtualIp(node);
-                        java.net.InetAddress addr = java.net.InetAddress.getByAddress(node, java.net.InetAddress.getByName(virtualIp).getAddress());
-                        logTorDnsResolution(node, virtualIp, pkg);
-                        return new java.net.InetAddress[]{ addr };
-                    } else {
-                        try {
-                            java.net.InetAddress[] dohAddrs = resolveViaCloudflareDoH(node);
-                            if (dohAddrs != null && dohAddrs.length > 0) {
-                                return dohAddrs;
-                            }
-                        } catch (Throwable ignored) {}
-                    }
+                    // Nombre de dominio: se resuelve de forma contenida o se
+                    // deniega. Nunca cae al resolver del sistema.
+                    return resolveHostnameContained(node);
                 }
             }
             try {
@@ -376,8 +424,21 @@ public class OsStub extends ClassInvocationStub {
                 }
 
                 if (address != null) {
-                    // 0. Bypass inmediato para sockets internos del demonio Tor (SOCKS5 9150, Control 9151, DNS 5453)
-                    if (address.isLoopbackAddress() && (port == 9150 || port == 9151 || port == 5453)) {
+                    // 0a. El ControlPort permite SETCONF/SIGNAL sobre el demonio: una app
+                    //     del sandbox que lo alcance puede reconfigurar Tor (fijar su propio
+                    //     ExitNode, abrir el SocksPort al exterior) o correlacionar circuitos.
+                    //     Ninguna app virtual tiene motivo para hablar con él.
+                    if (address.isLoopbackAddress() && port == 9151) {
+                        String ctlPkg = resolveCurrentPackage();
+                        logTorConnection("127.0.0.1", port, true, "BLOCKED",
+                                "Acceso al ControlPort de Tor denegado", "TOR/CONTROL_BLOCKED", ctlPkg);
+                        throw new java.net.SocketException(
+                                "[Tor] acceso al puerto de control denegado");
+                    }
+
+                    // 0b. El SOCKS y el DNSPort sí pasan directos: es el propio túnel.
+                    //     Tunelizarlos otra vez anidaría SOCKS5 dentro de SOCKS5.
+                    if (address.isLoopbackAddress() && (port == 9150 || port == 5453)) {
                         return method.invoke(who, args);
                     }
 
@@ -700,6 +761,20 @@ public class OsStub extends ClassInvocationStub {
                                 true, "BLOCKED", "UPnP UDP broadcast blocked under Tor",
                                 "TOR/UPNP_BLOCKED", pkg);
                         throw new java.net.SocketException("[Tor] UPnP UDP broadcast blocked for anonymity protection");
+                    }
+
+                    // SOCKS5 CONNECT sólo transporta TCP, así que cualquier datagrama a un
+                    // destino público saldría por fuera del túnel: QUIC/HTTP3, WebRTC/STUN,
+                    // DNS directo a 8.8.8.8:53. Se deniega para forzar la caída a TCP/443,
+                    // que sí se tuneliza. Es la misma política que aplica Tor Browser.
+                    // Ojo: destAddr nulo significa socket ya conectado (también TCP), así
+                    // que sólo se actúa cuando hay destino explícito.
+                    if (destAddr != null && !destAddr.isLoopbackAddress()) {
+                        OsStub.logTorConnection(destAddr.getHostAddress(), destPort,
+                                true, "BLOCKED", "UDP no tunelizable bajo Tor",
+                                "TOR/UDP_BLOCKED", pkg);
+                        throw new java.net.SocketException(
+                                "[Tor] UDP a destino público bloqueado: no es tunelizable por SOCKS5");
                     }
                 }
             } catch (java.net.SocketException se) {

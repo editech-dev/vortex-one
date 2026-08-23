@@ -109,12 +109,13 @@ public class IDnsResolverProxy extends BinderInvocationStub {
                 if (ips != null && ips.length > 0) {
                     // Use reflection to call Kotlin NetworkConnectionMonitor to avoid compile-time dependency
                     try {
-                        Class<?> monitorClass = Class.forName("top.niunaijun.blackbox.core.firewall.NetworkConnectionMonitor");
+                        // El nombre apuntaba a top.niunaijun.blackbox.core.firewall,
+                        // paquete que no existe, así que este aviso al firewall
+                        // fallaba siempre en silencio. onDnsResolution es @JvmStatic,
+                        // de modo que se invoca sin instancia.
+                        Class<?> monitorClass = Class.forName("com.editech.services.firewall.NetworkConnectionMonitor");
                         Method onDnsMethod = monitorClass.getMethod("onDnsResolution", String.class, String[].class);
-                        // Kotlin object INSTANCE
-                        java.lang.reflect.Field instanceField = monitorClass.getField("INSTANCE");
-                        Object instance = instanceField.get(null);
-                        onDnsMethod.invoke(instance, hostname, ips);
+                        onDnsMethod.invoke(null, hostname, ips);
                     } catch (ClassNotFoundException e) {
                         // Firewall module not loaded yet - this is normal during early boot
                         Slog.d(TAG, "Firewall module not available yet");
