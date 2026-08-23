@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
+import android.content.pm.Signature;
 import android.os.Build;
 import android.util.Log;
 
@@ -126,16 +127,61 @@ public class IPackageManagerProxy extends BinderInvocationStub {
         }
     }
 
+    /**
+     * gms/gsf/vending are genuinely installed on the real device too (this box
+     * needs a real Play Services for its own framework use), and are also
+     * registered as virtual apps so guest apps can see them. For those three
+     * specifically, ask the REAL PackageManager first: BPackage's own
+     * PackageParser is a much older, narrower implementation than the
+     * platform's, and a parser that mis-handles the APK Signature Scheme v2/v3
+     * block would silently hand back a signature that doesn't match what
+     * GoogleApiAvailability expects — exactly the "signature is invalid"
+     * symptom this exists to fix. Every other package only exists virtually,
+     * so it still resolves through the virtual PackageManager first, falling
+     * back to the real one.
+     */
+    private static Signature[] getSignaturesFor(String pkg) {
+        boolean preferRealPm = "com.google.android.gms".equals(pkg)
+                || "com.google.android.gsf".equals(pkg)
+                || "com.android.vending".equals(pkg);
+
+        if (preferRealPm) {
+            Signature[] real = signaturesFromRealPm(pkg);
+            if (real != null) return real;
+        }
+
+        try {
+            PackageInfo pi = BlackBoxCore.getBPackageManager()
+                    .getPackageInfo(pkg, PackageManager.GET_SIGNATURES, BlackBoxCore.getUserId());
+            if (pi != null && pi.signatures != null && pi.signatures.length > 0) {
+                return pi.signatures;
+            }
+        } catch (Throwable ignored) {
+        }
+
+        return preferRealPm ? null : signaturesFromRealPm(pkg);
+    }
+
+    private static Signature[] signaturesFromRealPm(String pkg) {
+        try {
+            PackageInfo pi = BlackBoxCore.getContext().getPackageManager()
+                    .getPackageInfo(pkg, PackageManager.GET_SIGNATURES);
+            if (pi != null) return pi.signatures;
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
     @ProxyMethod("getPackageInfo")
     public static class GetPackageInfo extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             String packageName = (String) args[0];
             int flags = MethodParameterUtils.toInt(args[1]);
-            
+
             // Provide fake Google Play Services info for MIUI apps
             if ("com.android.vending".equals(packageName)) {
-                return createFakeGooglePlayServicesPackageInfo();
+                return createFakeGooglePlayServicesPackageInfo(flags);
             }
             
             PackageInfo packageInfo = BlackBoxCore.getBPackageManager().getPackageInfo(packageName, flags, BlackBoxCore.getUserId());
@@ -170,21 +216,114 @@ public class IPackageManagerProxy extends BinderInvocationStub {
             return null;
         }
         
-        private PackageInfo createFakeGooglePlayServicesPackageInfo() {
+        private PackageInfo createFakeGooglePlayServicesPackageInfo(int flags) {
             PackageInfo packageInfo = new PackageInfo();
             packageInfo.packageName = "com.android.vending";
             packageInfo.versionName = "33.8.16-21";
             packageInfo.versionCode = 83381621;
-            
+
             ApplicationInfo appInfo = new ApplicationInfo();
             appInfo.packageName = "com.android.vending";
             appInfo.name = "Google Play Store";
             appInfo.flags = ApplicationInfo.FLAG_SYSTEM;
             appInfo.uid = 10001; // System app UID
             packageInfo.applicationInfo = appInfo;
-            
-            Slog.d(TAG, "GetPackageInfo: Providing fake Google Play Services info");
+
+            // This fake PackageInfo never carried a signature, so any caller doing
+            // getPackageInfo("com.android.vending", GET_SIGNATURES) — which is
+            // exactly what GoogleApiAvailability does to confirm "is this really
+            // Play Store" — got back an empty/null signature and reported
+            // "requires Google Play Store, but its signature is invalid",
+            // regardless of checkSignatures being fixed. Fill it in on request.
+            if ((flags & PackageManager.GET_SIGNATURES) != 0) {
+                packageInfo.signatures = getSignaturesFor("com.android.vending");
+            }
+
+            Slog.d(TAG, "GetPackageInfo: Providing fake Google Play Services info (signed="
+                    + (packageInfo.signatures != null) + ")");
             return packageInfo;
+        }
+    }
+
+    /**
+     * checkSignatures() was completely unproxied: it fell through to the real
+     * system IPackageManager, which has never heard of a virtual package like
+     * com.google.android.gms — it only lives in this sandbox's own
+     * BPackageManagerService. That returned SIGNATURE_UNKNOWN_PACKAGE, which is
+     * exactly what makes GoogleApiAvailability/GooglePlayServicesUtil report
+     * "requires Google Play Store, but its signature is invalid" and bail out
+     * before the guest app ever attempts a real connection.
+     *
+     * The virtualized GMS's signature is never spoofed — generatePackageInfo()
+     * already returns whatever the installed GMS APK is genuinely signed with.
+     * This hook just makes checkSignatures() resolve both sides against the
+     * virtual PackageManager (falling back to the real one) instead of only
+     * ever asking the real one.
+     */
+    @ProxyMethod("checkSignatures")
+    public static class CheckSignatures extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            try {
+                String pkg1;
+                String pkg2;
+                if (args != null && args.length >= 2 && args[0] instanceof String && args[1] instanceof String) {
+                    pkg1 = (String) args[0];
+                    pkg2 = (String) args[1];
+                } else if (args != null && args.length >= 2 && args[0] instanceof Integer && args[1] instanceof Integer) {
+                    pkg1 = firstPackageForUid((Integer) args[0]);
+                    pkg2 = firstPackageForUid((Integer) args[1]);
+                } else {
+                    return method.invoke(who, args);
+                }
+
+                if (pkg1 == null || pkg2 == null) {
+                    return method.invoke(who, args);
+                }
+
+                Signature[] s1 = getSignaturesFor(pkg1);
+                Signature[] s2 = getSignaturesFor(pkg2);
+                int result;
+                if (s1 == null || s2 == null) {
+                    result = PackageManager.SIGNATURE_UNKNOWN_PACKAGE;
+                } else {
+                    result = signaturesMatch(s1, s2)
+                            ? PackageManager.SIGNATURE_MATCH
+                            : PackageManager.SIGNATURE_NO_MATCH;
+                }
+                Slog.d(TAG, "checkSignatures(" + pkg1 + ", " + pkg2 + ") -> " + result
+                        + " [s1=" + describe(s1) + " s2=" + describe(s2) + "]");
+                return result;
+            } catch (Throwable e) {
+                Slog.w(TAG, "checkSignatures hook failed, falling back to real binder", e);
+                return method.invoke(who, args);
+            }
+        }
+
+        private String describe(Signature[] sigs) {
+            if (sigs == null) return "null";
+            StringBuilder sb = new StringBuilder(sigs.length + "x[");
+            for (Signature s : sigs) {
+                sb.append(Integer.toHexString(s.hashCode())).append(",");
+            }
+            return sb.append("]").toString();
+        }
+
+        private String firstPackageForUid(int uid) {
+            try {
+                String[] pkgs = BlackBoxCore.getBPackageManager().getPackagesForUid(uid);
+                if (pkgs != null && pkgs.length > 0) return pkgs[0];
+            } catch (Throwable ignored) {
+            }
+            return null;
+        }
+
+        /** Same semantics as the real checkSignatures(): exact set match, order-independent. */
+        private boolean signaturesMatch(Signature[] a, Signature[] b) {
+            if (a.length != b.length) return false;
+            java.util.Set<Signature> setA = new java.util.HashSet<>(Arrays.asList(a));
+            java.util.Set<Signature> setB = new java.util.HashSet<>(Arrays.asList(b));
+            return setA.equals(setB);
         }
     }
 
