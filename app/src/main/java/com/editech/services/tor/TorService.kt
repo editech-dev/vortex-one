@@ -169,8 +169,11 @@ class TorService : Service() {
                 val ctrl = java.net.Socket("127.0.0.1", 9151)
                 val writer = java.io.PrintWriter(ctrl.getOutputStream(), true)
                 val reader = java.io.BufferedReader(java.io.InputStreamReader(ctrl.getInputStream()))
-                writer.println("AUTHENTICATE \"\"")
-                reader.readLine() // 250 OK
+                if (!authenticateControl(writer, reader)) {
+                    ctrl.close()
+                    Log.e(TAG, "Control port authentication failed; NEWNYM not sent")
+                    return@launch
+                }
                 writer.println("SIGNAL NEWNYM")
                 reader.readLine() // 250 OK
                 ctrl.close()
@@ -234,6 +237,31 @@ class TorService : Service() {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
+     * Authenticates against Tor's control port using the cookie file that the
+     * daemon writes into its DataDirectory.
+     *
+     * The control port previously accepted `AUTHENTICATE ""`, which meant any
+     * app on the device holding the INTERNET permission could reconfigure the
+     * daemon (pin its own ExitNode, expose the SocksPort) or enumerate circuits.
+     * Cookie auth restricts control to whoever can read our private files.
+     */
+    private fun authenticateControl(
+        writer: java.io.PrintWriter,
+        reader: java.io.BufferedReader
+    ): Boolean = try {
+        val cookie = java.io.File(getDir("tor_data", MODE_PRIVATE), "control_auth_cookie")
+        val hex = cookie.readBytes().joinToString("") { "%02x".format(it) }
+        writer.println("AUTHENTICATE $hex")
+        val response = reader.readLine()
+        val ok = response != null && response.startsWith("250")
+        if (!ok) Log.e(TAG, "Control port rejected authentication: $response")
+        ok
+    } catch (e: Exception) {
+        Log.e(TAG, "Could not read Tor control cookie", e)
+        false
+    }
+
+    /**
      * Build a minimal torrc for the embedded daemon.
      * Uses port 9150 for SOCKS5 and 9151 for the control port.
      */
@@ -243,8 +271,7 @@ class TorService : Service() {
         AutomapHostsOnResolve 1
         VirtualAddrNetworkIPv4 127.192.0.0/10
         ControlPort 9151
-        CookieAuthentication 0
-        HashedControlPassword ""
+        CookieAuthentication 1
         DataDirectory $dataDir
         Log notice stdout
         ClientOnly 1
