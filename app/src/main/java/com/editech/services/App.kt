@@ -109,6 +109,20 @@ class App : Application() {
             android.util.Log.e("App", "BlackBoxCore.doCreate() failed", e)
         }
 
+        // Contener también el DNS del proceso anfitrión. Sin esto, el updater y
+        // el SDK de anuncios resolvían por el DNS del sistema y sus dominios
+        // aparecían en el DNS de la red doméstica. POLICY_DOH no bloquea nada:
+        // sólo obliga a que la resolución salga por DoH y nunca por el resolver
+        // del sistema. Tor corre en un proceso aparte y no le afecta.
+        try {
+            top.niunaijun.blackbox.core.NativeCore.enableNetworkGuard(
+                top.niunaijun.blackbox.fake.service.libcore.OsStub.POLICY_DOH
+            )
+            android.util.Log.d("App", "Network guard enabled for host process")
+        } catch (e: Throwable) {
+            android.util.Log.e("App", "Could not enable host network guard", e)
+        }
+
         // Inicializar TorManager (per-app Tor routing)
         try {
             com.editech.services.tor.TorManager.init(this)
