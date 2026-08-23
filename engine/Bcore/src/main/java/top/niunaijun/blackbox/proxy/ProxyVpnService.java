@@ -22,7 +22,18 @@ public class ProxyVpnService extends VpnService {
     private static final String TAG = "ProxyVpnService";
     private static final int NOTIFICATION_ID = 1001;
     private static final String CHANNEL_ID = "BlackBoxVPN";
-    
+
+    // establishVpn() captures 0.0.0.0/0 (todo el tráfico IPv4 del paquete host,
+    // que es el UID que comparten todos los procesos :pN virtualizados) pero
+    // startNetworkHandling() nunca lee ni escribe el ParcelFileDescriptor del
+    // TUN: no hay bucle de reenvío de paquetes. Si esto llega a establecerse,
+    // el resultado no es "sin VPN" sino un agujero negro de red para todo el
+    // sandbox. Mientras ese reenvío no exista, esta bandera evita arrancar el
+    // túnel aunque isUseVpnNetwork() se active por error o por config futura.
+    // Ponerla en true solo cuando startNetworkHandling() reenvíe paquetes de
+    // verdad entre el TUN y la red real.
+    private static final boolean PACKET_FORWARDING_IMPLEMENTED = false;
+
     // Singleton for on-demand firewall activation
     private static ProxyVpnService sInstance = null;
     
@@ -44,7 +55,15 @@ public class ProxyVpnService extends VpnService {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Slog.d(TAG, "ProxyVpnService started");
-        
+
+        if (!PACKET_FORWARDING_IMPLEMENTED) {
+            Slog.e(TAG, "Rechazando arranque: establishVpn() capturaría 0.0.0.0/0 sin reenviar "
+                    + "un solo paquete (ver PACKET_FORWARDING_IMPLEMENTED). Fallar aquí, en frío, "
+                    + "es preferible a dejar el sandbox entero sin red de forma silenciosa.");
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+
         try {
             // CRITICAL: Start foreground immediately to prevent timeout
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
