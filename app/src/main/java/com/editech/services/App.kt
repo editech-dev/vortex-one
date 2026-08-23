@@ -151,5 +151,28 @@ class App : Application() {
                 android.util.Log.w("App", "Failed to provision virtual storage dirs: ${e.message}")
             }
         }
+
+        // Google Play Services debe estar siempre presente dentro del sandbox: sin
+        // él, la comprobación de proveedor SSL que traen empaquetada YouTube/Prime/
+        // etc. envenena el SSLSocketFactory de todo el proceso ("Attempted to use
+        // SSL unpatched. Google Play Services needs update."), lo que también tumba
+        // nuestro propio resolver DoH aunque no dependa de Google. Se instala solo
+        // si falta — ya no hay control en Ajustes para desinstalarlo.
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                val wasInstalled = BlackBoxCore.get().isInstallGms(0)
+                android.util.Log.i("App", "Estado de Google Play Services antes de reparar: instalado=$wasInstalled")
+                // No basta con "isInstallGms() == true": el registro de paquetes
+                // virtuales puede quedar marcado como instalado mientras los datos
+                // reales ya no están (p.ej. tras una desinstalación manual anterior
+                // que dejó el estado a medias). Reparar siempre desde cero es la
+                // única forma de garantizar que los archivos y el registro coincidan.
+                BlackBoxCore.get().uninstallGms(0)
+                val result = BlackBoxCore.get().installGms(0)
+                android.util.Log.i("App", "Reparación de Google Play Services: success=${result.success}, msg=${result.msg}, instalado=${BlackBoxCore.get().isInstallGms(0)}")
+            } catch (e: Exception) {
+                android.util.Log.w("App", "No se pudo reparar Google Play Services: ${e.message}", e)
+            }
+        }
     }
 }
