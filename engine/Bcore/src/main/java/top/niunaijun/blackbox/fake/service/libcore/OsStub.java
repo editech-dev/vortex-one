@@ -157,10 +157,44 @@ public class OsStub extends ClassInvocationStub {
 
     private static volatile String sProcessVirtualPackageName = null;
 
+    // Ventana de arranque: entre el fork del proceso :pN y el momento en que
+    // BlackBox termina de registrar su AppConfig, una llamada de red muy
+    // temprana (SDK de analítica, warm-up de OkHttp) puede caer aquí antes de
+    // que haya paquete que resolver. Sin este reintento acotado, esa llamada
+    // puntual se deniega de forma permanente (POLICY_BLOCK) aunque la política
+    // real del paquete sea válida — el fallo "solo en el primer intento tras
+    // reiniciar la app" que reporta el usuario. El tope (5 x 20ms = 100ms) evita
+    // que una app sin proceso virtual real (o un fallo genuino de reflexión) se
+    // quede esperando.
+    private static final int PKG_RESOLVE_RETRIES = 5;
+    private static final long PKG_RESOLVE_RETRY_DELAY_MS = 20L;
+
     private static String resolveCurrentPackage() {
         if (sProcessVirtualPackageName != null) {
             return sProcessVirtualPackageName;
         }
+        for (int attempt = 0; attempt <= PKG_RESOLVE_RETRIES; attempt++) {
+            String pkg = resolveCurrentPackageOnce();
+            if (pkg != null) {
+                return pkg;
+            }
+            // Solo vale la pena esperar si de verdad estamos dentro de un
+            // proceso virtual arrancando; si no, no hay nada que vaya a cambiar.
+            if (attempt < PKG_RESOLVE_RETRIES && isVirtualAppProcess()) {
+                try {
+                    Thread.sleep(PKG_RESOLVE_RETRY_DELAY_MS);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+        return null;
+    }
+
+    private static String resolveCurrentPackageOnce() {
         String pkg = null;
         try {
             if (BActivityThread.isThreadInit() && BActivityThread.currentActivityThread().isInit()) {
@@ -261,10 +295,21 @@ public class OsStub extends ClassInvocationStub {
             if (dohAddrs != null && dohAddrs.length > 0) {
                 return dohAddrs;
             }
+            logTorConnection(node, 0, true, "FAILED",
+                    "DoH sin respuesta tras reintentos", "DNS/DOH_FAILED", pkg);
+            throw new java.net.UnknownHostException(
+                    "[Vortex] '" + node + "' no resolvió por DoH (Cloudflare/Google) tras reintentar — "
+                            + "revisa si la red filtra HTTPS directo a IP en el puerto 443");
         }
 
+        // POLICY_BLOCK: política indeterminable (paquete o reflexión no
+        // resueltos todavía pese al reintento acotado de resolveCurrentPackage).
+        logTorConnection(node, 0, true, "FAILED",
+                pkg == null ? "Paquete de la app aún no resuelto al arrancar" : "Política de red indeterminable",
+                "DNS/POLICY_BLOCK", pkg);
         throw new java.net.UnknownHostException(
-                "[Vortex] DNS contenido: '" + node + "' no se pudo resolver sin filtrar al resolver del sistema");
+                "[Vortex] DNS contenido: '" + node + "' no se pudo resolver sin filtrar al resolver del sistema"
+                        + " (política " + (pkg == null ? "aún no disponible para este proceso" : "no determinada para " + pkg) + ")");
     }
 
     private static boolean isIpAddress(String str) {

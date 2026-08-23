@@ -39,6 +39,14 @@ object CloudflareDnsResolver {
     private const val CACHE_TTL_MS = 300_000L // 5 minutos: resolución correcta
     private const val NEGATIVE_CACHE_TTL_MS = 5_000L // fallo: no repetir la carrera de inmediato
 
+    // Una carrera completa (los 5 servidores + fallback JSON) que falla puede
+    // ser un blip transitorio de la red doméstica (Wi-Fi entrando en power-save,
+    // handshake TLS perdido), no un bloqueo persistente. Un único intento fallido
+    // no debería tumbar la resolución de un hostname que una app de streaming
+    // necesita entre decenas de otras en la misma sesión.
+    private const val RETRY_ATTEMPTS = 2
+    private const val RETRY_BACKOFF_MS = 250L
+
     private data class DohServer(
         val ip: String,
         val hostHeader: String,
@@ -150,14 +158,25 @@ object CloudflareDnsResolver {
         }
 
         // 2. Carrera en paralelo contra todos los servidores DoH: un solo hop
-        // lento ya no consume el presupuesto de tiempo de los demás.
-        val result = resolveRacing(cleanHost)
+        // lento ya no consume el presupuesto de tiempo de los demás. Si la
+        // carrera completa falla, se reintenta un par de veces con un pequeño
+        // respiro antes de rendirse — cubre blips transitorios sin abrir la
+        // fuga que sería caer al resolver del sistema.
+        var result: Array<InetAddress>? = null
+        for (attempt in 1..RETRY_ATTEMPTS) {
+            result = resolveRacing(cleanHost)
+            if (result != null && result.isNotEmpty()) break
+            if (attempt < RETRY_ATTEMPTS) {
+                Log.w(TAG, "DoH intento $attempt/$RETRY_ATTEMPTS falló para $cleanHost, reintentando…")
+                try { Thread.sleep(RETRY_BACKOFF_MS) } catch (ignored: InterruptedException) {}
+            }
+        }
         val ttl = if (result != null && result.isNotEmpty()) CACHE_TTL_MS else NEGATIVE_CACHE_TTL_MS
         cache[cleanHost] = CachedEntry(result, now + ttl)
         if (result != null && result.isNotEmpty()) {
             logToFirewall(cleanHost, result)
         } else {
-            Log.w(TAG, "DoH direct-IP resolution failed for $cleanHost (todos los servidores)")
+            Log.w(TAG, "DoH direct-IP resolution failed for $cleanHost tras $RETRY_ATTEMPTS intentos (todos los servidores)")
         }
         return result
     }
