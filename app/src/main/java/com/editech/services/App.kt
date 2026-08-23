@@ -174,5 +174,20 @@ class App : Application() {
                 android.util.Log.w("App", "No se pudo reparar Google Play Services: ${e.message}", e)
             }
         }
+
+        // Prime Video empaqueta su runtime de arranque (Ignite/Megablast, basado
+        // en Lua) como assets/ignite-assets.tar dentro de su propia APK y lo
+        // extrae a su carpeta files/ en el primer inicio. Esa extracción falla
+        // en silencio dentro del sandbox — el motivo exacto no importa tanto
+        // como el síntoma: files/lua queda vacío, la app no encuentra
+        // lua/appBootstrap.js y entra en un crash-loop permanente. Se repara
+        // extrayendo ese mismo .tar nosotros mismos si falta.
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                com.editech.services.utils.PrimeVideoBootstrapFix.repairIfNeeded(0)
+            } catch (e: Exception) {
+                android.util.Log.w("App", "No se pudo reparar el bootstrap de Prime Video: ${e.message}", e)
+            }
+        }
     }
 }
