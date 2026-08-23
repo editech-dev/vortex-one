@@ -241,6 +241,9 @@ object TorManager {
     // Service lifecycle & Identity change
     // ─────────────────────────────────────────────────────────────────────────
 
+    // @JvmStatic: la compuerta previa al lanzamiento vive en el módulo Bcore y
+    // llega hasta aquí por reflexión, sin instancia.
+    @JvmStatic
     fun startService() {
         val ctx = appContext ?: return
         updateStatus(TorStatus.STARTING)

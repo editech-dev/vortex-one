@@ -36,6 +36,10 @@ class FirewallAppDetailActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_PACKAGE_NAME = "extra_package_name"
         const val EXTRA_APP_NAME = "extra_app_name"
+
+        /** Pestaña en la que abrir la pantalla. TAB_TOR la deja lista para actuar. */
+        const val EXTRA_INITIAL_TAB = "extra_initial_tab"
+        const val TAB_TOR = 5
     }
 
     private lateinit var packageName: String
@@ -65,6 +69,17 @@ class FirewallAppDetailActivity : AppCompatActivity() {
         initViews()
         setupHeader()
         setupViewPager()
+
+        // Cuando se llega desde el aviso de "sin conexión segura", la pantalla
+        // debe abrirse directamente en Tor: con mando a distancia, obligar a
+        // recorrer seis pestañas para desactivarlo es un mal camino.
+        val initialTab = intent.getIntExtra(EXTRA_INITIAL_TAB, -1)
+        if (initialTab >= 0) {
+            viewPager.post {
+                viewPager.setCurrentItem(initialTab, false)
+                tabLayout.getTabAt(initialTab)?.select()
+            }
+        }
     }
 
     private fun initViews() {

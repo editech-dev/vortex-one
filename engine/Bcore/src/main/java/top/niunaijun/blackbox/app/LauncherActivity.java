@@ -29,6 +29,15 @@ public class LauncherActivity extends Activity {
     public static final String KEY_USER_ID = "launch_user_id";
     private boolean isRunning = false;
 
+    /** Margen para que Tor levante un circuito antes de rendirse. */
+    private static final long PREFLIGHT_TIMEOUT_MS = 45_000L;
+
+    private Intent mLaunchIntent;
+    private int mUserId;
+    private String mPackageName;
+    private String mAppName;
+    private TextView mStatusView;
+
     public static void launch(Intent intent, int userId) {
         try {
             Intent splash = new Intent();
@@ -174,12 +183,139 @@ public class LauncherActivity extends Activity {
                     .start();
             }
             
-            // Launch the app in a separate thread to avoid blocking the UI
-            launchAppAsync(launchIntent, userId);
+            mLaunchIntent = launchIntent;
+            mUserId = userId;
+            mPackageName = packageName;
+            mAppName = appName;
+            mStatusView = statusView;
+
+            if (isTor) {
+                // La app va por Tor: no se abre hasta que haya circuito.
+                ensureSecureConnectionThenLaunch();
+            } else {
+                launchAppAsync(launchIntent, userId);
+            }
             
         } catch (Exception e) {
             Slog.e(TAG, "Critical error in LauncherActivity.onCreate()", e);
             finish();
+        }
+    }
+
+    /**
+     * Compuerta previa al arranque de una app enrutada por Tor.
+     *
+     * Arrancarla antes de tener circuito dejaría que sus primeras peticiones
+     * salieran sin tunelizar, y en una app de streaming son precisamente esas
+     * —el backend de catálogo, los dominios de los partidos— las que revelan
+     * qué se está viendo. Así que o hay conexión, o la app no se abre.
+     */
+    private void ensureSecureConnectionThenLaunch() {
+        new Thread(() -> {
+            boolean ready = waitForTorCircuit();
+            if (ready) {
+                fetchTorExitInfoReflection();
+                runOnUiThread(() -> {
+                    if (mStatusView != null) {
+                        mStatusView.setText("Conexión segura establecida");
+                    }
+                    launchAppAsync(mLaunchIntent, mUserId);
+                });
+            } else {
+                Slog.w(TAG, "No Tor circuit for " + mPackageName + "; launch aborted");
+                runOnUiThread(this::showNoSecureConnectionDialog);
+            }
+        }, "TorPreflightThread").start();
+    }
+
+    private boolean waitForTorCircuit() {
+        if (isProxyReachableReflection()) return true;
+
+        runOnUiThread(() -> {
+            if (mStatusView != null) mStatusView.setText("Estableciendo conexión segura…");
+        });
+        startTorReflection();
+
+        long deadline = System.currentTimeMillis() + PREFLIGHT_TIMEOUT_MS;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+            if (isProxyReachableReflection()) return true;
+            final long remaining = Math.max(0, (deadline - System.currentTimeMillis()) / 1000);
+            runOnUiThread(() -> {
+                if (mStatusView != null) {
+                    mStatusView.setText("Estableciendo conexión segura… (" + remaining + "s)");
+                }
+            });
+        }
+        return isProxyReachableReflection();
+    }
+
+    private void showNoSecureConnectionDialog() {
+        if (isFinishing()) return;
+        try {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("Sin conexión segura")
+                    .setMessage("No se pudo establecer el circuito Tor, así que " + mAppName
+                            + " no se abrirá: hacerlo dejaría su tráfico y sus consultas DNS "
+                            + "a la vista de la red.\n\n"
+                            + "Puedes reintentar, o desactivar Tor para esta app en sus ajustes "
+                            + "si prefieres abrirla sin protección.")
+                    .setCancelable(false)
+                    .setPositiveButton("Reintentar", (dialog, which) -> {
+                        dialog.dismiss();
+                        if (mStatusView != null) {
+                            mStatusView.setText("Reintentando…");
+                        }
+                        ensureSecureConnectionThenLaunch();
+                    })
+                    .setNeutralButton("Ajustes de Tor", (dialog, which) -> {
+                        openTorSettings();
+                        finish();
+                    })
+                    .setNegativeButton("Cancelar", (dialog, which) -> finish())
+                    .show();
+        } catch (Throwable e) {
+            Slog.e(TAG, "Could not show no-connection dialog", e);
+            finish();
+        }
+    }
+
+    /** Lleva directamente a la pestaña Tor de esta app, donde está el interruptor. */
+    private void openTorSettings() {
+        try {
+            Intent settings = new Intent();
+            settings.setClassName(BlackBoxCore.getHostPkg(),
+                    "com.editech.services.activities.FirewallAppDetailActivity");
+            settings.putExtra("extra_package_name", mPackageName);
+            settings.putExtra("extra_app_name", mAppName);
+            settings.putExtra("extra_initial_tab", 5);
+            settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(settings);
+        } catch (Throwable e) {
+            Slog.e(TAG, "Could not open Tor settings for " + mPackageName, e);
+        }
+    }
+
+    private boolean isProxyReachableReflection() {
+        try {
+            Class<?> torMgrClass = Class.forName("com.editech.services.tor.TorManager");
+            return (boolean) torMgrClass.getMethod("isProxyReachable").invoke(null);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private void startTorReflection() {
+        try {
+            Class<?> torMgrClass = Class.forName("com.editech.services.tor.TorManager");
+            torMgrClass.getMethod("startService").invoke(null);
+        } catch (Throwable e) {
+            Slog.e(TAG, "Could not start Tor service", e);
         }
     }
 
