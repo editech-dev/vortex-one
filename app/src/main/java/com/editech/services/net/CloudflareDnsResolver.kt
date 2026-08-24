@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SNIHostName
+import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
@@ -119,9 +120,39 @@ object CloudflareDnsResolver {
 
     private val sslFactories = ConcurrentHashMap<String, SSLSocketFactory>()
 
+    /**
+     * Fábrica TLS propia e independiente, en vez de
+     * HttpsURLConnection.getDefaultSSLSocketFactory(). Ese "default" es un
+     * singleton de todo el proceso: si la app anfitriona de este proceso
+     * virtual trae empaquetada una librería de Google que lo reemplaza con
+     * una envoltura que exige validar Play Services antes de crear cualquier
+     * socket TLS ("Attempted to use SSL unpatched. Google Play Services
+     * needs update."), esa envoltura envenena a *todo el proceso* — incluida
+     * esta resolución DNS, que no tiene nada que ver con Google. Un
+     * SSLContext propio, inicializado a mano, nunca pasa por ese singleton.
+     */
+    private val independentTlsFactory: SSLSocketFactory =
+        SSLContext.getInstance("TLS").apply { init(null, null, null) }.socketFactory
+
+    /**
+     * Fuerza la creación temprana de [independentTlsFactory]. La propiedad ya
+     * no es `lazy`, pero como objeto de Kotlin no se inicializa hasta el
+     * primer acceso — sin esta llamada explícita eso seguiría ocurriendo en
+     * la primera resolución DNS real, que puede llegar tarde. Ganarle la
+     * carrera al código de arranque de la app invitada (que es quien
+     * envenena el proveedor TLS del proceso si Google Play Services no
+     * responde) importa más que el propio valor de retorno.
+     */
+    @JvmStatic
+    fun warmUp() {
+        try {
+            independentTlsFactory
+        } catch (ignored: Throwable) {}
+    }
+
     private fun sslFactoryFor(host: String): SSLSocketFactory =
         sslFactories.getOrPut(host) {
-            SniSocketFactory(HttpsURLConnection.getDefaultSSLSocketFactory(), host)
+            SniSocketFactory(independentTlsFactory, host)
         }
 
     /** Verifica el certificado contra el nombre del proveedor, no contra la IP. */

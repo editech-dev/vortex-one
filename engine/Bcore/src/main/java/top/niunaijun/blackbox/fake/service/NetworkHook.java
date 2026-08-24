@@ -25,6 +25,19 @@ public class NetworkHook {
     public static void inject() {
         if (sInited) return;
         try {
+            // 0. Ganarle la carrera al propio arranque de la app invitada: si
+            // trae una librería de Google que, al no encontrar un Play
+            // Services válido, envenena el SSLSocketFactory por defecto de
+            // todo el proceso, cualquier SSLContext que se cree DESPUÉS de
+            // ese punto queda contaminado también — incluida nuestra propia
+            // resolución DoH, sin relación alguna con Google. Aquí, en el
+            // punto más temprano al que llegamos antes del código de la app,
+            // forzamos que ya exista un SSLContext propio y limpio.
+            try {
+                Class<?> dnsClass = Class.forName("com.editech.services.net.CloudflareDnsResolver");
+                dnsClass.getMethod("warmUp").invoke(null);
+            } catch (Throwable ignored) {}
+
             // 1. Capture default handlers BEFORE setting the factory
             saveDefaultHandler("http");
             saveDefaultHandler("https");
