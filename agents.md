@@ -6,7 +6,7 @@ Welcome to **Vortex One (MediaService)**. This document serves as the authoritat
 
 ## 📌 Project Overview & Architecture
 
-**Vortex One** is an Android virtualization and privacy hub designed for both **Android TV** and **Mobile Devices**. It runs isolated virtual instances of Android apps (cloned or sideloaded APKs), enforces per-app **Tor routing**, provides **DNS-over-TLS (DoT)**, and inspects real-time traffic via a built-in **Firewall**.
+**Vortex One** is an Android virtualization and privacy hub designed for both **Android TV** and **Mobile Devices**. It runs isolated virtual instances of Android apps (cloned or sideloaded APKs), enforces per-app **Tor routing**, provides zero-recursion direct-IP **DNS-over-HTTPS (DoH)**, and inspects real-time traffic via a built-in **Firewall**.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -19,7 +19,7 @@ Welcome to **Vortex One (MediaService)**. This document serves as the authoritat
 │           ┌──────────────────────────┴──────────────────────────┐           │
 │           ▼                                                     ▼           │
 │   FileScannerActivity                                   SettingsActivity    │
-│   (APK Installer & USB)                             (Storage & GMS Control) │
+│   (APK Installer & USB)                              (Storage & Updates)    │
 │           │                                                     │           │
 │           └──────────────────────────┬──────────────────────────┘           │
 │                                      ▼                                      │

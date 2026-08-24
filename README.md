@@ -56,6 +56,7 @@ Capturas de pantalla reales capturadas directamente desde **Onn 4K Streaming Box
 
 ### 🧩 4. Google Play Services (GMS) & In-App Billing Bridge
 - **`IGmsServiceBroker` Reflection Bridge**: Dynamic parameter reflection in [`GmsProxy.java`](file:///home/edison/AndroidStudioProjects/MediaService/engine/Bcore/src/main/java/top/niunaijun/blackbox/fake/service/GmsProxy.java) enables **Google Sign-In**, Firebase Auth, and Google Maps in virtual apps without security crashes.
+- **Always-On, Self-Healing Install**: `App.onCreate()` reinstalls GMS from the host device on every launch, regardless of what BlackBox's package registry claims — a stale "installed" flag with the underlying files gone (e.g. after a manual uninstall) used to leave GMS-dependent apps broken indefinitely. There's no Settings toggle to disable it: several bundled Google client libraries (YouTube, Prime Video) poison their own process-wide TLS provider when GMS is missing, breaking unrelated network calls in the same process, including our own DoH resolver.
 - **Google Cast Support**: Socket and mDNS pass-through allows community media players to stream video to Chromecast/Google TV devices.
 - **In-App Billing Stub**: Responds to license verification calls for Pro/Premium community tools.
 - **Clean UI Filtering**: Infrastructure packages run silently in the background and are excluded from the main launcher grid.
@@ -70,6 +71,19 @@ Capturas de pantalla reales capturadas directamente desde **Onn 4K Streaming Box
 - **Custom Rule Engine**: Block specific ports, endpoints, and telemetry servers.
 - **Bandwidth Throttling**: Configure custom Upload/Download speed limits per app.
 - **Room Database with Auto-Pruning**: Automated 7-day log retention keeping memory usage under 3.5%.
+
+---
+
+## 📜 Unreleased Changelog
+
+> [!NOTE]
+> **Fixes verified on-device (Onn 4K Streaming Box, Android 14) since v2.0.2:**
+> - **Prime Video crash-loop fixed**: Its bundled Ignite/Megablast bootstrap (`assets/ignite-assets.tar`, gzip-compressed inside its own APK) never self-extracted inside the sandbox, leaving `files/lua/appBootstrap.js` missing and the app crashing on every launch. Now extracted automatically on first run via a minimal built-in TAR reader — no more manual intervention.
+> - **YouTube TV fixed**: A bundled Google client library was replacing the process-wide default `SSLSocketFactory` with one that refuses to operate without a validated Play Services install, throwing "Attempted to use SSL unpatched" for *any* TLS connection in that process — including our own DoH resolver, unrelated to Google. `CloudflareDnsResolver` now builds its own isolated `SSLContext`, warmed up as early as possible in the guest process's lifecycle to win the race against that poisoning code.
+> - **DoH resiliency**: `CloudflareDnsResolver` now retries a fully-failed resolution race instead of giving up on the first transient blip (Wi-Fi power-save, a dropped TLS handshake).
+> - **GMS is now self-healing and always installed** — see the GMS section above. Fixes a state where BlackBox's package registry reported GMS as installed while its files were actually gone.
+> - **Removed a dormant footgun**: `ProxyVpnService` could capture all sandboxed traffic into a TUN interface with no packet-forwarding loop behind it if ever enabled, silently killing network for the whole sandbox. It now refuses to start until real forwarding exists.
+> - **Removed dead code**: `FirewallBridge.kt` pointed at a Bcore package that doesn't exist and had zero callers.
 
 ---
 
@@ -119,8 +133,7 @@ Capturas de pantalla reales capturadas directamente desde **Onn 4K Streaming Box
 3. **Configure Privacy & Firewall**:
    - Open **Firewall** -> Select an app -> Go to **Tor** tab to activate Tor protection.
    - Monitor live traffic under **Logs**.
-4. **Manage Google Services**:
-   - Open **Settings** -> Toggle **Google Play Services** on or off per virtual user.
+4. **Google Play Services**: Installed and kept healthy automatically on every launch — no manual toggle. Several community apps (YouTube, Prime Video) silently poison their own network stack when GMS is missing or broken, so removing it is no longer offered as a user option.
 5. **Check for Updates**:
    - Open **Settings** -> Click **"Buscar actualizaciones"** to verify if a new release is available on GitHub.
 6. **Launch**: Click any cloned app card to start its isolated virtual session.
