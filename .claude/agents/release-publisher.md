@@ -1,0 +1,1 @@
+../../.agents/agents/release-publisher/AGENT.md

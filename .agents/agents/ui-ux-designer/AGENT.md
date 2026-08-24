@@ -1,6 +1,7 @@
 ---
 name: ui-ux-designer
 description: "Subagent specializing in Android XML ViewBinding layout design, Android TV D-Pad focus state optimization, mobile responsiveness, and high-contrast dark theme styling."
+tools: Bash, Write, Read, Glob, Grep, Edit
 ---
 
 # 🎨 UI/UX Designer Agent (Android TV & Mobile XML Layout Specialist)

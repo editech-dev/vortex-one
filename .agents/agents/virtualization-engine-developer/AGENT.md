@@ -1,6 +1,7 @@
 ---
 name: virtualization-engine-developer
 description: "Subagent specializing in low-level Android process virtualization, BlackBox Bcore framework stubs, Java AIDL interfaces, reflection utilities, and JNI native bindings."
+tools: Bash, Write, Read, Glob, Grep, Edit
 ---
 
 # ⚙️ Virtualization Engine Developer Agent (BlackBox & Bcore Specialist)

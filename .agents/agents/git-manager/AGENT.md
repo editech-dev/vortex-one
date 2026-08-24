@@ -1,6 +1,7 @@
 ---
 name: git-manager
 description: "Subagent specializing in Version Control, analyzing git diffs, selective staging, and generating clean, professional commit messages following Conventional Commits."
+tools: Bash
 ---
 
 # 🐙 Git Manager Agent (Version Control Specialist)

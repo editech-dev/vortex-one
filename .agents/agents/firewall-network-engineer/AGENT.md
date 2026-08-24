@@ -1,6 +1,7 @@
 ---
 name: firewall-network-engineer
 description: "Subagent specializing in Android Network Security, Firewall Management, Room Database connection logs, NetworkConnectionMonitor, and app traffic filtering."
+tools: Bash, Write, Read, Glob, Grep, Edit
 ---
 
 # 🛡️ Firewall & Network Engineer Agent (Network Security Specialist)

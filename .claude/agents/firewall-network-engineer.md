@@ -1,0 +1,1 @@
+../../.agents/agents/firewall-network-engineer/AGENT.md

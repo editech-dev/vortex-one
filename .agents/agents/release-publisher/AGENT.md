@@ -1,6 +1,7 @@
 ---
 name: release-publisher
 description: "Subagent specializing in Android Gradle release compilation, version code/name synchronization, ProGuard/R8 obfuscation rules, APK signing, GitHub Release creation, and git tagging for vortex-one."
+tools: Bash, Write, Read, Glob, Grep, Edit
 ---
 
 # 🚀 Release Publisher Agent (GitHub Releases & Build Specialist)
