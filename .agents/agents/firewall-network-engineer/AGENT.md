@@ -17,8 +17,8 @@ Before working on firewall and network tasks, inspect the relevant skills in `.a
 
 ## 🛠️ Technological Stack
 - **Database & Storage:** Room Database in Kotlin (`FirewallDatabase`, `FirewallRuleDao`, `ConnectionLogDao`) with 7-day auto-pruning.
-- **Privacy & Tor Integration:** Embedded Tor daemon (`libtor.so`), `TorManager`, `TorService`, SOCKS5 domain routing (`ATYP 0x03`), and virtual IP anti-leak mapping (`127.42.0.0/16`).
-- **Encrypted DNS:** `CloudflareDnsResolver.kt` implementing RFC 7858 DNS-over-TLS (DoT on port 853) with direct UDP failover and LRU in-memory cache.
+- **Privacy & Tor Integration:** Embedded Tor daemon (`libtor.so`), `TorManager`, `TorService` (SOCKS5 `127.0.0.1:9150`, DNS listener `5453`, control `9151`), SOCKS5 domain routing (`ATYP 0x03`), and virtual IP anti-leak mapping (`127.192.0.0/10`).
+- **Encrypted DNS:** `CloudflareDnsResolver.kt` implementing RFC 8484 DNS-over-HTTPS (DoH on port 443) via direct-IP connections to `1.1.1.1` / `1.0.0.1` / `8.8.8.8` / `8.8.4.4` / `9.9.9.9` raced in parallel, isolated `SSLContext`, Google DoH JSON API failover (no UDP 53), and LRU in-memory cache.
 - **Low-Level Socket Interception:** `OsStub.java` hooks in `:engine:Bcore` for libc socket operations (`connect`, `android_getaddrinfo`, `sendto`).
 - **Core Engine & UI:** `FirewallManager`, `NetworkConnectionMonitor`, `FirewallActivity`, `FirewallAppDetailActivity`.
 

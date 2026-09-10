@@ -1,6 +1,6 @@
 # Vortex One 📱📺
 
-[![Release](https://img.shields.io/badge/Release-v2.0.2-brightgreen?style=for-the-badge&logo=github)](https://github.com/editech-dev/vortex-one/releases/tag/v2.0.2)
+[![Release](https://img.shields.io/badge/Release-v2.0.3-brightgreen?style=for-the-badge&logo=github)](https://github.com/editech-dev/vortex-one/releases/tag/v2.0.3)
 [![Platform](https://img.shields.io/badge/Platform-Android%20TV%20%7C%20Mobile-blue?style=for-the-badge&logo=android)](https://github.com/editech-dev/vortex-one)
 [![Privacy](https://img.shields.io/badge/Privacy-Tor%20Embedded%20%2B%20Direct--IP%20DoH-purple?style=for-the-badge&logo=torbrowser)](https://github.com/editech-dev/vortex-one)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange?style=for-the-badge)](NOTICE)
@@ -11,15 +11,15 @@ Run community streaming apps, IPTV players, emulators, and cloned APKs with comp
 
 ---
 
-## 📥 Downloads (v2.0.2)
+## 📥 Downloads (v2.0.3)
 
 Choose the optimal package for your target device:
 
 | Architecture | Recommended Devices | Direct Download Link |
 | :--- | :--- | :--- |
-| 🌐 **Universal APK** | Smart TVs, TV Boxes, Smartphones (All) | [Download Universal v2.0.2](https://github.com/editech-dev/vortex-one/releases/download/v2.0.2/VortexOne-v2.0.2-universal.apk) |
-| ⚡ **ARM64 64-bit** | Modern Smartphones & High-end TV Boxes | [Download ARM64 v2.0.2](https://github.com/editech-dev/vortex-one/releases/download/v2.0.2/VortexOne-v2.0.2-arm64-v8a.apk) |
-| 📺 **ARMv7 32-bit** | Smart TVs, TV Sticks & Onn 4K Streaming Boxes | [Download ARMv7 v2.0.2](https://github.com/editech-dev/vortex-one/releases/download/v2.0.2/VortexOne-v2.0.2-armeabi-v7a.apk) |
+| 🌐 **Universal APK** | Smart TVs, TV Boxes, Smartphones (All) | [Download Universal v2.0.3](https://github.com/editech-dev/vortex-one/releases/download/v2.0.3/VortexOne-v2.0.3-universal.apk) |
+| ⚡ **ARM64 64-bit** | Modern Smartphones & High-end TV Boxes | [Download ARM64 v2.0.3](https://github.com/editech-dev/vortex-one/releases/download/v2.0.3/VortexOne-v2.0.3-arm64-v8a.apk) |
+| 📺 **ARMv7 32-bit** | Smart TVs, TV Sticks & Onn 4K Streaming Boxes | [Download ARMv7 v2.0.3](https://github.com/editech-dev/vortex-one/releases/download/v2.0.3/VortexOne-v2.0.3-armeabi-v7a.apk) |
 
 ---
 
@@ -45,8 +45,8 @@ Capturas de pantalla reales capturadas directamente desde **Onn 4K Streaming Box
 - **Fail-Safe Kill-Switch**: Automatically blocks unencrypted IP leaks if the Tor daemon disconnects or fails.
 
 ### 🔒 2. Zero-Recursion Direct-IP DNS-over-HTTPS (DoH / RFC 8484)
-- **Direct-IP DoH Connections**: Resolves domain names for non-Tor apps directly through IP endpoints (`1.1.1.1:443`, `1.0.0.1:443`, `8.8.8.8:443`, `9.9.9.9:443`).
-- **Zero DNS Recursion Leaks**: Completely eliminates intermediate system DNS / DoT queries for DoH hostnames, ensuring local ISPs and DNS services cannot monitor app queries.
+- **Direct-IP DoH Connections**: Resolves domain names for non-Tor apps directly through IP endpoints (`1.1.1.1:443`, `1.0.0.1:443`, `8.8.8.8:443`, `8.8.4.4:443`, `9.9.9.9:443`) raced in parallel, with a Google DoH JSON API last-resort failover and no unencrypted UDP 53 path.
+- **Zero DNS Recursion Leaks**: Completely eliminates intermediate system DNS / DoT queries, ensuring local ISPs and DNS services cannot monitor app queries.
 - **High-Speed In-Memory LRU Cache**: Sub-millisecond repeat resolutions with 5-minute TTL.
 
 ### 🔄 3. In-App Updates via GitHub Releases
@@ -74,16 +74,18 @@ Capturas de pantalla reales capturadas directamente desde **Onn 4K Streaming Box
 
 ---
 
-## 📜 Unreleased Changelog
+## 📜 Version 2.0.3 Changelog
 
 > [!NOTE]
-> **Fixes verified on-device (Onn 4K Streaming Box, Android 14) since v2.0.2:**
+> **Fixes verified on-device (Onn 4K Streaming Box, Android 14). All changes land inside the sandbox — the host `applicationId` is unchanged, so this installs as an in-place update over v2.0.2 and keeps every cloned app, session, and firewall rule.**
 > - **Prime Video crash-loop fixed**: Its bundled Ignite/Megablast bootstrap (`assets/ignite-assets.tar`, gzip-compressed inside its own APK) never self-extracted inside the sandbox, leaving `files/lua/appBootstrap.js` missing and the app crashing on every launch. Now extracted automatically on first run via a minimal built-in TAR reader — no more manual intervention.
 > - **YouTube TV fixed**: A bundled Google client library was replacing the process-wide default `SSLSocketFactory` with one that refuses to operate without a validated Play Services install, throwing "Attempted to use SSL unpatched" for *any* TLS connection in that process — including our own DoH resolver, unrelated to Google. `CloudflareDnsResolver` now builds its own isolated `SSLContext`, warmed up as early as possible in the guest process's lifecycle to win the race against that poisoning code.
 > - **DoH resiliency**: `CloudflareDnsResolver` now retries a fully-failed resolution race instead of giving up on the first transient blip (Wi-Fi power-save, a dropped TLS handshake).
 > - **GMS is now self-healing and always installed** — see the GMS section above. Fixes a state where BlackBox's package registry reported GMS as installed while its files were actually gone.
+> - **Host process DNS contained through DoH** and `checkSignatures` interception hardened so a fake Play Store package info is signed consistently.
 > - **Removed a dormant footgun**: `ProxyVpnService` could capture all sandboxed traffic into a TUN interface with no packet-forwarding loop behind it if ever enabled, silently killing network for the whole sandbox. It now refuses to start until real forwarding exists.
 > - **Removed dead code**: `FirewallBridge.kt` pointed at a Bcore package that doesn't exist and had zero callers.
+> - **Release build**: R8 full-mode enabled; release APKs are now named `VortexOne-v2.0.3-<abi>.apk` deterministically by Gradle.
 
 ---
 

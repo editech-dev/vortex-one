@@ -19,14 +19,15 @@ Before running release builds or editing ProGuard obfuscation rules, inspect:
 
 When invoked to publish a release (e.g. `v1.0.3`), execute the following steps end-to-end:
 
+> ⚠️ **NUNCA cambies `applicationId` ni `namespace` en `app/build.gradle.kts`.** Valen `com.editech.services` de forma permanente (identificador histórico). Cambiarlo rompe la actualización in-place de todas las instalaciones desplegadas y huérfana los datos del motor de virtualización. Solo se tocan `versionCode` / `versionName`.
+
 ### Step 1: Version Synchronization
-1. Update `versionCode` and `versionName` in `app/build.gradle.kts`:
+1. Update `appVersionName` and `appVersionCode` (fuente única, encima del bloque `android { }`) in `app/build.gradle.kts`:
    ```kotlin
-   defaultConfig {
-       versionCode = 10003  // Sequential integer increment
-       versionName = "1.0.3"
-   }
+   val appVersionName = "1.0.3"
+   val appVersionCode = 10003  // Sequential integer increment
    ```
+   `defaultConfig` y el nombrado de APKs los consumen automáticamente.
 2. Update release download badges and links in [README.md](file:///home/edison/AndroidStudioProjects/MediaService/README.md):
    ```markdown
    [![Download APK](https://img.shields.io/badge/Download-v1.0.3-brightgreen?style=for-the-badge&logo=android)](https://github.com/editech-dev/vortex-one/releases/download/v1.0.3/VortexOne-v1.0.3-universal.apk)
@@ -41,8 +42,16 @@ When invoked to publish a release (e.g. `v1.0.3`), execute the following steps e
    ```bash
    ./gradlew assembleRelease
    ```
-3. Verify output APK binary exists:
-   `app/build/outputs/apk/release/VortexOne-v1.0.3-universal.apk` (or `app-release.apk`).
+3. Verify the three signed APKs exist (Gradle ya los nombra de forma determinista vía
+   `androidComponents { onVariants }` en `app/build.gradle.kts` — no hace falta renombrarlos a mano):
+   - `app/build/outputs/apk/release/VortexOne-v1.0.3-universal.apk`
+   - `app/build/outputs/apk/release/VortexOne-v1.0.3-arm64-v8a.apk`
+   - `app/build/outputs/apk/release/VortexOne-v1.0.3-armeabi-v7a.apk`
+4. Confirmar la firma antes de publicar (debe coincidir con releases anteriores para que
+   la actualización in-app y por sideload sea válida):
+   ```bash
+   apksigner verify --print-certs app/build/outputs/apk/release/VortexOne-v1.0.3-universal.apk
+   ```
 
 ### Step 3: Compute Cryptographic Hash (SHA-256)
 Compute and record the SHA-256 checksum:

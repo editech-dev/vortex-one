@@ -1,6 +1,8 @@
-# 🤖 AI Agent Orientation & Development Guide - Vortex One (v2.0.0)
+# 🤖 AI Agent Orientation & Development Guide - Vortex One (v2.0.3)
 
-Welcome to **Vortex One (MediaService)**. This document serves as the authoritative guide for AI assistants, subagents, and automated workflows working on this codebase. It outlines the project architecture, coding standards, subagent directory, skill loading mechanisms, and workflow expectations.
+Welcome to **Vortex One**. This document serves as the authoritative guide for AI assistants, subagents, and automated workflows working on this codebase. It outlines the project architecture, coding standards, subagent directory, skill loading mechanisms, and workflow expectations.
+
+> ⚠️ **`applicationId` / package `com.editech.services` — NO CAMBIAR.** Es un identificador histórico (el proyecto se llamaba "MediaService"). El nombre comercial "Vortex One" vive en `app_name` y en `@style/Theme.VortexOne`, no en el package. Cambiar el `applicationId` haría que Android trate el APK como app nueva y las instalaciones existentes (p. ej. el onn TV) perderían todos los datos del motor de virtualización — `engine/Bcore/.../core/env/BEnvironment.java` deriva las rutas de datos del package del host. No hay migración. El renombrado del namespace Kotlin también queda descartado: el engine referencia clases de la app por nombre absoluto (`Class.forName("com.editech.services...")`) en ~20 sitios que el compilador no valida.
 
 ---
 
@@ -34,12 +36,12 @@ Welcome to **Vortex One (MediaService)**. This document serves as the authoritat
           ▼                            ▼                            ▼
     ┌───────────┐              ┌───────────────┐            ┌──────────────┐
     │Engine Core│              │  Firewall DB  │            │  Tor Daemon  │
-    │ (:engine) │              │ (Room Kotlin) │            │ (SOCKS5 9050)│
+    │ (:engine) │              │ (Room Kotlin) │            │ (SOCKS5 9150)│
     └───────────┘              └───────────────┘            └──────────────┘
 ```
 
 ### Module Topology:
-- **`:app`**: Kotlin-based application module containing UI screens, activities, adapters, Room DB firewall logic, Tor service management, and DoT DNS resolution.
+- **`:app`**: Kotlin-based application module containing UI screens, activities, adapters, Room DB firewall logic, Tor service management, and direct-IP DoH (DNS-over-HTTPS) resolution.
 - **`:engine:Bcore`**: Core virtualization library written in low-level Java (based on BlackBox), including AIDL interface stubs, binder hooks (`ILocaleManagerProxy`, `GmsProxy`, `IInAppBillingServiceProxy`, `BPackageManager`), and process isolation logic.
 - **`:engine:black-reflection`**: Reflection utilities (`FreeReflection` / `BlackReflection`) for accessing internal Android APIs.
 - **`:engine:compiler`**: Annotation processor for engine reflection mapping.
@@ -100,7 +102,7 @@ When assigning specialized tasks, delegate them to the corresponding specialized
 | Subagent | Path | Specialized Domain & Scope | When to Invoke |
 | :--- | :--- | :--- | :--- |
 | **`virtualization-engine-developer`** | [AGENT.md](file:///.agents/agents/virtualization-engine-developer/AGENT.md) | `:engine:Bcore`, AIDL stubs, `BPackageManager` Leanback, `ILocaleManagerProxy`, `GmsProxy`, `IInAppBillingServiceProxy`, `VirtualSpoof.cpp` GPU passthrough. | Modifying virtual sandbox, IPC bindings, system service hooks, or native C++ JNI code. |
-| **`firewall-network-engineer`** | [AGENT.md](file:///.agents/agents/firewall-network-engineer/AGENT.md) | `com.editech.services.firewall`, Room DB, `OsStub.java` libc socket hooks, `TorManager`, `TorService` (embedded `libtor.so`), `CloudflareDnsResolver` (DoT port 853). | Managing network security, Tor per-app privacy, DNS-over-TLS, socket traffic rules, and connection logs. |
+| **`firewall-network-engineer`** | [AGENT.md](file:///.agents/agents/firewall-network-engineer/AGENT.md) | `com.editech.services.firewall`, Room DB, `OsStub.java` libc socket hooks, `TorManager`, `TorService` (embedded `libtor.so`, SOCKS5 `9150`), `CloudflareDnsResolver` (direct-IP DoH port 443). | Managing network security, Tor per-app privacy, DNS-over-HTTPS, socket traffic rules, and connection logs. |
 | **`ui-ux-designer`** | [AGENT.md](file:///.agents/agents/ui-ux-designer/AGENT.md) | Android XML ViewBinding layouts, D-Pad remote focus indicators (`#38BDF8`), TV 16:9 adaptive grids, Material cards. | Designing and styling activities, fragments, dialogs, adapters, and theme resources. |
 | **`git-manager`** | [AGENT.md](file:///.agents/agents/git-manager/AGENT.md) | Git version control, targeted staging, diff analysis, Conventional Commits without commercial app names. | Preparing commits, organizing branch changes, and maintaining a clean commit history. |
 | **`release-publisher`** | [AGENT.md](file:///.agents/agents/release-publisher/AGENT.md) | Gradle release compilation, `versionCode`/`versionName` synchronization, ProGuard/R8 obfuscation, SHA-256 generation, Git tagging & GitHub Releases. | Automating release candidate creation, release verification, and binary deployment. |

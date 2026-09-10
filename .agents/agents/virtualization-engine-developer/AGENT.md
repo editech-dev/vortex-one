@@ -42,5 +42,6 @@ Before modifying low-level Java engine code, inspect the relevant skills in `.ag
 ## 🤝 Collaboration Flow
 When assigned a virtualization engine task:
 - Focus strictly on files within `engine/Bcore`, `engine/black-reflection`, or engine integrations in `app/src/main/java/com/editech/services/App.kt`.
+- ⚠️ El engine referencia clases de la app por nombre absoluto (`Class.forName("com.editech.services...")` en `OsStub.java`, `LauncherActivity.java`, `NetworkHook.java`, `NativeCore.java`, `IDnsResolverProxy.java`), respaldadas por `-keep` en `app/proguard-rules.pro`. El compilador NO valida esas cadenas. El package `com.editech.services` (namespace y `applicationId`) está congelado precisamente por esto: no lo renombres.
 - Test engine stability by verifying app cloning and virtual package installation flows.
 - Ensure high performance and low latency during virtual app launch.

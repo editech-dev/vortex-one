@@ -1,20 +1,22 @@
-# Developer Documentation - Vortex One (v2.0.1)
+# Developer Documentation - Vortex One (v2.0.3)
 
-This document contains authoritative technical details regarding the architecture, virtualization engine hooks, Tor privacy engine, encrypted DNS-over-TLS (DoT) resolver, firewall inspection, and build workflows of **Vortex One**.
+This document contains authoritative technical details regarding the architecture, virtualization engine hooks, Tor privacy engine, encrypted DNS-over-HTTPS (DoH) resolver, firewall inspection, and build workflows of **Vortex One**.
 
 ---
 
 ## 🛠️ Technology Stack & Dependencies
 
-- **Language**: Kotlin 1.9 (App, UI & Firewall) + Java 8/17 (Virtualization Engine Core) + C++20 (NDK Native Hooks)
+- **Language**: Kotlin 2.2.10 (App, UI & Firewall) + Java 8/17 (Virtualization Engine Core) + C++20 (NDK Native Hooks)
 - **Min SDK**: 21 (Android 5.0 Lollipop)
 - **Target SDK**: 34 (Android 14)
 - **UI Framework**: XML ViewBinding + Material Components (Strictly No Compose for optimum Leanback rendering performance on low-end Smart TV chipsets)
 - **Virtualization Engine**: BlackBox Core (`:engine:Bcore`, Apache 2.0)
-- **Embedded Network Engine**: Native Tor Daemon (`libtor.so`, SOCKS5 on `127.0.0.1:9050`)
-- **DNS Resolver**: `CloudflareDnsResolver` (Native RFC 7858 DNS-over-TLS on port 853 with UDP failover and LRU in-memory cache)
+- **Embedded Network Engine**: Native Tor Daemon (`libtor.so`, SOCKS5 on `127.0.0.1:9150`, DNS listener on `127.0.0.1:5453`, control port `9151` — offsets chosen to avoid clashing with a system Orbot on `9050`)
+- **DNS Resolver**: `CloudflareDnsResolver` (Native RFC 8484 DNS-over-HTTPS on port 443, direct-IP to `1.1.1.1` / `1.0.0.1` / `8.8.8.8` / `8.8.4.4` / `9.9.9.9` raced in parallel, Google DoH JSON API as last-resort failover, isolated `SSLContext`, LRU in-memory cache; no unencrypted UDP 53 fallback)
 - **Database**: Room Persistence Library (SQLite) with automated 7-day log retention
 - **Target Architectures**: ARM64 (`arm64-v8a`), ARMv7 (`armeabi-v7a`), Universal
+- **`applicationId`**: `com.editech.services` — **identificador histórico congelado** (el proyecto se llamaba "MediaService"). Es la identidad de instalación ante el `PackageManager` y no es visible para el usuario (el launcher muestra `app_name` = "Vortex One"). No debe cambiarse: `BEnvironment` (`engine/Bcore/.../core/env/BEnvironment.java`) deriva `/data/data/<applicationId>/blackbox` y `/sdcard/Android/data/<applicationId>/files/blackbox` del package del host, así que un cambio dejaría huérfanos los datos de todas las instalaciones desplegadas, sin migración posible.
+- **APK release naming**: automatizado en `app/build.gradle.kts` (`androidComponents { onVariants ... }`) → `VortexOne-vX.Y.Z-<abi>.apk`.
 
 ---
 
@@ -27,7 +29,7 @@ graph TD
     subgraph "Main Process (com.editech.services)"
         UI[MainActivity / Settings / Firewall UI]
         TorSvc[TorService: libtor.so Daemon Manager]
-        CFDNS[CloudflareDnsResolver: DoT 853 / UDP 53]
+        CFDNS[CloudflareDnsResolver: Direct-IP DoH 443]
         FWMgr[FirewallManager + Room DB]
     end
 
@@ -47,8 +49,8 @@ graph TD
     end
 
     subgraph "Local Network & Daemons"
-        TorDaemon[libtor.so SOCKS5 Proxy 127.0.0.1:9050]
-        DoTServer[Cloudflare 1.1.1.1:853 TLS]
+        TorDaemon[libtor.so SOCKS5 Proxy 127.0.0.1:9150]
+        DoHServer[Direct-IP DoH 1.1.1.1 / 8.8.8.8 / 9.9.9.9 : 443]
     end
 
     UI -->|AIDL IPC| BServer
@@ -59,7 +61,7 @@ graph TD
     VApp -->|Socket Calls| OsStub
     OsStub -->|Tor Enabled App| TorDaemon
     OsStub -->|Non-Tor App DNS| CFDNS
-    CFDNS -->|DoT Handshake| DoTServer
+    CFDNS -->|DoH POST /dns-query| DoHServer
     OsStub -->|Log Event| FWMgr
 ```
 
@@ -111,26 +113,27 @@ Network interception occurs at the libc layer via Libcore hooks in [`OsStub.java
 ```java
 // 1. DNS Interception (android_getaddrinfo / getaddrinfo)
 if (isTorEnabledForPackage(pkg)) {
-    // Allocate virtual IP (127.42.x.x) and route DNS remotely through Tor exit nodes
+    // Allocate a virtual IP in 127.192.0.0/10 and route DNS remotely through Tor exit nodes
     String virtualIp = getOrAllocateVirtualIp(domainNode);
     return new InetAddress[]{ InetAddress.getByAddress(domainNode, InetAddress.getByName(virtualIp).getAddress()) };
 } else {
-    // Non-Tor: Encrypted resolution via DoT (1.1.1.1:853)
+    // Non-Tor: encrypted resolution via direct-IP DoH (1.1.1.1:443, servers raced in parallel)
     InetAddress[] dohAddrs = resolveViaCloudflareDoH(domainNode);
     if (dohAddrs != null && dohAddrs.length > 0) return dohAddrs;
 }
 
 // 2. Socket Connection (Os.connect)
 if (isTorEnabledForPackage(pkg)) {
-    // SOCKS5 ATYP 0x03 Domain Tunneling to 127.0.0.1:9050 with Fail-Safe Kill-Switch
+    // SOCKS5 ATYP 0x03 Domain Tunneling to 127.0.0.1:9150 with Fail-Safe Kill-Switch
     return connectViaTorSocks5(who, method, args, address, port, pkg);
 }
 ```
 
-### 2. DNS-over-TLS (DoT) Engine (`CloudflareDnsResolver.kt`)
-- **RFC 7858 Native DoT on Port 853**: Establishes TLS sessions to Cloudflare DNS (`1.1.1.1`).
+### 2. DNS-over-HTTPS (DoH) Engine (`CloudflareDnsResolver.kt`)
+- **RFC 8484 Native DoH on Port 443**: `POST /dns-query` (wire-format) to direct IPs `1.1.1.1`, `1.0.0.1`, `8.8.8.8`, `8.8.4.4`, `9.9.9.9` — connecting to the literal IP (never a hostname) so no bootstrap DNS query ever leaks, with the `Host:` / SNI set per provider (`cloudflare-dns.com`, `dns.google`, `dns.quad9.net`).
+- **Parallel Race + Retry**: All servers are queried concurrently and the first valid answer wins; a fully-failed race is retried (`RETRY_ATTEMPTS`) instead of giving up on the first transient blip. Last-resort failover is the Google DoH JSON API (`https://8.8.8.8/resolve`, `Host: dns.google`). There is **no** unencrypted UDP 53 fallback.
+- **Isolated TLS Provider**: Builds and warms its own `SSLContext` early in the guest process lifecycle, so a bundled Google client library that swaps the process-wide default `SSLSocketFactory` cannot break resolution ("Attempted to use SSL unpatched").
 - **Concurrent In-Memory Cache**: `ConcurrentHashMap<String, CachedEntry>` with 5-minute TTL.
-- **Fail-Safe Fallback**: Immediate fallback to UDP 53 (`1.1.1.1:53`) and system resolver if DoT exceeds the strict 1000ms timeout.
 
 ### 3. Integrated Firewall Engine (`FirewallManager.kt`)
 - **Room Database**: Persists connection logs and per-app blocking rules.
@@ -142,9 +145,10 @@ if (isTorEnabledForPackage(pkg)) {
 ## 🚀 Build & Release Workflows
 
 ### Prerequisites
-- JDK 17
-- Android SDK 34 (Build Tools 34.0.0)
-- Android NDK 25.x (Required for native C++ hooks in `:engine:Bcore`)
+- JDK 17+ (build verified on JDK 21)
+- Android SDK — `compileSdk 37`, `targetSdk 34`, `minSdk 21`
+- Android NDK `29.0.13846066` (required for native C++ hooks in `:engine:Bcore`)
+- Gradle 9.5 (wrapper) · Android Gradle Plugin 9.3.0 · Kotlin 2.2.10
 
 ### Gradle Commands
 
@@ -160,10 +164,11 @@ if (isTorEnabledForPackage(pkg)) {
 ```
 
 ### Build Artifacts
-Binaries are generated under `app/build/outputs/apk/release/`:
-- `VortexOne-v2.0.1-universal.apk`
-- `VortexOne-v2.0.1-arm64-v8a.apk`
-- `VortexOne-v2.0.1-armeabi-v7a.apk`
+Binaries are generated under `app/build/outputs/apk/release/`, named deterministically by
+`androidComponents { onVariants }` in `app/build.gradle.kts`:
+- `VortexOne-v2.0.3-universal.apk`
+- `VortexOne-v2.0.3-arm64-v8a.apk`
+- `VortexOne-v2.0.3-armeabi-v7a.apk`
 
 ---
 
@@ -176,4 +181,4 @@ When creating or modifying layouts:
 
 ---
 
-*Developer Guide for Vortex One v2.0.1.*
+*Developer Guide for Vortex One v2.0.3.*
