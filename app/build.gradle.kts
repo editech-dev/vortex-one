@@ -3,19 +3,33 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+import com.android.build.api.variant.FilterConfiguration
 import java.util.Properties
 import java.io.FileInputStream
 
+// Fuente única de la versión: defaultConfig y el nombrado de APKs la comparten.
+val appVersionName = "2.0.3"
+val appVersionCode = 203
+
 android {
+    // IDENTIDAD DE INSTALACIÓN — NO CAMBIAR.
+    // `namespace` y `applicationId` valen "com.editech.services" por motivos históricos
+    // (el proyecto se llamaba "MediaService"). El nombre comercial "Vortex One" vive en
+    // `app_name` (res/values/strings.xml) y en el tema, no aquí.
+    // Cambiar el applicationId hace que Android trate el APK como app nueva: el onn TV
+    // instalado perdería el acceso a los datos del motor de virtualización
+    // (engine/Bcore/.../core/env/BEnvironment.java deriva /data/data/<applicationId>/blackbox
+    // y /sdcard/Android/data/<applicationId>/files/blackbox del package del host).
+    // No existe migración para eso.
     namespace = "com.editech.services"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.editech.services"
+        applicationId = "com.editech.services" // ver aviso sobre IDENTIDAD DE INSTALACIÓN arriba
         minSdk = 21
         targetSdk = 34
-        versionCode = 203
-        versionName = "2.0.3"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -82,6 +96,19 @@ android {
         }
         jniLibs {
             useLegacyPackaging = true
+        }
+    }
+}
+
+// Nombrado determinista de los APKs de release: VortexOne-vX.Y.Z-<abi>.apk
+// (armeabi-v7a, arm64-v8a, universal — según el bloque splits.abi de arriba).
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        variant.outputs.forEach { output ->
+            val abi = output.filters
+                .find { it.filterType == FilterConfiguration.FilterType.ABI }
+                ?.identifier ?: "universal"
+            output.outputFileName.set("VortexOne-v$appVersionName-$abi.apk")
         }
     }
 }

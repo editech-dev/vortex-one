@@ -25,7 +25,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "VortexTV"
+rootProject.name = "VortexOne"
 include(":app")
  
 // Virtualization Engine Modules (based on BlackBox - Apache 2.0)

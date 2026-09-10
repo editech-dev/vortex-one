@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base application theme - MaterialComponents required for MaterialCardView -->
-    <style name="Theme.VortexTV" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.VortexOne" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color -->
         <item name="colorPrimary">@color/accent_color</item>
         <item name="colorPrimaryVariant">@color/accent_focus</item>
