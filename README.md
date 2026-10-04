@@ -160,6 +160,10 @@ Vortex One relies on these outstanding open-source projects:
 - **VirtualApp / VirtualAPK** — Original virtualization concepts.
 - **Dobby & xDL** — Native inline hook framework and dynamic linker utilities.
 
+### 🤖 AI-Assisted Development
+
+In the spirit of transparency: parts of Vortex One were developed with the help of AI coding harnesses — **Antigravity CLI**, **[OpenCode](https://opencode.ai)** and **[Claude Code](https://claude.com/claude-code)** (Anthropic). Every change was directed, reviewed, tested on real Android TV hardware, and released by [editech-dev](https://github.com/editech-dev), who remains the sole author and maintainer of this project.
+
 ---
 
 *Built with ❤️ by [editech-dev](https://github.com/editech-dev) for the Android Community.*
